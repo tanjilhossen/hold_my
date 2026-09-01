@@ -6,8 +6,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use App\Models\Setting;
 use App\Models\SlotHash;
+use App\Models\SlotHold;
 use App\Services\TaqamulTokenService;
 use Exception;
 
@@ -683,6 +685,9 @@ class HoldSlotController extends Controller
                     ]);
 
                     $resId = null;
+                    $status = $holdRes->status();
+                    $bodyStr = $holdRes->body();
+
                     if ($holdRes->successful()) {
                         $resId = $holdRes->json()['id'] ?? null;
                     } else {
@@ -692,6 +697,8 @@ class HoldSlotController extends Controller
                         ]);
                         if ($tempRes->successful()) {
                             $resId = $tempRes->json()['id'] ?? null;
+                            $status = $tempRes->status();
+                            $bodyStr = $tempRes->body();
                         }
                     }
 
@@ -719,9 +726,23 @@ class HoldSlotController extends Controller
                     $createdHoldIds[] = $hold->id;
                     $lockedCount++;
 
+                    $apiLogs[] = [
+                        'email' => $email,
+                        'endpoint' => 'POST /api/v1/individual_labor_space/exam_reservations',
+                        'http_status' => $status,
+                        'reservation_id' => $resId,
+                        'response' => Str::limit($bodyStr, 150)
+                    ];
+
                 } catch (Exception $e) {
                     Log::warning("Hold failed for email {$email}: " . $e->getMessage());
                     $failedEmails[] = $email;
+                    $apiLogs[] = [
+                        'email' => $email,
+                        'endpoint' => 'POST /api/v1/individual_labor_space/exam_reservations',
+                        'http_status' => 500,
+                        'response' => $e->getMessage()
+                    ];
                 }
             }
 
@@ -733,13 +754,15 @@ class HoldSlotController extends Controller
                     'mother_hash' => $motherHash,
                     'center_name' => $centerName,
                     'message' => "Successfully locked {$lockedCount} slot(s) for {$centerName} into Slot Vault for 20 minutes.",
+                    'api_logs' => $apiLogs,
                     'failed_emails' => $failedEmails
                 ]);
             }
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to lock slots on candidate pool accounts. Please verify pool credentials.'
+                'message' => 'Failed to lock slots on candidate pool accounts. Please verify pool credentials.',
+                'api_logs' => $apiLogs
             ], 500);
 
         } catch (Exception $ex) {

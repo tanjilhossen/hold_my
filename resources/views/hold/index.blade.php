@@ -625,8 +625,15 @@
             }
         })
         .then(data => {
+            if (data.api_logs && data.api_logs.length > 0) {
+                data.api_logs.forEach(log => {
+                    appendLog(`[HTTP REQUEST] -> ${log.email} | ${log.endpoint}`);
+                    appendLog(`[HTTP RESPONSE] <- Status: ${log.http_status} | Res ID: ${log.reservation_id || 'NONE'} | Data: ${log.response}`);
+                });
+            }
+
             if (data.success) {
-                appendLog(`Success! Locked ${data.locked_count} slot(s) for ${centerName} into Slot Vault for 20 minutes.`);
+                appendLog(`[SUCCESS]: Locked ${data.locked_count} slot(s) for ${centerName} into Slot Vault for 20 minutes.`);
                 
                 $(btnElement).closest('tr').fadeOut(500, function() {
                     $(this).remove();
@@ -649,13 +656,14 @@
                 btnElement.disabled = false;
                 btnElement.innerHTML = originalText;
                 alert('Failed to lock slots: ' + data.message);
-                appendLog(`Error locking slots: ${data.message}`);
+                appendLog(`[ERROR]: Failed to lock slots: ${data.message}`);
             }
         })
         .catch(err => {
             btnElement.disabled = false;
             btnElement.innerHTML = originalText;
             alert('Error communicating with server: ' + err.message);
+            appendLog(`[EXCEPTION]: ${err.message}`);
         });
     }
 </script>
