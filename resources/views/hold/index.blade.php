@@ -616,7 +616,14 @@
                 category_id: categoryId
             })
         })
-        .then(res => res.json())
+        .then(async res => {
+            const text = await res.text();
+            try {
+                return JSON.parse(text);
+            } catch(e) {
+                throw new Error('Server error: ' + (text.includes('<!DOCTYPE') ? 'HTTP 500 Execution Timeout or Server Error' : text.substring(0, 100)));
+            }
+        })
         .then(data => {
             if (data.success) {
                 appendLog(`Success! Locked ${data.locked_count} slot(s) for ${centerName} into Slot Vault for 20 minutes.`);

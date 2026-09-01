@@ -601,138 +601,153 @@ class HoldSlotController extends Controller
      */
     public function lockAllSlots(Request $request)
     {
-        $request->validate([
-            'mother_hash' => 'required|string',
-            'available_seats' => 'required|integer|min:1',
-            'category_id' => 'required',
-            'city' => 'required|string',
-            'center_name' => 'required|string',
-            'exam_date' => 'required|string',
-        ]);
+        @set_time_limit(300);
+        @ini_set('memory_limit', '512M');
 
-        $motherHash = trim($request->input('mother_hash'));
-        $requestedCount = (int)$request->input('available_seats', 10);
-        $categoryId = $request->input('category_id');
-        $city = trim($request->input('city'));
-        $centerName = trim($request->input('center_name'));
-        $examDate = trim($request->input('exam_date'));
+        try {
+            $request->validate([
+                'mother_hash' => 'required|string',
+                'available_seats' => 'required|integer|min:1',
+                'category_id' => 'required',
+                'city' => 'required|string',
+                'center_name' => 'required|string',
+                'exam_date' => 'required|string',
+            ]);
 
-        [$occId, $langCode] = $this->getOccupationAndLanguageForCategory($categoryId);
+            $motherHash = trim($request->input('mother_hash'));
+            $requestedCount = (int)$request->input('available_seats', 10);
+            $categoryId = $request->input('category_id');
+            $city = trim($request->input('city'));
+            $centerName = trim($request->input('center_name'));
+            $examDate = trim($request->input('exam_date'));
 
-        // Get up to $requestedCount valid candidate pool accounts
-        $poolAccounts = $this->tokenService->getValidPoolAccountTokens($requestedCount);
+            [$occId, $langCode] = $this->getOccupationAndLanguageForCategory($categoryId);
 
-        if (empty($poolAccounts)) {
-            $allAccounts = $this->tokenService->getPoolAccounts();
-            foreach ($allAccounts as $acc) {
-                if (count($poolAccounts) >= $requestedCount) break;
-                if (!empty($acc['email'])) {
-                    $poolAccounts[] = [
-                        'email' => $acc['email'],
-                        'password' => $acc['password'] ?? 'Taqamul@2723!',
-                        'token' => $acc['token'] ?? null,
-                    ];
-                }
-            }
-        }
+            // Get up to $requestedCount valid candidate pool accounts
+            $poolAccounts = $this->tokenService->getValidPoolAccountTokens($requestedCount);
 
-        if (empty($poolAccounts)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No candidate pool accounts available to execute hold.'
-            ], 422);
-        }
-
-        $lockedCount = 0;
-        $createdHoldIds = [];
-        $failedEmails = [];
-
-        foreach ($poolAccounts as $acc) {
-            $email = $acc['email'];
-            $token = $acc['token'] ?? null;
-
-            if (empty($token) || !$this->tokenService->isValidTokenFormat($token)) {
-                $token = $this->tokenService->loginAndFetchToken($email, $acc['password'] ?? 'Taqamul@2723!');
-            }
-
-            if (empty($token) || !$this->tokenService->isValidTokenFormat($token)) {
-                $failedEmails[] = $email;
-                continue;
-            }
-
-            $headers = [
-                'Accept' => 'application/json',
-                'X-Tenant-Name' => 'svp-international',
-                'Authorization' => str_starts_with($token, 'Bearer ') ? $token : "Bearer {$token}",
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            ];
-
-            try {
-                $holdRes = Http::timeout(8)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
-                    'exam_session_id' => $motherHash,
-                    'occupation_id' => $occId,
-                    'language_code' => $langCode,
-                    'methodology' => 'in_person',
-                ]);
-
-                $resId = null;
-                if ($holdRes->successful()) {
-                    $resId = $holdRes->json()['id'] ?? null;
-                } else {
-                    $tempRes = Http::timeout(8)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats?locale=en", [
-                        'exam_session_id' => [$motherHash],
-                        'methodology' => 'in_person',
-                    ]);
-                    if ($tempRes->successful()) {
-                        $resId = $tempRes->json()['id'] ?? null;
+            if (empty($poolAccounts)) {
+                $allAccounts = $this->tokenService->getPoolAccounts();
+                foreach ($allAccounts as $acc) {
+                    if (count($poolAccounts) >= $requestedCount) break;
+                    if (!empty($acc['email'])) {
+                        $poolAccounts[] = [
+                            'email' => $acc['email'],
+                            'password' => $acc['password'] ?? 'Taqamul@2723!',
+                            'token' => $acc['token'] ?? null,
+                        ];
                     }
                 }
+            }
 
-                if (!$resId) {
-                    $resId = 'HOLD_' . strtoupper(uniqid());
+            if (empty($poolAccounts)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No candidate pool accounts available to execute hold.'
+                ], 422);
+            }
+
+            // Fallback Token: use dedicated slot checker token if individual pool account has no token
+            $fallbackToken = $this->tokenService->getSlotCheckerToken();
+
+            $lockedCount = 0;
+            $createdHoldIds = [];
+            $failedEmails = [];
+
+            foreach ($poolAccounts as $acc) {
+                $email = $acc['email'];
+                $token = $acc['token'] ?? null;
+
+                if (empty($token) || !$this->tokenService->isValidTokenFormat($token)) {
+                    $token = $fallbackToken;
                 }
 
-                $hold = SlotHold::create([
+                if (empty($token) || !$this->tokenService->isValidTokenFormat($token)) {
+                    $failedEmails[] = $email;
+                    continue;
+                }
+
+                $headers = [
+                    'Accept' => 'application/json',
+                    'X-Tenant-Name' => 'svp-international',
+                    'Authorization' => str_starts_with($token, 'Bearer ') ? $token : "Bearer {$token}",
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                ];
+
+                try {
+                    $holdRes = Http::timeout(4)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
+                        'exam_session_id' => $motherHash,
+                        'occupation_id' => $occId,
+                        'language_code' => $langCode,
+                        'methodology' => 'in_person',
+                    ]);
+
+                    $resId = null;
+                    if ($holdRes->successful()) {
+                        $resId = $holdRes->json()['id'] ?? null;
+                    } else {
+                        $tempRes = Http::timeout(4)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats?locale=en", [
+                            'exam_session_id' => [$motherHash],
+                            'methodology' => 'in_person',
+                        ]);
+                        if ($tempRes->successful()) {
+                            $resId = $tempRes->json()['id'] ?? null;
+                        }
+                    }
+
+                    if (!$resId) {
+                        $resId = 'HOLD_' . strtoupper(uniqid());
+                    }
+
+                    $hold = SlotHold::create([
+                        'mother_hash' => $motherHash,
+                        'center_name' => $centerName,
+                        'city' => $city,
+                        'category_id' => $categoryId,
+                        'category_name' => $request->input('category_name', 'Profession'),
+                        'exam_date' => date('Y-m-d', strtotime($examDate)),
+                        'temp_seat_id' => (string)$resId,
+                        'held_with_email' => $email,
+                        'status' => 'active',
+                        'renew_count' => 0,
+                        'target_duration_minutes' => 20,
+                        'expires_at' => now()->addMinutes(20),
+                        'auto_renew_until' => now()->addHours(24),
+                        'last_renewed_at' => now(),
+                    ]);
+
+                    $createdHoldIds[] = $hold->id;
+                    $lockedCount++;
+
+                } catch (Exception $e) {
+                    Log::warning("Hold failed for email {$email}: " . $e->getMessage());
+                    $failedEmails[] = $email;
+                }
+            }
+
+            if ($lockedCount > 0) {
+                return response()->json([
+                    'success' => true,
+                    'locked_count' => $lockedCount,
+                    'requested_count' => $requestedCount,
                     'mother_hash' => $motherHash,
                     'center_name' => $centerName,
-                    'city' => $city,
-                    'category_id' => $categoryId,
-                    'category_name' => $request->input('category_name', 'Profession'),
-                    'exam_date' => date('Y-m-d', strtotime($examDate)),
-                    'temp_seat_id' => (string)$resId,
-                    'held_with_email' => $email,
-                    'status' => 'active',
-                    'renew_count' => 0,
-                    'target_duration_minutes' => 20,
-                    'expires_at' => now()->addMinutes(20),
-                    'auto_renew_until' => now()->addHours(24),
-                    'last_renewed_at' => now(),
+                    'message' => "Successfully locked {$lockedCount} slot(s) for {$centerName} into Slot Vault for 20 minutes.",
+                    'failed_emails' => $failedEmails
                 ]);
-
-                $createdHoldIds[] = $hold->id;
-                $lockedCount++;
-
-            } catch (Exception $e) {
-                Log::warning("Hold failed for email {$email}: " . $e->getMessage());
-                $failedEmails[] = $email;
             }
-        }
 
-        if ($lockedCount > 0) {
             return response()->json([
-                'success' => true,
-                'locked_count' => $lockedCount,
-                'requested_count' => $requestedCount,
-                'mother_hash' => $motherHash,
-                'center_name' => $centerName,
-                'message' => "Successfully locked {$lockedCount} slot(s) for {$centerName} into Slot Vault for 20 minutes.",
-                'failed_emails' => $failedEmails
-            ]);
-        }
+                'success' => false,
+                'message' => 'Failed to lock slots on candidate pool accounts. Please verify pool credentials.'
+            ], 500);
 
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to lock slots on candidate pool accounts. Please check pool account credentials.'
-        ], 500);
+        } catch (Exception $ex) {
+            Log::error("Lock All Slots error: " . $ex->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error locking slots: ' . $ex->getMessage()
+            ], 500);
+        }
     }
 }
