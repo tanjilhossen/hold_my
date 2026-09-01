@@ -49,13 +49,11 @@
                     </select>
                 </div>
 
-                <!-- 2. Select City (Searchable Dropdown) -->
+                <!-- 2. Select City (Filtered by available dates with count) -->
                 <div class="mb-3">
                     <label class="form-label fw-bold"><i class="fa-solid fa-location-dot text-danger me-1"></i> Select City</label>
-                    <select class="form-select searchable-select" id="city_select" name="city" data-placeholder="Search or select city...">
-                        @foreach($cities as $city)
-                            <option value="{{ $city }}" {{ $city === 'Dhaka' ? 'selected' : '' }}>{{ $city }}</option>
-                        @endforeach
+                    <select class="form-select searchable-select" id="city_select" name="city" data-placeholder="Select profession to load active cities...">
+                        <option value="">-- Select Profession First --</option>
                     </select>
                 </div>
 
@@ -66,7 +64,7 @@
                         <span id="date-spinner" class="spinner-border spinner-border-sm text-primary d-none ms-1" role="status"></span>
                     </label>
                     <select class="form-select searchable-select" id="date_select" name="exam_date">
-                        <option value="ALL">-- Select Profession to Fetch Dates --</option>
+                        <option value="ALL">-- Select City First --</option>
                     </select>
                 </div>
 
@@ -202,7 +200,7 @@
 
         $('#city_select').select2({
             theme: 'bootstrap-5',
-            placeholder: 'Type to search city...',
+            placeholder: 'Select city with available dates...',
             width: '100%'
         });
 
@@ -221,14 +219,16 @@
             triggerAutoLoginForPool();
         }
 
-        // 1. Trigger Date Fetch on Profession Select
+        // 1. Trigger Date & Active City Fetch on Profession Select
         $('#profession_select').on('change', function() {
             const categoryId = $(this).val();
+            const $citySelect = $('#city_select');
             const $dateSelect = $('#date_select');
             const spinner = document.getElementById('date-spinner');
             
             if (!categoryId) {
-                $dateSelect.html('<option value="ALL">-- Select Profession First --</option>').trigger('change');
+                $citySelect.html('<option value="">-- Select Profession First --</option>').trigger('change');
+                $dateSelect.html('<option value="ALL">-- Select City First --</option>').trigger('change');
                 return;
             }
 
@@ -243,14 +243,15 @@
                         fetchedCityDatesMap = data.city_dates_map || {};
                         fetchedAllDates = data.all_dates || [];
                         
-                        updateDateDropdown();
-                        appendLog(`Found ${data.all_dates.length} available dates across ${data.cities.length} cities.`);
+                        updateCityDropdown();
+                        appendLog(`Found ${data.all_dates.length} available dates across ${Object.keys(fetchedCityDatesMap).length} active cities.`);
                     } else if (data.code === 'TOKEN_EXPIRED') {
                         appendLog(`Warning: Bearer token expired for pool__485381@wafidmaster.com. Auto-refreshing...`);
                         if (!isAutoLoginInProgress) {
                             triggerAutoLoginForPool(() => $('#profession_select').trigger('change'));
                         }
                     } else {
+                        $citySelect.html('<option value="">No Cities Found</option>').trigger('change');
                         $dateSelect.html('<option value="ALL">All Available Dates</option>').trigger('change');
                         appendLog(`Warning: ${data.message}`);
                     }
@@ -271,6 +272,26 @@
         log.scrollTop = log.scrollHeight;
     }
 
+    // Populate City Dropdown with ONLY Cities that have Available Dates (+ Count badge)
+    function updateCityDropdown() {
+        const $citySelect = $('#city_select');
+        $citySelect.empty();
+
+        const activeCities = Object.keys(fetchedCityDatesMap);
+
+        if (activeCities.length === 0) {
+            $citySelect.append('<option value="">No Cities with Available Dates</option>');
+        } else {
+            activeCities.forEach(city => {
+                const count = (fetchedCityDatesMap[city] || []).length;
+                $citySelect.append(`<option value="${city}">${city} (${count} Date${count > 1 ? 's' : ''})</option>`);
+            });
+        }
+
+        $citySelect.trigger('change');
+    }
+
+    // Populate Date Dropdown based on Selected City
     function updateDateDropdown() {
         const selectedCity = $('#city_select').val();
         const $dateSelect = $('#date_select');
@@ -400,6 +421,11 @@
 
         if (!categoryId) {
             alert('Please select a Profession first.');
+            return;
+        }
+
+        if (!city) {
+            alert('Please select a City first.');
             return;
         }
 
