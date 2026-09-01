@@ -509,6 +509,14 @@ class HoldSlotController extends Controller
                         $motherHash = $sess['id'] ?? null;
                         if (!$motherHash) continue;
 
+                        // Filter by single selected date if NOT scanning 'ALL'
+                        $sessDate = $sess['start_date_in_tc_time_zone'] ?? ($sess['start_date_in_browser_time_zone'] ?? ($sess['date'] ?? null));
+                        if ($examDate !== 'ALL' && !empty($sessDate) && !empty($targetDate)) {
+                            if (date('Y-m-d', strtotime($sessDate)) !== date('Y-m-d', strtotime($targetDate))) {
+                                continue;
+                            }
+                        }
+
                         $allHashes[] = $motherHash;
                         $tcFromApi = $sess['test_center'] ?? [];
                         $apiCity = $tcFromApi['city'] ?? $city;
