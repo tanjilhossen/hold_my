@@ -97,7 +97,12 @@
                     <h5 class="fw-bold m-0"><i class="fa-solid fa-satellite-dish text-success me-2"></i> Live Mother Hash & Seat Monitor</h5>
                     <small class="text-muted" id="scan-summary-text">Select profession and date to scan center seat availability.</small>
                 </div>
-                <span class="badge bg-secondary fs-6" id="scan-status-badge">Idle</span>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-danger" id="btn-clear-scan-results" onclick="clearScanResults()">
+                        <i class="fa-solid fa-trash me-1"></i> Clear Results
+                    </button>
+                    <span class="badge bg-secondary fs-6" id="scan-status-badge">Idle</span>
+                </div>
             </div>
             
             <div class="table-responsive">
@@ -217,6 +222,18 @@
         if (!initialHasActiveToken && !isAutoLoginInProgress) {
             appendLog('Token expired on load. Auto-launching background login for pool__485381@wafidmaster.com...');
             triggerAutoLoginForPool();
+        }
+
+        // RESTORE SCAN RESULTS FROM SESSION MEMORY ON REFRESH / PAGE NAVIGATION
+        const savedScanResults = localStorage.getItem('hold_slot_last_scan_results');
+        if (savedScanResults) {
+            try {
+                const parsedData = JSON.parse(savedScanResults);
+                if (parsedData && parsedData.centers && parsedData.centers.length > 0) {
+                    renderScanResults(parsedData, true);
+                    appendLog(`Restored scan results for ${parsedData.city || 'session'} from memory.`);
+                }
+            } catch(e) {}
         }
 
         // 1. Trigger Date & Active City Fetch on Profession Select
@@ -475,43 +492,11 @@
             }
 
             if (data.success && data.centers && data.centers.length > 0) {
-                tableBody.innerHTML = '';
-                document.getElementById('scan-summary-text').innerText = `Found ${data.count} center session(s) in ${city}.`;
+                saveScanResultsToStorage(data);
+                renderScanResults(data, false);
                 appendLog(`Success! Found ${data.count} center session(s) with Mother Hashes.`);
-
-                data.centers.forEach(c => {
-                    const shortHash = c.mother_hash.substring(0, 16) + '...';
-                    const seatBadge = c.available_seats > 0 
-                        ? `<span class="badge bg-success fs-6">${c.available_seats} / ${c.total_seats} Available</span>` 
-                        : `<span class="badge bg-danger fs-6">Full</span>`;
-
-                    tableBody.innerHTML += `
-                        <tr>
-                            <td class="fw-bold">${c.session_index}</td>
-                            <td>
-                                <strong class="text-dark">${c.center_name}</strong>
-                                <div class="text-muted small">${c.center_address}</div>
-                            </td>
-                            <td>
-                                <div><i class="fa-solid fa-calendar me-1 text-primary"></i> ${c.exam_date}</div>
-                                <small class="text-muted"><i class="fa-solid fa-clock me-1 text-info"></i> ${c.start_time}</small>
-                            </td>
-                            <td>
-                                <code class="user-select-all bg-light px-2 py-1 border rounded text-dark">${shortHash}</code>
-                                <button class="btn btn-sm btn-link p-0 ms-1 text-decoration-none" onclick="navigator.clipboard.writeText('${c.mother_hash}'); alert('Copied Mother Hash!');" title="Copy Full Hash">
-                                    <i class="fa-solid fa-copy"></i>
-                                </button>
-                            </td>
-                            <td>${seatBadge}</td>
-                            <td>
-                                <button class="btn btn-sm btn-warning text-dark fw-bold shadow-sm" onclick="lockAllSlotsForHash('${c.mother_hash}', ${c.available_seats}, '${c.center_name.replace(/'/g, "\\'")}', '${c.city}', '${c.exam_date}', '${c.start_time}', ${c.category_id}, this)">
-                                    <i class="fa-solid fa-lock me-1"></i> Lock All Slots (${c.available_seats})
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                });
             } else {
+                localStorage.removeItem('hold_slot_last_scan_results');
                 tableBody.innerHTML = `
                     <tr>
                         <td colspan="6" class="text-center text-muted py-4">
@@ -539,6 +524,72 @@
             appendLog(`Error querying slots: ${err.message}`);
         });
     });
+
+    function saveScanResultsToStorage(data) {
+        try {
+            localStorage.setItem('hold_slot_last_scan_results', JSON.stringify(data));
+        } catch (e) {}
+    }
+
+    function renderScanResults(data, isRestored = false) {
+        const tableBody = document.getElementById('scan-results-table');
+        const city = data.city || 'session';
+        tableBody.innerHTML = '';
+        
+        const summaryMsg = isRestored 
+            ? `Found ${data.count} center session(s) in ${city} (Restored from previous scan).`
+            : `Found ${data.count} center session(s) in ${city}.`;
+        
+        document.getElementById('scan-summary-text').innerText = summaryMsg;
+
+        data.centers.forEach(c => {
+            const shortHash = c.mother_hash.substring(0, 16) + '...';
+            const seatBadge = c.available_seats > 0 
+                ? `<span class="badge bg-success fs-6">${c.available_seats} / ${c.total_seats} Available</span>` 
+                : `<span class="badge bg-danger fs-6">Full</span>`;
+
+            tableBody.innerHTML += `
+                <tr>
+                    <td class="fw-bold">${c.session_index}</td>
+                    <td>
+                        <strong class="text-dark">${c.center_name}</strong>
+                        <div class="text-muted small">${c.center_address}</div>
+                    </td>
+                    <td>
+                        <div><i class="fa-solid fa-calendar me-1 text-primary"></i> ${c.exam_date}</div>
+                        <small class="text-muted"><i class="fa-solid fa-clock me-1 text-info"></i> ${c.start_time}</small>
+                    </td>
+                    <td>
+                        <code class="user-select-all bg-light px-2 py-1 border rounded text-dark">${shortHash}</code>
+                        <button class="btn btn-sm btn-link p-0 ms-1 text-decoration-none" onclick="navigator.clipboard.writeText('${c.mother_hash}'); alert('Copied Mother Hash!');" title="Copy Full Hash">
+                            <i class="fa-solid fa-copy"></i>
+                        </button>
+                    </td>
+                    <td>${seatBadge}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning text-dark fw-bold shadow-sm" onclick="lockAllSlotsForHash('${c.mother_hash}', ${c.available_seats}, '${c.center_name.replace(/'/g, "\\'")}', '${c.city}', '${c.exam_date}', '${c.start_time}', ${c.category_id}, this)">
+                            <i class="fa-solid fa-lock me-1"></i> Lock All Slots (${c.available_seats})
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function clearScanResults() {
+        localStorage.removeItem('hold_slot_last_scan_results');
+        const tableBody = document.getElementById('scan-results-table');
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                    <i class="fa-solid fa-inbox fa-2x mb-2 d-block text-secondary"></i>
+                    Select <strong>Profession</strong> and click <strong>Scan Slots</strong> to query Taqamul server.
+                </td>
+            </tr>
+        `;
+        document.getElementById('scan-summary-text').innerText = 'Select profession and date to scan center seat availability.';
+        appendLog('[SYSTEM]: Scan results cleared.');
+    }
 
     function lockAllSlotsForHash(hash, seats, centerName, city, examDate, startTime, categoryId, btnElement) {
         if (!confirm(`Are you sure you want to lock all ${seats} slots for ${centerName} into Slot Vault?`)) return;
