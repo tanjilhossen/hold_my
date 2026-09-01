@@ -134,7 +134,7 @@ class HoldSlotController extends Controller
         $categoryId = $categoryId ? (int)$categoryId : 159;
         [$occId, $langCode] = $this->getOccupationAndLanguageForCategory($categoryId);
 
-        // Gather all available candidate tokens from candidate pool for failover rotation
+        // Gather available candidate tokens for failover rotation (max 2)
         $tokensToTry = [];
         if (!empty($manualToken)) {
             $tokensToTry[] = $manualToken;
@@ -145,12 +145,7 @@ class HoldSlotController extends Controller
             $tokensToTry[] = $primaryToken;
         }
 
-        $poolAccounts = $this->tokenService->getPoolAccounts();
-        foreach ($poolAccounts as $acc) {
-            if (!empty($acc['token']) && $this->tokenService->isValidTokenFormat($acc['token']) && !in_array($acc['token'], $tokensToTry)) {
-                $tokensToTry[] = $acc['token'];
-            }
-        }
+        $tokensToTry = array_slice($tokensToTry, 0, 2);
 
         if (empty($tokensToTry)) return null;
 
@@ -479,6 +474,7 @@ class HoldSlotController extends Controller
 
             $foundCenters = [];
             $allHashes = [];
+            $probeLogs = [];
 
             foreach ($datesToScan as $targetDate) {
                 if (empty($targetDate)) continue;
@@ -486,7 +482,7 @@ class HoldSlotController extends Controller
                 $sessionRes = Http::timeout(12)->withHeaders($headers)->get("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_sessions", [
                     'category_id' => $categoryId,
                     'city' => $city,
-                    'exam_date' => $targetDate,
+                    'start_date' => $targetDate,
                     'locale' => 'en',
                 ]);
 
