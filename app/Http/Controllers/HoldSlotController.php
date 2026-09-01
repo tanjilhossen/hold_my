@@ -154,24 +154,26 @@ class HoldSlotController extends Controller
                 $resJson = $directRes->json();
                 $resId = $resJson['id'] ?? null;
                 $session = $resJson['exam_session'] ?? [];
-                $tc = $resJson['test_center'] ?? ($session['test_center'] ?? []);
+                $tc = $resJson['test_center'] ?? [];
+                $sessionTc = $session['test_center'] ?? [];
 
-                $name = $tc['test_center_name'] ?? ($tc['name'] ?? null);
-                $realCity = $tc['city'] ?? ($tc['test_center_city'] ?? $city);
+                $name = $tc['test_center_name'] ?? ($tc['name'] ?? ($sessionTc['name'] ?? ($sessionTc['test_center_name'] ?? null)));
+                $realCity = $tc['test_center_city'] ?? ($tc['city'] ?? ($sessionTc['city'] ?? $city));
+                $address = $tc['address'] ?? ($sessionTc['address'] ?? "{$realCity}, Bangladesh");
 
                 $startRaw = $session['start_at_in_tc_time_zone'] ?? ($session['start_at'] ?? null);
                 $startTime = $startRaw ? date('h:i A', strtotime($startRaw)) : '09:30 AM';
 
-                $rawAvail = isset($session['available_seats']) ? (int)$session['available_seats'] : 6;
-                $availSeats = max(1, $rawAvail + 1);
+                $rawAvail = isset($session['available_seats']) ? (int)$session['available_seats'] : 10;
+                $availSeats = $resId ? max(1, $rawAvail + 1) : $rawAvail;
                 $totalSeats = isset($session['seats']) ? (int)$session['seats'] : 10;
 
                 $centerData = null;
                 if (!empty($name)) {
                     $centerData = [
-                        'center_id' => $tc['test_center_id'] ?? ($tc['id'] ?? null),
+                        'center_id' => $tc['test_center_id'] ?? ($tc['id'] ?? ($sessionTc['id'] ?? null)),
                         'center_name' => $name,
-                        'center_address' => $tc['address'] ?? "{$realCity}, Bangladesh",
+                        'center_address' => $address,
                         'city' => $realCity,
                         'start_time' => $startTime,
                         'available_seats' => $availSeats,
@@ -523,7 +525,7 @@ class HoldSlotController extends Controller
                         }
 
                         if (empty($centerName)) {
-                            $centerName = "{$apiCity} Technical Training Centre #" . ($index + 1);
+                            $centerName = $tcFromApi['name'] ?? ($tcFromApi['test_center_name'] ?? "Taqamul Test Center ({$apiCity})");
                         }
 
                         $foundCenters[] = [
