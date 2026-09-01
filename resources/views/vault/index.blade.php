@@ -80,6 +80,7 @@
                         <tr>
                             <th>#</th>
                             <th>Center Name</th>
+                            <th>Profession</th>
                             <th>Exam Date</th>
                             <th>Mother Hash</th>
                             <th>Locked Slots</th>
@@ -89,7 +90,7 @@
                     </thead>
                     <tbody id="vault-grouped-table-body">
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-5">
+                            <td colspan="8" class="text-center text-muted py-5">
                                 <span class="spinner-border spinner-border-sm text-primary me-2" role="status"></span>
                                 Loading active holds from Slot Vault...
                             </td>
@@ -191,7 +192,7 @@
         if (vaultGroupsData.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="text-center text-muted py-5">
+                    <td colspan="8" class="text-center text-muted py-5">
                         <i class="fa-solid fa-box-archive fa-3x mb-3 text-secondary d-block"></i>
                         <h6>No active held slots in vault right now</h6>
                         <p class="small">Slots locked using <strong>Lock All Slots</strong> on the Hold Slot page will show up here.</p>
@@ -214,6 +215,9 @@
                     <td>
                         <strong class="text-dark">${g.center_name}</strong>
                         <div class="text-muted small"><i class="fa-solid fa-location-dot me-1 text-danger"></i> ${g.city}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-primary fs-7"><i class="fa-solid fa-briefcase me-1"></i> ${g.category_name || 'Profession'}</span>
                     </td>
                     <td><i class="fa-solid fa-calendar me-1 text-primary"></i> ${g.exam_date}</td>
                     <td>

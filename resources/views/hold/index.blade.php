@@ -111,6 +111,7 @@
                         <tr>
                             <th>#</th>
                             <th>Center Name</th>
+                            <th>Profession</th>
                             <th>Exam Date & Time</th>
                             <th>Mother Hash</th>
                             <th>Available Seats</th>
@@ -119,7 +120,7 @@
                     </thead>
                     <tbody id="scan-results-table">
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
+                            <td colspan="7" class="text-center text-muted py-4">
                                 <i class="fa-solid fa-inbox fa-2x mb-2 d-block text-secondary"></i>
                                 Select <strong>Profession</strong> and click <strong>Scan Slots</strong> to query Taqamul server.
                             </td>
@@ -567,6 +568,9 @@
                         <div class="text-muted small">${c.center_address}</div>
                     </td>
                     <td>
+                        <span class="badge bg-primary fs-7"><i class="fa-solid fa-briefcase me-1"></i> ${c.category_name || 'Profession'}</span>
+                    </td>
+                    <td>
                         <div><i class="fa-solid fa-calendar me-1 text-primary"></i> ${c.exam_date}</div>
                         <small class="text-muted"><i class="fa-solid fa-clock me-1 text-info"></i> ${c.start_time}</small>
                     </td>
@@ -578,7 +582,7 @@
                     </td>
                     <td>${seatBadge}</td>
                     <td>
-                        <button class="btn btn-sm btn-warning text-dark fw-bold shadow-sm" onclick="lockAllSlotsForHash('${c.mother_hash}', ${c.available_seats}, '${c.center_name.replace(/'/g, "\\'")}', '${c.city}', '${c.exam_date}', '${c.start_time}', ${c.category_id}, this)">
+                        <button class="btn btn-sm btn-warning text-dark fw-bold shadow-sm" onclick="lockAllSlotsForHash('${c.mother_hash}', ${c.available_seats}, '${c.center_name.replace(/'/g, "\\'")}', '${c.city}', '${c.exam_date}', '${c.start_time}', ${c.category_id}, '${(c.category_name || 'Profession').replace(/'/g, "\\'")}', this)">
                             <i class="fa-solid fa-lock me-1"></i> Lock All Slots (${c.available_seats})
                         </button>
                     </td>
@@ -592,7 +596,7 @@
         const tableBody = document.getElementById('scan-results-table');
         tableBody.innerHTML = `
             <tr>
-                <td colspan="6" class="text-center text-muted py-4">
+                <td colspan="7" class="text-center text-muted py-4">
                     <i class="fa-solid fa-inbox fa-2x mb-2 d-block text-secondary"></i>
                     Select <strong>Profession</strong> and click <strong>Scan Slots</strong> to query Taqamul server.
                 </td>
@@ -602,14 +606,14 @@
         appendLog('[SYSTEM]: Scan results cleared.');
     }
 
-    function lockAllSlotsForHash(hash, seats, centerName, city, examDate, startTime, categoryId, btnElement) {
-        if (!confirm(`Are you sure you want to lock all ${seats} slots for ${centerName} into Slot Vault?`)) return;
+    function lockAllSlotsForHash(hash, seats, centerName, city, examDate, startTime, categoryId, categoryName, btnElement) {
+        if (!confirm(`Are you sure you want to lock all ${seats} slots for ${centerName} (${categoryName}) into Slot Vault?`)) return;
 
         const originalText = btnElement.innerHTML;
         btnElement.disabled = true;
         btnElement.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Locking ${seats} Slots...`;
 
-        appendLog(`Initiating Multi-Account Slot Lock for ${centerName} (${seats} slots)...`);
+        appendLog(`Initiating Multi-Account Slot Lock for ${centerName} [${categoryName}] (${seats} slots)...`);
 
         fetch(`{{ route('hold.lock_slots') }}`, {
             method: 'POST',
@@ -624,7 +628,8 @@
                 city: city,
                 exam_date: examDate,
                 start_time: startTime,
-                category_id: categoryId
+                category_id: categoryId,
+                category_name: categoryName
             })
         })
         .then(async res => {
