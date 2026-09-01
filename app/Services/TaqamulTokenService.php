@@ -157,7 +157,7 @@ class TaqamulTokenService
     /**
      * Get up to $count valid pool account tokens for multi-account slot holding
      */
-    public function getValidPoolAccountTokens(int $count = 10): array
+    public function getValidPoolAccountTokens(int $count = 10, bool $autoFetchMissing = true): array
     {
         $accounts = $this->getPoolAccounts();
         $validAccounts = [];
@@ -172,6 +172,33 @@ class TaqamulTokenService
                     'password' => $acc['password'] ?? 'Taqamul@2723!',
                     'token' => $token,
                 ];
+            }
+        }
+
+        if ($autoFetchMissing && count($validAccounts) < $count) {
+            foreach ($accounts as $acc) {
+                if (count($validAccounts) >= $count) break;
+
+                $email = $acc['email'] ?? null;
+                if (empty($email)) continue;
+
+                $already = false;
+                foreach ($validAccounts as $v) {
+                    if (strtolower($v['email']) === strtolower($email)) {
+                        $already = true;
+                        break;
+                    }
+                }
+                if ($already) continue;
+
+                $newToken = $this->loginAndFetchToken($email, $acc['password'] ?? 'Taqamul@2723!');
+                if (!empty($newToken) && $this->isValidTokenFormat($newToken)) {
+                    $validAccounts[] = [
+                        'email' => $email,
+                        'password' => $acc['password'] ?? 'Taqamul@2723!',
+                        'token' => $newToken,
+                    ];
+                }
             }
         }
 

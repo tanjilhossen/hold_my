@@ -658,25 +658,33 @@ class HoldSlotController extends Controller
                 ], 422);
             }
 
-            // Fallback Token: use dedicated slot checker token if individual pool account has no token
-            $fallbackToken = $this->tokenService->getSlotCheckerToken();
-
             $lockedCount = 0;
             $createdHoldIds = [];
             $failedEmails = [];
+            $usedEmails = [];
 
             foreach ($poolAccounts as $acc) {
-                $email = $acc['email'];
+                $email = strtolower(trim($acc['email'] ?? ''));
+                if (empty($email) || in_array($email, $usedEmails)) continue;
+
                 $token = $acc['token'] ?? null;
 
                 if (empty($token) || !$this->tokenService->isValidTokenFormat($token)) {
-                    $token = $fallbackToken;
+                    $token = $this->tokenService->loginAndFetchToken($email, $acc['password'] ?? 'Taqamul@2723!');
                 }
 
                 if (empty($token) || !$this->tokenService->isValidTokenFormat($token)) {
                     $failedEmails[] = $email;
+                    $apiLogs[] = [
+                        'email' => $email,
+                        'endpoint' => 'POST /api/v1/individual_labor_space/exam_reservations',
+                        'http_status' => 401,
+                        'response' => 'Missing valid Bearer token for candidate account.'
+                    ];
                     continue;
                 }
+
+                $usedEmails[] = $email;
 
                 $headers = [
                     'Accept' => 'application/json',
