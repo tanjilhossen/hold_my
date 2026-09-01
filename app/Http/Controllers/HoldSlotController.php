@@ -445,6 +445,10 @@ class HoldSlotController extends Controller
      */
     public function scanSlots(Request $request)
     {
+        @set_time_limit(300);
+        @ini_set('max_execution_time', '300');
+        @ini_set('memory_limit', '512M');
+
         $request->validate([
             'category_id' => 'required',
             'city' => 'required|string',

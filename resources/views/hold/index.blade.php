@@ -477,7 +477,14 @@
                 all_dates: fetchedAllDates
             })
         })
-        .then(res => res.json())
+        .then(async res => {
+            const text = await res.text();
+            try {
+                return JSON.parse(text);
+            } catch(e) {
+                throw new Error('Server error: ' + (text.includes('<!DOCTYPE') ? 'HTTP 500 Execution Timeout or Server Error' : text.substring(0, 100)));
+            }
+        })
         .then(data => {
             document.getElementById('scan-status-badge').className = 'badge bg-secondary fs-6';
             document.getElementById('scan-status-badge').innerText = 'Idle';
