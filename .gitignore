@@ -1,0 +1,16 @@
+/node_modules
+/vendor
+/bot/chrome_profiles
+/bot/node_modules
+/storage/*.key
+/storage/app/*.log
+/storage/logs/*.log
+.env
+.env.backup
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+/.idea
+/.vscode

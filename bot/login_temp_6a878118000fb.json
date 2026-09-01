@@ -1,0 +1,10 @@
+{
+    "passenger_id": 26,
+    "email": "mdahmed_zxn142346@wafidmaster.com",
+    "password": "Taqamul@5182!",
+    "temp_mail_password": null,
+    "capsolver_api_key": "CAP-1C910649B8AEADE973B68571F5449DA4ACE38F5A22ADE82D2596BE826B28C133",
+    "wafid_mail_base_url": "https:\/\/mail.wafidmaster.com",
+    "wafid_mail_key_id": "ak_live_c66544c05d46413768d13c2c",
+    "wafid_mail_secret_key": "sk_live_82ff2501819cf5d272b7725713c0a499ac208acb9be60517"
+}
