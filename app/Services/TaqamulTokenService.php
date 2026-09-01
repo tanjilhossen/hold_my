@@ -155,6 +155,30 @@ class TaqamulTokenService
     }
 
     /**
+     * Get up to $count valid pool account tokens for multi-account slot holding
+     */
+    public function getValidPoolAccountTokens(int $count = 10): array
+    {
+        $accounts = $this->getPoolAccounts();
+        $validAccounts = [];
+
+        foreach ($accounts as $acc) {
+            if (count($validAccounts) >= $count) break;
+
+            $token = $acc['token'] ?? null;
+            if ($this->isValidTokenFormat($token)) {
+                $validAccounts[] = [
+                    'email' => $acc['email'],
+                    'password' => $acc['password'] ?? 'Taqamul@2723!',
+                    'token' => $token,
+                ];
+            }
+        }
+
+        return $validAccounts;
+    }
+
+    /**
      * Mark a specific token as expired/401 and trigger auto-login ONLY IF 401 response comes from Taqamul API
      */
     public function markTokenExpired(string $badToken): void

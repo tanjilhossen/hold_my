@@ -503,7 +503,11 @@
                                 </button>
                             </td>
                             <td>${seatBadge}</td>
-                            <td><span class="badge bg-primary">Scheduled</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-warning text-dark fw-bold shadow-sm" onclick="lockAllSlotsForHash('${c.mother_hash}', ${c.available_seats}, '${c.center_name.replace(/'/g, "\\'")}', '${c.city}', '${c.exam_date}', '${c.start_time}', ${c.category_id}, this)">
+                                    <i class="fa-solid fa-lock me-1"></i> Lock All Slots (${c.available_seats})
+                                </button>
+                            </td>
                         </tr>
                     `;
                 });
@@ -535,5 +539,66 @@
             appendLog(`Error querying slots: ${err.message}`);
         });
     });
+
+    function lockAllSlotsForHash(hash, seats, centerName, city, examDate, startTime, categoryId, btnElement) {
+        if (!confirm(`Are you sure you want to lock all ${seats} slots for ${centerName} into Slot Vault?`)) return;
+
+        const originalText = btnElement.innerHTML;
+        btnElement.disabled = true;
+        btnElement.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Locking ${seats} Slots...`;
+
+        appendLog(`Initiating Multi-Account Slot Lock for ${centerName} (${seats} slots)...`);
+
+        fetch(`{{ route('hold.lock_slots') }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                mother_hash: hash,
+                available_seats: seats,
+                center_name: centerName,
+                city: city,
+                exam_date: examDate,
+                start_time: startTime,
+                category_id: categoryId
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                appendLog(`Success! Locked ${data.locked_count} slot(s) for ${centerName} into Slot Vault for 20 minutes.`);
+                
+                $(btnElement).closest('tr').fadeOut(500, function() {
+                    $(this).remove();
+                    if ($('#scan-results-table tr').length === 0) {
+                        $('#scan-results-table').html(`
+                            <tr>
+                                <td colspan="6" class="text-center text-success py-4">
+                                    <i class="fa-solid fa-circle-check fa-2x mb-2 d-block"></i>
+                                    All slots for this session have been locked and moved to <strong>Slot Vault</strong>.
+                                    <br>
+                                    <a href="{{ route('vault') }}" class="btn btn-sm btn-primary mt-2 fw-bold">
+                                        <i class="fa-solid fa-vault me-1"></i> View in Slot Vault
+                                    </a>
+                                </td>
+                            </tr>
+                        `);
+                    }
+                });
+            } else {
+                btnElement.disabled = false;
+                btnElement.innerHTML = originalText;
+                alert('Failed to lock slots: ' + data.message);
+                appendLog(`Error locking slots: ${data.message}`);
+            }
+        })
+        .catch(err => {
+            btnElement.disabled = false;
+            btnElement.innerHTML = originalText;
+            alert('Error communicating with server: ' + err.message);
+        });
+    }
 </script>
 @endsection
