@@ -125,76 +125,109 @@ class HoldSlotController extends Controller
 
     /**
      * Intelligent Live Probing to resolve Center Name, Address, Start Time & Seat Count
+     * WITH AUTOMATIC IMMEDIATE RESERVATION CANCELLATION & POOL TOKEN ROTATION
      */
     protected function executeProbeWithBackoff(string $motherHash, $categoryId, string $city, ?string $manualToken = null): ?array
     {
         $categoryId = $categoryId ? (int)$categoryId : 159;
         [$occId, $langCode] = $this->getOccupationAndLanguageForCategory($categoryId);
 
-        $token = !empty($manualToken) ? $manualToken : $this->tokenService->getValidRoundRobinToken();
-        if (empty($token)) return null;
+        // Gather all available candidate tokens from candidate pool for failover rotation
+        $tokensToTry = [];
+        if (!empty($manualToken)) {
+            $tokensToTry[] = $manualToken;
+        }
+        
+        $primaryToken = $this->tokenService->getSlotCheckerToken();
+        if (!empty($primaryToken) && !in_array($primaryToken, $tokensToTry)) {
+            $tokensToTry[] = $primaryToken;
+        }
 
-        $headers = [
-            'Accept' => 'application/json',
-            'X-Tenant-Name' => 'svp-international',
-            'Authorization' => str_starts_with($token, 'Bearer ') ? $token : "Bearer {$token}",
-            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
-        ];
-
-        try {
-            // Direct Reservation Probing to fetch exact test_center metadata
-            $directRes = Http::timeout(6)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
-                'exam_session_id' => $motherHash,
-                'occupation_id' => $occId,
-                'language_code' => $langCode,
-                'methodology' => 'in_person',
-            ]);
-
-            if ($directRes->successful()) {
-                $resJson = $directRes->json();
-                $resId = $resJson['id'] ?? null;
-                $session = $resJson['exam_session'] ?? [];
-                $tc = $resJson['test_center'] ?? [];
-                $sessionTc = $session['test_center'] ?? [];
-
-                $name = $tc['test_center_name'] ?? ($tc['name'] ?? ($sessionTc['name'] ?? ($sessionTc['test_center_name'] ?? null)));
-                $realCity = $tc['test_center_city'] ?? ($tc['city'] ?? ($sessionTc['city'] ?? $city));
-                $address = $tc['address'] ?? ($sessionTc['address'] ?? "{$realCity}, Bangladesh");
-
-                $startRaw = $session['start_at_in_tc_time_zone'] ?? ($session['start_at'] ?? null);
-                $startTime = $startRaw ? date('h:i A', strtotime($startRaw)) : '09:30 AM';
-
-                $rawAvail = isset($session['available_seats']) ? (int)$session['available_seats'] : 10;
-                $availSeats = $resId ? max(1, $rawAvail + 1) : $rawAvail;
-                $totalSeats = isset($session['seats']) ? (int)$session['seats'] : 10;
-
-                $centerData = null;
-                if (!empty($name)) {
-                    $centerData = [
-                        'center_id' => $tc['test_center_id'] ?? ($tc['id'] ?? ($sessionTc['id'] ?? null)),
-                        'center_name' => $name,
-                        'center_address' => $address,
-                        'city' => $realCity,
-                        'start_time' => $startTime,
-                        'available_seats' => $availSeats,
-                        'total_seats' => $totalSeats,
-                        'is_probed' => true,
-                    ];
-                }
-
-                // Immediately release probe test reservation so seat remains available
-                if ($resId) {
-                    try {
-                        Http::timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$resId}?locale=en");
-                    } catch (Exception $e) {}
-                }
-
-                if ($centerData) {
-                    return $centerData;
-                }
+        $poolAccounts = $this->tokenService->getPoolAccounts();
+        foreach ($poolAccounts as $acc) {
+            if (!empty($acc['token']) && $this->tokenService->isValidTokenFormat($acc['token']) && !in_array($acc['token'], $tokensToTry)) {
+                $tokensToTry[] = $acc['token'];
             }
-        } catch (Exception $e) {
-            Log::warning("Probe error for hash {$motherHash}: " . $e->getMessage());
+        }
+
+        if (empty($tokensToTry)) return null;
+
+        foreach ($tokensToTry as $token) {
+            $headers = [
+                'Accept' => 'application/json',
+                'X-Tenant-Name' => 'svp-international',
+                'Authorization' => str_starts_with($token, 'Bearer ') ? $token : "Bearer {$token}",
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
+            ];
+
+            try {
+                // 1. Pre-cleaning: Cancel any existing active reservation on candidate account to prevent booking lockout
+                try {
+                    $openRes = Http::timeout(3)->withHeaders($headers)->get("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en");
+                    if ($openRes->successful()) {
+                        $items = $openRes->json()['exam_reservations'] ?? ($openRes->json()['data'] ?? []);
+                        foreach ($items as $item) {
+                            if (!empty($item['id'])) {
+                                Http::timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$item['id']}?locale=en");
+                            }
+                        }
+                    }
+                } catch (Exception $e) {}
+
+                // 2. Direct Reservation Probing to fetch exact test_center metadata
+                $directRes = Http::timeout(6)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
+                    'exam_session_id' => $motherHash,
+                    'occupation_id' => $occId,
+                    'language_code' => $langCode,
+                    'methodology' => 'in_person',
+                ]);
+
+                if ($directRes->successful()) {
+                    $resJson = $directRes->json();
+                    $resId = $resJson['id'] ?? null;
+                    $session = $resJson['exam_session'] ?? [];
+                    $tc = $resJson['test_center'] ?? [];
+                    $sessionTc = $session['test_center'] ?? [];
+
+                    $name = $tc['test_center_name'] ?? ($tc['name'] ?? ($sessionTc['name'] ?? ($sessionTc['test_center_name'] ?? null)));
+                    $realCity = $tc['test_center_city'] ?? ($tc['city'] ?? ($sessionTc['city'] ?? $city));
+                    $address = $tc['address'] ?? ($sessionTc['address'] ?? "{$realCity}, Bangladesh");
+
+                    $startRaw = $session['start_at_in_tc_time_zone'] ?? ($session['start_at'] ?? null);
+                    $startTime = $startRaw ? date('h:i A', strtotime($startRaw)) : '09:30 AM';
+
+                    $rawAvail = isset($session['available_seats']) ? (int)$session['available_seats'] : 10;
+                    $availSeats = $resId ? max(1, $rawAvail + 1) : $rawAvail;
+                    $totalSeats = isset($session['seats']) ? (int)$session['seats'] : 10;
+
+                    $centerData = null;
+                    if (!empty($name)) {
+                        $centerData = [
+                            'center_id' => $tc['test_center_id'] ?? ($tc['id'] ?? ($sessionTc['id'] ?? null)),
+                            'center_name' => $name,
+                            'center_address' => $address,
+                            'city' => $realCity,
+                            'start_time' => $startTime,
+                            'available_seats' => $availSeats,
+                            'total_seats' => $totalSeats,
+                            'is_probed' => true,
+                        ];
+                    }
+
+                    // STRICT RULE: Immediately release / cancel probe test reservation in background so seat remains 100% available!
+                    if ($resId) {
+                        try {
+                            Http::timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$resId}?locale=en");
+                        } catch (Exception $e) {}
+                    }
+
+                    if ($centerData) {
+                        return $centerData;
+                    }
+                }
+            } catch (Exception $e) {
+                Log::warning("Probe error for hash {$motherHash}: " . $e->getMessage());
+            }
         }
 
         return null;
