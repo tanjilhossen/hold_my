@@ -213,6 +213,7 @@ class HoldSlotController extends Controller
                             'available_seats' => $availSeats,
                             'total_seats' => $totalSeats,
                             'is_probed' => true,
+                            'res_id' => $resId,
                         ];
                     }
 
@@ -539,6 +540,13 @@ class HoldSlotController extends Controller
                                 $availSeats = $probed['available_seats'];
                                 $totalSeats = $probed['total_seats'];
 
+                                $probeLogs[] = [
+                                    'hash' => $motherHash,
+                                    'center_name' => $centerName,
+                                    'avail_seats' => $availSeats,
+                                    'res_id' => $probed['res_id'] ?? null,
+                                ];
+
                                 // Auto-save resolved hash metadata to Vault DB
                                 try {
                                     SlotHash::updateOrCreate(
@@ -588,6 +596,7 @@ class HoldSlotController extends Controller
                 'exam_date' => $examDate,
                 'centers' => $foundCenters,
                 'all_hashes' => $allHashes,
+                'probe_logs' => $probeLogs,
             ]);
 
         } catch (Exception $e) {

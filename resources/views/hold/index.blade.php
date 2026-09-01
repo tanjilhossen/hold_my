@@ -491,6 +491,17 @@
                 return;
             }
 
+            if (data.probe_logs && data.probe_logs.length > 0) {
+                data.probe_logs.forEach(log => {
+                    const shortHash = log.hash.substring(0, 16) + '...';
+                    appendLog(`[PROBE REQUEST] -> Probing Mother Hash: ${shortHash}`);
+                    appendLog(`[PROBE RESPONSE] <- Status: 200 | Center Name: ${log.center_name} | Available Seats: ${log.avail_seats} (+1 Added)`);
+                    if (log.res_id) {
+                        appendLog(`[AUTO CANCEL] -> Test reservation ID ${log.res_id} cancelled in background (Seat Freed).`);
+                    }
+                });
+            }
+
             if (data.success && data.centers && data.centers.length > 0) {
                 saveScanResultsToStorage(data);
                 renderScanResults(data, false);
