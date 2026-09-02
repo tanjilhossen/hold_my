@@ -678,16 +678,12 @@ class HoldSlotController extends Controller
                 $token = $acc['token'] ?? null;
 
                 if (empty($token) || !$this->tokenService->isValidTokenFormat($token)) {
-                    $token = $this->tokenService->loginAndFetchToken($email, $acc['password'] ?? 'Taqamul@2723!');
-                }
-
-                if (empty($token) || !$this->tokenService->isValidTokenFormat($token)) {
                     $failedEmails[] = $email;
                     $apiLogs[] = [
                         'email' => $email,
                         'endpoint' => 'POST /api/v1/individual_labor_space/exam_reservations',
                         'http_status' => 401,
-                        'response' => 'Missing valid Bearer token for candidate account.'
+                        'response' => 'No pre-authenticated Bearer token for candidate account. Skipped to prevent heavy browser load.'
                     ];
                     continue;
                 }
