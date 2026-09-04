@@ -66,10 +66,17 @@ class ProcessVaultLockCommand extends Command
             ->pluck('held_with_email')
             ->toArray();
 
+        $checkerAcc = $tokenService->getSlotCheckerAccount();
+        $checkerEmail = strtolower(trim($checkerAcc['email'] ?? 'pool__485381@wafidmaster.com'));
+
         $selectedAccounts = [];
         foreach ($poolAccounts as $acc) {
             if (count($selectedAccounts) >= $requestedCount) break;
             $email = strtolower(trim($acc['email'] ?? ''));
+
+            // STRICT RULE: Dedicated Slot Checker Account MUST NOT be used for slot locking!
+            if ($email === $checkerEmail) continue;
+
             if (!empty($email) && !in_array($email, $existingEmails) && !in_array($email, array_column($selectedAccounts, 'email'))) {
                 $selectedAccounts[] = [
                     'email' => $email,

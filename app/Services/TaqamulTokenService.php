@@ -155,15 +155,22 @@ class TaqamulTokenService
     }
 
     /**
-     * Get up to $count valid pool account tokens for multi-account slot holding
+     * Get up to $count valid pool account tokens for multi-account slot holding (Excludes Slot Checker Account)
      */
     public function getValidPoolAccountTokens(int $count = 10, bool $autoFetchMissing = true): array
     {
+        $checkerAcc = $this->getSlotCheckerAccount();
+        $checkerEmail = strtolower(trim($checkerAcc['email'] ?? 'pool__485381@wafidmaster.com'));
+
         $accounts = $this->getPoolAccounts();
         $validAccounts = [];
 
         foreach ($accounts as $acc) {
             if (count($validAccounts) >= $count) break;
+
+            $email = strtolower(trim($acc['email'] ?? ''));
+            // STRICT RULE: Dedicated Slot Checker Account MUST NOT be used for slot locking!
+            if ($email === $checkerEmail) continue;
 
             $token = $acc['token'] ?? null;
             if ($this->isValidTokenFormat($token)) {
@@ -179,12 +186,12 @@ class TaqamulTokenService
             foreach ($accounts as $acc) {
                 if (count($validAccounts) >= $count) break;
 
-                $email = $acc['email'] ?? null;
-                if (empty($email)) continue;
+                $email = strtolower(trim($acc['email'] ?? ''));
+                if (empty($email) || $email === $checkerEmail) continue;
 
                 $already = false;
                 foreach ($validAccounts as $v) {
-                    if (strtolower($v['email']) === strtolower($email)) {
+                    if (strtolower($v['email']) === $email) {
                         $already = true;
                         break;
                     }
