@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Artisan;
 use App\Models\SlotHold;
 use App\Services\TaqamulTokenService;
 use Exception;
@@ -32,6 +33,21 @@ class SlotVaultController extends Controller
      */
     public function getVaultData()
     {
+        @set_time_limit(180);
+
+        // Auto-renew any active holds nearing expiry (<= 3 mins remaining or past due) automatically on fetch
+        $hasExpiring = SlotHold::where('status', 'active')
+            ->where('expires_at', '<=', now()->addMinutes(3))
+            ->exists();
+
+        if ($hasExpiring) {
+            try {
+                Artisan::call('vault:renew-slots');
+            } catch (Exception $e) {
+                Log::warning("Auto-renew trigger error in getVaultData: " . $e->getMessage());
+            }
+        }
+
         $allHolds = SlotHold::activeOrPending()->orderBy('created_at', 'desc')->get();
 
         $grouped = [];
@@ -39,6 +55,10 @@ class SlotVaultController extends Controller
 
         foreach ($allHolds as $hold) {
             $hash = $hold->mother_hash;
+            $slotRemaining = ($hold->status === 'active' && $hold->expires_at && $hold->expires_at->isFuture()) 
+                ? now()->diffInSeconds($hold->expires_at) 
+                : 0;
+
             if (!isset($grouped[$hash])) {
                 $grouped[$hash] = [
                     'mother_hash' => $hash,
@@ -50,9 +70,14 @@ class SlotVaultController extends Controller
                     'total_assigned_slots' => 0,
                     'is_locking_in_progress' => false,
                     'expires_at' => $hold->expires_at ? $hold->expires_at->toIso8601String() : null,
-                    'remaining_seconds' => ($hold->expires_at && $hold->expires_at->isFuture()) ? now()->diffInSeconds($hold->expires_at) : 0,
+                    'remaining_seconds' => $slotRemaining,
                     'slots' => [],
                 ];
+            } else {
+                if ($slotRemaining > $grouped[$hash]['remaining_seconds']) {
+                    $grouped[$hash]['remaining_seconds'] = $slotRemaining;
+                    $grouped[$hash]['expires_at'] = $hold->expires_at ? $hold->expires_at->toIso8601String() : null;
+                }
             }
 
             $grouped[$hash]['total_assigned_slots']++;
@@ -70,7 +95,7 @@ class SlotVaultController extends Controller
                 'temp_seat_id' => $hold->status === 'pending_locking' ? 'Processing...' : $hold->temp_seat_id,
                 'status' => $hold->status,
                 'expires_at' => ($hold->status === 'active' && $hold->expires_at) ? $hold->expires_at->format('h:i:s A') : 'Queued',
-                'remaining_seconds' => ($hold->status === 'active' && $hold->expires_at && $hold->expires_at->isFuture()) ? now()->diffInSeconds($hold->expires_at) : 0,
+                'remaining_seconds' => $slotRemaining,
                 'renew_count' => $hold->renew_count,
             ];
         }
