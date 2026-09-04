@@ -161,39 +161,37 @@ class WafidMailService
     /**
      * Get messages list in a mailbox
      */
+    /**
+     * Get messages list in a mailbox
+     */
     public function getMessages(string $mailboxName): array
     {
-        $domain = str_contains($mailboxName, '@') ? strtolower(trim(explode('@', $mailboxName)[1])) : 'renonx.tech';
-        $cleanName = preg_replace('/@.*$/', '', $mailboxName);
-        $path = "/api/v1/mailboxes/{$cleanName}/messages?domain=" . urlencode($domain);
-
-        if (!$this->isConfigured()) {
-            return [];
-        }
+        $domain = str_contains($mailboxName, '@') ? strtolower(trim(explode('@', $mailboxName)[1])) : 'wafidmaster.com';
+        $fullEmail = str_contains($mailboxName, '@') ? strtolower(trim($mailboxName)) : "{$mailboxName}@{$domain}";
+        $baseUrl = $this->getBaseUrlForDomain($domain);
 
         try {
+            // 1. Try Public AnonMail Endpoint (Fastest, direct match)
+            $publicUrl = "{$baseUrl}/api/public/mailboxes/" . urlencode($fullEmail) . "/messages";
+            $res = Http::timeout(6)->get($publicUrl);
+            if ($res->successful() && !empty($res->json('messages'))) {
+                return $res->json('messages');
+            }
+
+            // 2. Try clean name public endpoint
+            $cleanName = preg_replace('/@.*$/', '', $fullEmail);
+            $publicCleanUrl = "{$baseUrl}/api/public/mailboxes/" . urlencode($cleanName) . "/messages";
+            $resClean = Http::timeout(6)->get($publicCleanUrl);
+            if ($resClean->successful() && !empty($resClean->json('messages'))) {
+                return $resClean->json('messages');
+            }
+
+            // 3. Fallback to HMAC signed endpoint
+            $path = "/api/v1/mailboxes/{$cleanName}/messages?domain=" . urlencode($domain);
             $headers = $this->getSignedHeaders('GET', $path);
-            $baseUrl = $this->getBaseUrlForDomain($domain);
-
-            $response = Http::withHeaders($headers)->timeout(10)->get("{$baseUrl}{$path}");
-            if ($response->status() === 404) {
-                $this->createMailbox($cleanName);
-            }
-            if ($response->successful() && !empty($response->json()['messages'])) {
-                return $response->json()['messages'];
-            }
-
-            if ($baseUrl !== $this->baseUrl) {
-                $response = Http::withHeaders($headers)->timeout(10)->get("{$this->baseUrl}{$path}");
-                if ($response->successful() && !empty($response->json()['messages'])) {
-                    return $response->json()['messages'];
-                }
-            }
-
-            $altUrl = str_contains($domain, 'renonx') ? 'https://mail.wafidmaster.com' : 'https://mail.renonx.tech';
-            $response = Http::withHeaders($headers)->timeout(10)->get("{$altUrl}{$path}");
-            if ($response->successful()) {
-                return $response->json()['messages'] ?? [];
+            $response = Http::withHeaders($headers)->timeout(8)->get("{$baseUrl}{$path}");
+            if ($response->successful() && !empty($response->json('messages'))) {
+                return $response->json('messages');
             }
         } catch (Exception $e) {
             Log::error("WafidMail getMessages exception: " . $e->getMessage());
@@ -205,28 +203,24 @@ class WafidMailService
     /**
      * Get full email content (HTML, text, etc)
      */
-    public function getMessageDetail(string $messageId, string $domain = 'renonx.tech'): ?array
+    public function getMessageDetail(string $messageId, string $domain = 'wafidmaster.com'): ?array
     {
-        $path = "/api/v1/messages/{$messageId}";
-
-        if (!$this->isConfigured()) {
-            return null;
-        }
+        $baseUrl = $this->getBaseUrlForDomain($domain);
 
         try {
-            $headers = $this->getSignedHeaders('GET', $path);
-            $baseUrl = $this->getBaseUrlForDomain($domain);
-
-            $response = Http::withHeaders($headers)->timeout(10)->get("{$baseUrl}{$path}");
-            if ($response->successful()) {
-                return $response->json();
+            // 1. Try Public AnonMail message detail endpoint
+            $publicUrl = "{$baseUrl}/api/public/messages/" . urlencode($messageId);
+            $res = Http::timeout(6)->get($publicUrl);
+            if ($res->successful() && !empty($res->json())) {
+                return $res->json();
             }
 
-            if ($baseUrl !== $this->baseUrl) {
-                $response = Http::withHeaders($headers)->timeout(10)->get("{$this->baseUrl}{$path}");
-                if ($response->successful()) {
-                    return $response->json();
-                }
+            // 2. Fallback to HMAC signed endpoint
+            $path = "/api/v1/messages/{$messageId}";
+            $headers = $this->getSignedHeaders('GET', $path);
+            $response = Http::withHeaders($headers)->timeout(8)->get("{$baseUrl}{$path}");
+            if ($response->successful()) {
+                return $response->json();
             }
         } catch (Exception $e) {
             Log::error("WafidMail getMessageDetail exception: " . $e->getMessage());
