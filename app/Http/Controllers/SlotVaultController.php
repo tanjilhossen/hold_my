@@ -116,7 +116,7 @@ class SlotVaultController extends Controller
         ]);
 
         $motherHash = trim($request->input('mother_hash'));
-        $holds = SlotHold::where('mother_hash', $motherHash)->active()->get();
+        $holds = SlotHold::where('mother_hash', $motherHash)->activeOrPending()->get();
 
         $releasedCount = 0;
         foreach ($holds as $hold) {

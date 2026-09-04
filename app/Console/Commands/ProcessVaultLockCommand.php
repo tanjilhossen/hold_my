@@ -189,6 +189,24 @@ class ProcessVaultLockCommand extends Command
                 $resId = 'VAULT_' . rand(100000, 999999);
             }
 
+            // Check if slot was released by user while locking was in progress
+            $existingHold = SlotHold::where('mother_hash', $motherHash)
+                ->where('held_with_email', $email)
+                ->first();
+
+            if ($existingHold && $existingHold->status === 'released') {
+                $this->warn("[VaultLockWorker] Slot for candidate {$email} was released by user during locking process. Canceling Taqamul reservation...");
+                if ($resId && !str_starts_with($resId, 'VAULT_')) {
+                    try {
+                        Http::timeout(5)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$resId}?locale=en");
+                        Http::timeout(5)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats/{$resId}?locale=en");
+                    } catch (\Exception $e) {
+                        Log::warning("Error releasing canceled reservation {$resId} on Taqamul: " . $e->getMessage());
+                    }
+                }
+                continue;
+            }
+
             // 5. Save or Update Active Hold in Slot Vault DB with 20-minute expiry
             SlotHold::updateOrCreate(
                 [
