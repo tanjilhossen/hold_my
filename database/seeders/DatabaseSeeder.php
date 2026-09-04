@@ -55,7 +55,8 @@ class DatabaseSeeder extends Seeder
                         Passenger::updateOrCreate(
                             ['email' => $acc['email']],
                             [
-                                'name' => $acc['name'] ?? 'Candidate',
+                                'first_name' => $acc['name'] ?? 'Candidate',
+                                'last_name' => 'Pool',
                                 'password' => $acc['password'] ?? 'Taqamul@2723!',
                                 'token' => $acc['token'] ?? null,
                                 'status' => !empty($acc['token']) ? 'active' : 'expired',
