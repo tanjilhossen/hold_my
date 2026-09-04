@@ -338,6 +338,25 @@ class TaqamulTokenService
             }
         };
 
+        // 0. Quick probe check: If candidate already has an active, valid Bearer token, reuse it!
+        $existingToken = $this->getTokenForAccount($email);
+        if (!empty($existingToken) && $this->isValidTokenFormat($existingToken)) {
+            try {
+                $probeRes = Http::timeout(4)->withHeaders([
+                    'Accept' => 'application/json',
+                    'X-Tenant-Name' => 'svp-international',
+                    'Authorization' => str_starts_with($existingToken, 'Bearer ') ? $existingToken : "Bearer {$existingToken}",
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                ])->get("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en");
+
+                if ($probeRes->status() !== 401 && !str_contains($probeRes->body(), 'Signature has expired')) {
+                    $logStep("[Token Bot 🔑] Existing token is active & valid! Reusing token for {$email}.");
+                    $this->updateAccountToken($email, $existingToken);
+                    return $existingToken;
+                }
+            } catch (Exception $e) {}
+        }
+
         for ($attemptRetry = 1; $attemptRetry <= 2; $attemptRetry++) {
             try {
                 $capsolverKey = Setting::get('capsolver_api_key', env('CAPSOLVER_API_KEY', 'CAP-1C910649B8AEADE973B68571F5449DA4ACE38F5A22ADE82D2596BE826B28C133'));
@@ -430,7 +449,18 @@ class TaqamulTokenService
                 ]);
 
                 if (!$loginRes->successful()) {
-                    $logStep("[Token Bot ❌] Login step 1 failed ({$loginRes->status()}): " . $loginRes->body());
+                    if ($loginRes->status() === 429 || str_contains($loginRes->body(), 'Rate Limit')) {
+                        $logStep("[Token Bot ⚠️] Taqamul Login Rate Limit (429) hit for {$email}. Checking if existing token works...");
+                        if (!empty($existingToken) && $this->isValidTokenFormat($existingToken)) {
+                            $logStep("[Token Bot 🔑] Reusing active saved token for {$email} despite rate limit.");
+                            $this->updateAccountToken($email, $existingToken);
+                            return $existingToken;
+                        }
+                        $logStep("[Token Bot ⏳] Rate Limit active. Waiting 5 seconds before retry...");
+                        sleep(5);
+                    } else {
+                        $logStep("[Token Bot ❌] Login step 1 failed ({$loginRes->status()}): " . $loginRes->body());
+                    }
                     continue;
                 }
 
