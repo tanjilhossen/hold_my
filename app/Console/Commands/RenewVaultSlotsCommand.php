@@ -118,9 +118,14 @@ class RenewVaultSlotsCommand extends Command
                 ]);
             }
 
-            $newResId = $hold->temp_seat_id;
+            $newResId = null;
             if ($res->successful()) {
-                $newResId = $res->json()['id'] ?? $newResId;
+                $resData = $res->json();
+                $newResId = $resData['id'] ?? ($resData['data']['id'] ?? null);
+            }
+
+            if (empty($newResId) || str_starts_with((string)$newResId, 'VAULT_')) {
+                $newResId = $hold->temp_seat_id;
             }
 
             // Extend 20-minute expiry

@@ -130,6 +130,19 @@ class ProcessVaultLockCommand extends Command
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             ];
 
+            // Pre-cleaning: Clear any active/stuck reservations on candidate account before reserving
+            try {
+                $openRes = Http::timeout(3)->withHeaders($headers)->get("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en");
+                if ($openRes->successful()) {
+                    $items = $openRes->json()['exam_reservations'] ?? ($openRes->json()['data'] ?? []);
+                    foreach ($items as $item) {
+                        if (!empty($item['id'])) {
+                            Http::timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$item['id']}?locale=en");
+                        }
+                    }
+                }
+            } catch (\Exception $e) {}
+
             $res = Http::timeout(8)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
                 'exam_session_id' => $motherHash,
                 'occupation_id' => $occId,
@@ -175,15 +188,19 @@ class ProcessVaultLockCommand extends Command
 
             $resId = null;
             if ($res->successful()) {
-                $resId = $res->json()['id'] ?? null;
-            } else {
+                $resData = $res->json();
+                $resId = $resData['id'] ?? ($resData['data']['id'] ?? ($resData['reservation']['id'] ?? null));
+            }
+
+            if (!$resId) {
                 // Try temporary seats endpoint if exam_reservations returned already reserved/busy
                 $tempRes = Http::timeout(8)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats?locale=en", [
                     'exam_session_id' => [$motherHash],
                     'methodology' => 'in_person',
                 ]);
                 if ($tempRes->successful()) {
-                    $resId = $tempRes->json()['id'] ?? null;
+                    $tempData = $tempRes->json();
+                    $resId = $tempData['id'] ?? ($tempData['data']['id'] ?? null);
                 }
             }
 
