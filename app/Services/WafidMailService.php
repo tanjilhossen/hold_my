@@ -230,11 +230,11 @@ class WafidMailService
     }
 
     /**
-     * Poll until latest OTP arrives
+     * Poll until latest fresh OTP arrives (skips old messages received before minTimestampMs)
      */
-    public function waitForLatestOtp(string $mailboxName, int $timeoutSec = 45, ?callable $logger = null): ?string
+    public function waitForLatestOtp(string $mailboxName, int $timeoutSec = 45, ?callable $logger = null, int $minTimestampMs = 0): ?string
     {
-        $domain = str_contains($mailboxName, '@') ? strtolower(trim(explode('@', $mailboxName)[1])) : 'renonx.tech';
+        $domain = str_contains($mailboxName, '@') ? strtolower(trim(explode('@', $mailboxName)[1])) : 'wafidmaster.com';
         $cleanName = preg_replace('/@.*$/', '', $mailboxName);
         $startTime = time();
 
@@ -247,20 +247,29 @@ class WafidMailService
             $messages = $this->getMessages($mailboxName);
 
             if (!empty($messages)) {
-                $latestMsg = $messages[0];
-                
-                // Check subject or snippet for OTP
-                $combined = ($latestMsg['subject'] ?? '') . ' ' . ($latestMsg['snippet'] ?? '');
-                if (preg_match('/\b([0-9]{6})\b/', $combined, $match)) {
-                    return $match[1];
-                }
+                foreach ($messages as $msg) {
+                    // 1. Verify received_at timestamp to guarantee it's a FRESH running OTP
+                    if (!empty($msg['received_at']) && $minTimestampMs > 0) {
+                        $msgTimeMs = strtotime($msg['received_at']) * 1000;
+                        // Skip old messages received more than 5s before current request started
+                        if ($msgTimeMs > 0 && $msgTimeMs < ($minTimestampMs - 5000)) {
+                            continue;
+                        }
+                    }
 
-                // If not in snippet, fetch full message body
-                $detail = $this->getMessageDetail($latestMsg['id'], $domain);
-                if ($detail) {
-                    $bodyText = ($detail['text_body'] ?? '') . ' ' . ($detail['html_body'] ?? '') . ' ' . ($detail['text_content'] ?? '');
-                    if (preg_match('/\b([0-9]{6})\b/', $bodyText, $match)) {
+                    // 2. Check subject or snippet for OTP
+                    $combined = ($msg['subject'] ?? '') . ' ' . ($msg['snippet'] ?? '');
+                    if (preg_match('/\b([0-9]{6})\b/', $combined, $match)) {
                         return $match[1];
+                    }
+
+                    // 3. If not in snippet, fetch full message body
+                    $detail = $this->getMessageDetail($msg['id'], $domain);
+                    if ($detail) {
+                        $bodyText = ($detail['text_body'] ?? '') . ' ' . ($detail['html_body'] ?? '') . ' ' . ($detail['text_content'] ?? '');
+                        if (preg_match('/\b([0-9]{6})\b/', $bodyText, $match)) {
+                            return $match[1];
+                        }
                     }
                 }
             }

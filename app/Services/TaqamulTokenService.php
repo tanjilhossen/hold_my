@@ -423,7 +423,7 @@ class TaqamulTokenService
                 // 3. Poll WafidMail API for fresh OTP
                 $logStep("[WafidMail API ✉️] Login OTP dispatched! Polling WafidMail inbox for fresh OTP...");
                 $wafidMailService = app(WafidMailService::class);
-                $otpCode = $wafidMailService->waitForLatestOtp($email, 45, $logger);
+                $otpCode = $wafidMailService->waitForLatestOtp($email, 45, $logger, $requestStartTime);
 
                 if (empty($otpCode)) {
                     $logStep("[WafidMail API ⚠️] OTP email timeout for {$email}. Retrying...");
