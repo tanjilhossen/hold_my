@@ -98,7 +98,7 @@ async function fetchLoginOtp(email, wafidClient, maxWaitSec = 45, minTimestamp =
     return null;
 }
 
-function postJsonWithHeaders(urlStr, payload, customHeaders = {}) {
+function postJsonWithHeaders(urlStr, payload, customHeaders = {}, retries = 2) {
     return new Promise((resolve, reject) => {
         const data = JSON.stringify(payload);
         const u = new URL(urlStr);
@@ -110,6 +110,7 @@ function postJsonWithHeaders(urlStr, payload, customHeaders = {}) {
             headers: {
                 'Content-Type': 'application/json',
                 'Content-Length': Buffer.byteLength(data),
+                'Connection': 'close',
                 ...customHeaders
             }
         }, (res) => {
@@ -123,7 +124,15 @@ function postJsonWithHeaders(urlStr, payload, customHeaders = {}) {
                 }
             });
         });
-        req.on('error', reject);
+        req.on('error', (err) => {
+            if (retries > 0) {
+                setTimeout(() => {
+                    postJsonWithHeaders(urlStr, payload, customHeaders, retries - 1).then(resolve).catch(reject);
+                }, 1000);
+            } else {
+                reject(err);
+            }
+        });
         req.write(data);
         req.end();
     });

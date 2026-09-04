@@ -348,6 +348,41 @@ class HoldSlotController extends Controller
     }
 
     /**
+     * Helper to make robust Http requests to Taqamul API with cURL HTTP 1.1 & auto-retry
+     */
+    protected function makeTaqamulRequest(string $method, string $url, array $params = [], array $headers = [], int $timeout = 12)
+    {
+        $opts = [
+            'curl' => [
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => 0,
+            ]
+        ];
+
+        for ($attempt = 1; $attempt <= 3; $attempt++) {
+            try {
+                $req = Http::timeout($timeout)->withOptions($opts)->withHeaders($headers);
+                if (strtolower($method) === 'post') {
+                    $res = $req->post($url, $params);
+                } elseif (strtolower($method) === 'delete') {
+                    $res = $req->delete($url, $params);
+                } else {
+                    $res = $req->get($url, $params);
+                }
+                return $res;
+            } catch (Exception $e) {
+                if ($attempt >= 3) {
+                    Log::warning("[TaqamulRequest] Failed after 3 attempts ({$url}): " . $e->getMessage());
+                    throw $e;
+                }
+                usleep(300000); // 300ms delay before retry
+            }
+        }
+        return null;
+    }
+
+    /**
      * AJAX Endpoint: Fetch Available Dates & Cities for a selected Profession / Category ID
      */
     public function getAvailableDates(Request $request)
@@ -358,7 +393,7 @@ class HoldSlotController extends Controller
         $headers = [
             'Accept' => 'application/json',
             'X-Tenant-Name' => 'svp-international',
-            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
         ];
 
         if (!empty($token)) {
@@ -366,14 +401,14 @@ class HoldSlotController extends Controller
         }
 
         try {
-            $response = Http::timeout(10)->withHeaders($headers)->get("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_sessions/available_dates", [
+            $response = $this->makeTaqamulRequest('GET', "{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_sessions/available_dates", [
                 'category_id' => $categoryId,
                 'start_at_date_from' => date('Y-m-d'),
                 'available_seats' => 'greater_than::0',
                 'status' => 'scheduled',
                 'per_page' => 1000,
                 'locale' => 'en',
-            ]);
+            ], $headers, 15);
 
             if ($response->status() === 401) {
                 if (!empty($token)) {
@@ -463,7 +498,7 @@ class HoldSlotController extends Controller
         $headers = [
             'Accept' => 'application/json',
             'X-Tenant-Name' => 'svp-international',
-            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
         ];
 
         if (!empty($token)) {
@@ -471,9 +506,11 @@ class HoldSlotController extends Controller
         }
 
         try {
-            $datesToScan = ($examDate === 'ALL') ? [$request->input('all_dates', [])] : [$examDate];
-            if (is_array($datesToScan[0])) {
-                $datesToScan = $datesToScan[0];
+            if ($examDate === 'ALL') {
+                // Single fast request for ALL dates (omitting start_date query parameter returns all scheduled sessions)
+                $datesToScan = [''];
+            } else {
+                $datesToScan = [$examDate];
             }
 
             $foundCenters = [];
@@ -481,119 +518,127 @@ class HoldSlotController extends Controller
             $probeLogs = [];
 
             foreach ($datesToScan as $targetDate) {
-                if (empty($targetDate)) continue;
-
-                $sessionRes = Http::timeout(12)->withHeaders($headers)->get("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_sessions", [
-                    'category_id' => $categoryId,
-                    'city' => $city,
-                    'start_date' => $targetDate,
-                    'locale' => 'en',
-                ]);
-
-                if ($sessionRes->status() === 401) {
-                    if (!empty($token)) {
-                        $this->tokenService->markTokenExpired($token);
+                try {
+                    $params = [
+                        'category_id' => $categoryId,
+                        'city' => $city,
+                        'locale' => 'en',
+                    ];
+                    if (!empty($targetDate)) {
+                        $params['start_date'] = $targetDate;
                     }
-                    return response()->json([
-                        'success' => false,
-                        'code' => 'TOKEN_EXPIRED',
-                        'message' => 'Slot checker token expired. Re-authenticating pool__485381@wafidmaster.com...',
-                    ], 401);
-                }
 
-                if ($sessionRes->successful()) {
-                    $sessionData = $sessionRes->json();
-                    $sessions = $sessionData['exam_sessions'] ?? [];
+                    $sessionRes = $this->makeTaqamulRequest('GET', "{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_sessions", $params, $headers, 15);
 
-                    foreach ($sessions as $index => $sess) {
-                        $motherHash = $sess['id'] ?? null;
-                        if (!$motherHash) continue;
-
-                        // Filter by single selected date if NOT scanning 'ALL'
-                        $sessDate = $sess['start_date_in_tc_time_zone'] ?? ($sess['start_date_in_browser_time_zone'] ?? ($sess['date'] ?? null));
-                        if ($examDate !== 'ALL' && !empty($sessDate) && !empty($targetDate)) {
-                            if (date('Y-m-d', strtotime($sessDate)) !== date('Y-m-d', strtotime($targetDate))) {
-                                continue;
-                            }
+                    if ($sessionRes && $sessionRes->status() === 401) {
+                        if (!empty($token)) {
+                            $this->tokenService->markTokenExpired($token);
                         }
-
-                        $allHashes[] = $motherHash;
-                        $tcFromApi = $sess['test_center'] ?? [];
-                        $apiCity = $tcFromApi['city'] ?? $city;
-                        
-                        $centerName = $tcFromApi['test_center_name'] ?? ($tcFromApi['name'] ?? null);
-                        $centerAddress = $tcFromApi['address'] ?? "{$apiCity}, Bangladesh";
-                        
-                        $startRaw = $sess['start_at_in_tc_time_zone'] ?? ($sess['start_at'] ?? null);
-                        $startTime = $startRaw ? date('h:i A', strtotime($startRaw)) : '09:30 AM';
-
-                        $availSeats = isset($sess['available_seats']) ? (int)$sess['available_seats'] : 10;
-                        $totalSeats = isset($sess['seats']) ? (int)$sess['seats'] : 10;
-
-                        // 1. Check if Mother Hash exists in SlotHash Vault DB
-                        $dbHash = SlotHash::where('mother_hash', $motherHash)->first();
-                        if ($dbHash && !empty($dbHash->center_name) && !str_contains($dbHash->center_name, 'Test Center #')) {
-                            $centerName = $dbHash->center_name;
-                            $centerAddress = $dbHash->center_address ?: $centerAddress;
-                            $startTime = $dbHash->start_time ?: $startTime;
-                            $availSeats = (int)($dbHash->available_seats ?: $availSeats);
-                        } 
-                        // 2. If unresolved center name, probe live via Taqamul exam_reservations API
-                        elseif (empty($centerName) || str_contains($centerName, 'Test Center #') || str_contains($centerName, 'Center #')) {
-                            $probed = $this->executeProbeWithBackoff($motherHash, $categoryId, $apiCity, $token);
-                            if ($probed) {
-                                $centerName = $probed['center_name'];
-                                $centerAddress = $probed['center_address'] ?: $centerAddress;
-                                $startTime = $probed['start_time'] ?: $startTime;
-                                $availSeats = $probed['available_seats'];
-                                $totalSeats = $probed['total_seats'];
-
-                                $probeLogs[] = [
-                                    'hash' => $motherHash,
-                                    'center_name' => $centerName,
-                                    'avail_seats' => $availSeats,
-                                    'res_id' => $probed['res_id'] ?? null,
-                                ];
-
-                                // Auto-save resolved hash metadata to Vault DB
-                                try {
-                                    SlotHash::updateOrCreate(
-                                        ['mother_hash' => $motherHash],
-                                        [
-                                            'category_id' => $categoryId,
-                                            'category_name' => $sess['category']['english_name'] ?? 'Profession',
-                                            'city' => $apiCity,
-                                            'exam_date' => $targetDate,
-                                            'center_name' => $centerName,
-                                            'center_address' => $centerAddress,
-                                            'start_time' => $startTime,
-                                            'available_seats' => $availSeats,
-                                            'discovered_at' => now(),
-                                        ]
-                                    );
-                                } catch (Exception $e) {}
-                            }
-                        }
-
-                        if (empty($centerName)) {
-                            $centerName = $tcFromApi['name'] ?? ($tcFromApi['test_center_name'] ?? "Taqamul Test Center ({$apiCity})");
-                        }
-
-                        $foundCenters[] = [
-                            'session_index' => count($foundCenters) + 1,
-                            'mother_hash' => $motherHash,
-                            'category_id' => $sess['category']['id'] ?? $categoryId,
-                            'category_name' => $sess['category']['english_name'] ?? 'Profession',
-                            'city' => $apiCity,
-                            'exam_date' => $sess['start_date_in_tc_time_zone'] ?? $targetDate,
-                            'start_time' => $startTime,
-                            'center_name' => $centerName,
-                            'center_address' => $centerAddress,
-                            'available_seats' => $availSeats,
-                            'total_seats' => $totalSeats,
-                            'status' => $sess['status'] ?? 'scheduled',
-                        ];
+                        return response()->json([
+                            'success' => false,
+                            'code' => 'TOKEN_EXPIRED',
+                            'message' => 'Slot checker token expired. Re-authenticating pool__485381@wafidmaster.com...',
+                        ], 401);
                     }
+
+                    if ($sessionRes && $sessionRes->successful()) {
+                        $sessionData = $sessionRes->json();
+                        $sessions = $sessionData['exam_sessions'] ?? [];
+
+                        foreach ($sessions as $index => $sess) {
+                            $motherHash = $sess['id'] ?? null;
+                            if (!$motherHash) continue;
+
+                            // Prevent duplicates
+                            if (in_array($motherHash, $allHashes)) continue;
+
+                            $sessDate = $sess['start_date_in_tc_time_zone'] ?? ($sess['start_date_in_browser_time_zone'] ?? ($sess['date'] ?? null));
+                            if ($examDate !== 'ALL' && !empty($sessDate) && !empty($targetDate)) {
+                                if (date('Y-m-d', strtotime($sessDate)) !== date('Y-m-d', strtotime($targetDate))) {
+                                    continue;
+                                }
+                            }
+
+                            $allHashes[] = $motherHash;
+                            $tcFromApi = $sess['test_center'] ?? [];
+                            $apiCity = $tcFromApi['city'] ?? $city;
+                            
+                            $centerName = $tcFromApi['test_center_name'] ?? ($tcFromApi['name'] ?? null);
+                            $centerAddress = $tcFromApi['address'] ?? "{$apiCity}, Bangladesh";
+                            
+                            $startRaw = $sess['start_at_in_tc_time_zone'] ?? ($sess['start_at'] ?? null);
+                            $startTime = $startRaw ? date('h:i A', strtotime($startRaw)) : '09:30 AM';
+
+                            $availSeats = isset($sess['available_seats']) ? (int)$sess['available_seats'] : 10;
+                            $totalSeats = isset($sess['seats']) ? (int)$sess['seats'] : 10;
+
+                            // 1. Check if Mother Hash exists in SlotHash Vault DB
+                            $dbHash = SlotHash::where('mother_hash', $motherHash)->first();
+                            if ($dbHash && !empty($dbHash->center_name) && !str_contains($dbHash->center_name, 'Test Center #')) {
+                                $centerName = $dbHash->center_name;
+                                $centerAddress = $dbHash->center_address ?: $centerAddress;
+                                $startTime = $dbHash->start_time ?: $startTime;
+                                $availSeats = (int)($dbHash->available_seats ?: $availSeats);
+                            } 
+                            // 2. If unresolved center name, probe live via Taqamul exam_reservations API
+                            elseif (empty($centerName) || str_contains($centerName, 'Test Center #') || str_contains($centerName, 'Center #')) {
+                                $probed = $this->executeProbeWithBackoff($motherHash, $categoryId, $apiCity, $token);
+                                if ($probed) {
+                                    $centerName = $probed['center_name'];
+                                    $centerAddress = $probed['center_address'] ?: $centerAddress;
+                                    $startTime = $probed['start_time'] ?: $startTime;
+                                    $availSeats = $probed['available_seats'];
+                                    $totalSeats = $probed['total_seats'];
+
+                                    $probeLogs[] = [
+                                        'hash' => $motherHash,
+                                        'center_name' => $centerName,
+                                        'avail_seats' => $availSeats,
+                                        'res_id' => $probed['res_id'] ?? null,
+                                    ];
+
+                                    // Auto-save resolved hash metadata to Vault DB
+                                    try {
+                                        SlotHash::updateOrCreate(
+                                            ['mother_hash' => $motherHash],
+                                            [
+                                                'category_id' => $categoryId,
+                                                'category_name' => $sess['category']['english_name'] ?? 'Profession',
+                                                'city' => $apiCity,
+                                                'exam_date' => $sessDate ?: $targetDate,
+                                                'center_name' => $centerName,
+                                                'center_address' => $centerAddress,
+                                                'start_time' => $startTime,
+                                                'available_seats' => $availSeats,
+                                                'discovered_at' => now(),
+                                            ]
+                                        );
+                                    } catch (Exception $e) {}
+                                }
+                            }
+
+                            if (empty($centerName)) {
+                                $centerName = $tcFromApi['name'] ?? ($tcFromApi['test_center_name'] ?? "Taqamul Test Center ({$apiCity})");
+                            }
+
+                            $foundCenters[] = [
+                                'session_index' => count($foundCenters) + 1,
+                                'mother_hash' => $motherHash,
+                                'category_id' => $sess['category']['id'] ?? $categoryId,
+                                'category_name' => $sess['category']['english_name'] ?? 'Profession',
+                                'city' => $apiCity,
+                                'exam_date' => $sess['start_date_in_tc_time_zone'] ?? $targetDate,
+                                'start_time' => $startTime,
+                                'center_name' => $centerName,
+                                'center_address' => $centerAddress,
+                                'available_seats' => $availSeats,
+                                'total_seats' => $totalSeats,
+                                'status' => $sess['status'] ?? 'scheduled',
+                            ];
+                        }
+                    }
+                } catch (Exception $sessErr) {
+                    Log::warning("[scanSlots] Date scan error for {$targetDate}: " . $sessErr->getMessage());
                 }
             }
 
