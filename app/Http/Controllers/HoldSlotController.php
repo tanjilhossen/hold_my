@@ -727,19 +727,27 @@ class HoldSlotController extends Controller
             }
 
             // 3. Launch background process-lock Artisan command asynchronously
-            $phpPath = 'D:\\xampp\\php\\php.exe';
+            $phpPath = PHP_OS_FAMILY === 'Windows' ? 'D:\\xampp\\php\\php.exe' : '/usr/bin/php';
             if (!file_exists($phpPath)) {
-                $phpPath = 'php';
+                $whichCmd = PHP_OS_FAMILY === 'Windows' ? 'where php 2>nul' : 'which php 2>/dev/null';
+                $phpPath = trim(shell_exec($whichCmd) ?: 'php');
             }
 
-            $sanitizedCenter = str_replace('"', '', $centerName);
-            $sanitizedCity = str_replace('"', '', $city);
-            $sanitizedCategory = str_replace('"', '', $categoryName);
+            $artisanPath = base_path('artisan');
+            $baseDir = base_path();
 
-            if (str_contains(PHP_OS_FAMILY, 'Windows')) {
-                @pclose(@popen("start /B {$phpPath} artisan vault:process-lock \"{$motherHash}\" {$requestedCount} {$categoryId} \"{$sanitizedCenter}\" \"{$sanitizedCity}\" \"{$examDate}\" \"{$sanitizedCategory}\"", "r"));
+            $sanitizedCenter = escapeshellarg(str_replace('"', '', $centerName));
+            $sanitizedCity = escapeshellarg(str_replace('"', '', $city));
+            $sanitizedCategory = escapeshellarg(str_replace('"', '', $categoryName));
+            $escHash = escapeshellarg($motherHash);
+            $escDate = escapeshellarg($examDate);
+
+            if (PHP_OS_FAMILY === 'Windows') {
+                $cmd = "start \"\" /B \"{$phpPath}\" \"{$artisanPath}\" vault:process-lock {$escHash} {$requestedCount} {$categoryId} {$sanitizedCenter} {$sanitizedCity} {$escDate} {$sanitizedCategory}";
+                @pclose(@popen($cmd, "r"));
             } else {
-                @exec("{$phpPath} artisan vault:process-lock \"{$motherHash}\" {$requestedCount} {$categoryId} \"{$sanitizedCenter}\" \"{$sanitizedCity}\" \"{$examDate}\" \"{$sanitizedCategory}\" > /dev/null 2>&1 &");
+                $cmd = "cd \"{$baseDir}\" && {$phpPath} \"{$artisanPath}\" vault:process-lock {$escHash} {$requestedCount} {$categoryId} {$sanitizedCenter} {$sanitizedCity} {$escDate} {$sanitizedCategory} > /dev/null 2>&1 &";
+                @exec($cmd);
             }
 
             return response()->json([

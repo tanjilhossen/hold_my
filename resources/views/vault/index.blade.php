@@ -267,7 +267,7 @@
                             ? `<span class="text-muted small"><i class="fa-solid fa-hourglass-half me-1"></i> Reserving in background...</span>` 
                             : `<span class="text-info">${s.expires_at}</span>`;
                         const actionBtn = isPending
-                            ? `<span class="badge bg-dark border border-secondary text-warning"><i class="fa-solid fa-spinner fa-spin me-1"></i> Logging In...</span>`
+                            ? `<span class="badge bg-dark border border-secondary text-warning"><i class="fa-solid fa-spinner fa-spin me-1"></i> Reserving Seat...</span>`
                             : `<button class="btn btn-sm btn-outline-danger" onclick="releaseSingleSlot(${s.id})"><i class="fa-solid fa-xmark me-1"></i> Release Slot</button>`;
 
                         modalBody.innerHTML += `
