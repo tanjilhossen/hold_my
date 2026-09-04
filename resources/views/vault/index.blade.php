@@ -340,6 +340,7 @@
         if (!group) return;
 
         renderModalRows(group);
+        startLiveTimers();
 
         document.getElementById('btn-modal-release-all').onclick = function() {
             releaseGroup(hash);
