@@ -176,6 +176,9 @@ class WafidMailService
             $baseUrl = $this->getBaseUrlForDomain($domain);
 
             $response = Http::withHeaders($headers)->timeout(10)->get("{$baseUrl}{$path}");
+            if ($response->status() === 404) {
+                $this->createMailbox($cleanName);
+            }
             if ($response->successful() && !empty($response->json()['messages'])) {
                 return $response->json()['messages'];
             }
