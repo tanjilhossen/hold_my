@@ -67,6 +67,9 @@ class RenewVaultSlotsCommand extends Command
                 continue;
             }
 
+            $occId = $categoryId == 160 ? 2062 : ($categoryId ?: 159);
+            $langCode = $categoryId == 160 ? 'ar' : 'en';
+
             $headers = [
                 'Accept' => 'application/json',
                 'X-Tenant-Name' => 'svp-international',
@@ -77,8 +80,8 @@ class RenewVaultSlotsCommand extends Command
             // Re-reserve on Taqamul
             $res = Http::timeout(8)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
                 'exam_session_id' => $motherHash,
-                'occupation_id' => $categoryId,
-                'language_code' => 'en',
+                'occupation_id' => $occId,
+                'language_code' => $langCode,
                 'methodology' => 'in_person',
             ]);
 
@@ -94,8 +97,8 @@ class RenewVaultSlotsCommand extends Command
                     $headers['Authorization'] = str_starts_with($freshToken, 'Bearer ') ? $freshToken : "Bearer {$freshToken}";
                     $res = Http::timeout(8)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
                         'exam_session_id' => $motherHash,
-                        'occupation_id' => $categoryId,
-                        'language_code' => 'en',
+                        'occupation_id' => $occId,
+                        'language_code' => $langCode,
                         'methodology' => 'in_person',
                     ]);
                     $bodyStr = $res->body();
@@ -109,8 +112,8 @@ class RenewVaultSlotsCommand extends Command
                 sleep(60);
                 $res = Http::timeout(8)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
                     'exam_session_id' => $motherHash,
-                    'occupation_id' => $categoryId,
-                    'language_code' => 'en',
+                    'occupation_id' => $occId,
+                    'language_code' => $langCode,
                     'methodology' => 'in_person',
                 ]);
             }

@@ -97,6 +97,33 @@ class TaqamulTokenService
     }
 
     /**
+     * Get active Bearer token for a specific candidate account email
+     */
+    public function getTokenForAccount(string $email): ?string
+    {
+        $email = strtolower(trim($email));
+
+        // 1. Check Passenger model
+        try {
+            $passenger = Passenger::whereRaw('LOWER(email) = ?', [$email])->first();
+            if ($passenger && $this->isValidTokenFormat($passenger->token)) {
+                return $passenger->token;
+            }
+        } catch (Exception $e) {}
+
+        // 2. Check Candidate Pool Accounts
+        $accounts = $this->getPoolAccounts();
+        foreach ($accounts as $acc) {
+            if (strtolower(trim($acc['email'] ?? '')) === $email) {
+                if ($this->isValidTokenFormat($acc['token'] ?? null)) {
+                    return $acc['token'];
+                }
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Validate token string format to prevent invalid JSON strings
      */
