@@ -49,19 +49,28 @@ else
 fi
 
 # Environment File Setup
+echo "⚙️ Configuring .env file for SQLite..."
 if [ ! -f "$APP_DIR/.env" ]; then
-    echo "⚙️ Creating .env configuration file..."
-    sudo cp $APP_DIR/.env.example $APP_DIR/.env 2>/dev/null || sudo cp $APP_DIR/.env $APP_DIR/.env
-    sudo php artisan key:generate --force
+    sudo cp $APP_DIR/.env.example $APP_DIR/.env 2>/dev/null || true
 fi
+
+# Ensure SQLite Database config in .env
+sudo sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/' $APP_DIR/.env
+sudo sed -i 's|^DB_DATABASE=.*|DB_DATABASE=/var/www/taqamul/database/database.sqlite|' $APP_DIR/.env
+
+# Create SQLite database file
+sudo touch $APP_DIR/database/database.sqlite
+sudo chmod 777 $APP_DIR/database/database.sqlite
+
+# Generate APP_KEY if missing
+sudo php artisan key:generate --force
 
 # Install PHP Dependencies & Run Migrations
 echo "📦 Running composer install & artisan migrate..."
 sudo composer install --no-dev --optimize-autoloader
-sudo touch database/database.sqlite
-sudo chmod 777 database/database.sqlite
 sudo php artisan migrate --force
 sudo php artisan db:seed --force
+sudo php artisan config:clear
 sudo php artisan config:cache
 sudo php artisan route:cache
 sudo php artisan view:cache
