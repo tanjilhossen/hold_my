@@ -682,4 +682,54 @@ class TaqamulTokenService
             'message' => "Triggered {$triggered} background auto-logins for expired pool accounts."
         ];
     }
+
+    /**
+     * Solve Google reCAPTCHA v2 using 2Captcha API
+     */
+    public function solveRecaptchaTwoCaptcha(string $apiKey): ?string
+    {
+        try {
+            $siteKey = '6Ld_AwktAAAAAKAPK-1BGolix7oeSFA7ibXEhYQy';
+            $pageUrl = 'https://svp-international.pacc.sa/auth/login?role=labor';
+
+            $createRes = Http::timeout(15)->get("https://2captcha.com/in.php", [
+                'key' => $apiKey,
+                'method' => 'userrecaptcha',
+                'googlekey' => $siteKey,
+                'pageurl' => $pageUrl,
+                'json' => 1
+            ]);
+
+            if (!$createRes->successful() || $createRes->json('status') !== 1) {
+                Log::error("[2Captcha] Failed to create task: " . $createRes->body());
+                return null;
+            }
+
+            $taskId = $createRes->json('request');
+            Log::info("[2Captcha] Task created with ID: {$taskId}. Waiting for solution...");
+
+            for ($i = 0; $i < 30; $i++) {
+                sleep(2);
+                $resRes = Http::timeout(10)->get("https://2captcha.com/res.php", [
+                    'key' => $apiKey,
+                    'action' => 'get',
+                    'id' => $taskId,
+                    'json' => 1
+                ]);
+
+                if ($resRes->successful() && $resRes->json('status') === 1) {
+                    return $resRes->json('request');
+                }
+
+                if ($resRes->json('request') !== 'CAPCHA_NOT_READY') {
+                    Log::error("[2Captcha] Error getting result: " . $resRes->body());
+                    break;
+                }
+            }
+        } catch (Exception $e) {
+            Log::error("[2Captcha] Exception: " . $e->getMessage());
+        }
+
+        return null;
+    }
 }
