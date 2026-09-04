@@ -522,6 +522,7 @@ class HoldSlotController extends Controller
                     $params = [
                         'category_id' => $categoryId,
                         'city' => $city,
+                        'per_page' => 500,
                         'locale' => 'en',
                     ];
                     if (!empty($targetDate)) {
