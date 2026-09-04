@@ -302,8 +302,15 @@ class TaqamulTokenService
     /**
      * Direct fast pure HTTP login in PHP without launching browser
      */
-    public function loginAndFetchTokenHttp(string $email, string $password): ?string
+    public function loginAndFetchTokenHttp(string $email, string $password, ?callable $logger = null): ?string
     {
+        $logStep = function ($msg) use ($logger) {
+            Log::info("[TaqamulHTTP] {$msg}");
+            if ($logger) {
+                $logger($msg);
+            }
+        };
+
         for ($attemptRetry = 1; $attemptRetry <= 2; $attemptRetry++) {
             try {
                 $capsolverKey = Setting::get('capsolver_api_key', env('CAPSOLVER_API_KEY', 'CAP-1C910649B8AEADE973B68571F5449DA4ACE38F5A22ADE82D2596BE826B28C133'));
@@ -313,13 +320,13 @@ class TaqamulTokenService
 
                 // Try 2Captcha first if API key is provided
                 if (!empty($twoCaptchaKey)) {
-                    Log::info("[TaqamulHTTP] Solving reCAPTCHA via 2Captcha API for {$email}...");
+                    $logStep("[2Captcha API ⚡] Solving reCAPTCHA via 2Captcha API for {$email}...");
                     $recaptchaToken = $this->solveRecaptchaTwoCaptcha($twoCaptchaKey);
                 }
 
                 // Fallback to CapSolver AI
                 if (empty($recaptchaToken)) {
-                    Log::info("[TaqamulHTTP] Solving reCAPTCHA via CapSolver AI for {$email} (Attempt {$attemptRetry}/2)...");
+                    $logStep("[CapSolver AI ⚡] Solving reCAPTCHA v2 via CapSolver AI (Attempt {$attemptRetry}/2)...");
                     $createRes = Http::timeout(15)->withOptions([
                         'curl' => [
                             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
@@ -350,6 +357,7 @@ class TaqamulTokenService
 
                             if ($resultRes->json('status') === 'ready') {
                                 $recaptchaToken = $resultRes->json('solution.gRecaptchaResponse');
+                                $logStep("[CapSolver AI ✅] reCAPTCHA solved successfully!");
                                 break;
                             }
                             if ($resultRes->json('status') === 'failed') {
@@ -361,14 +369,14 @@ class TaqamulTokenService
                 }
 
                 if (empty($recaptchaToken)) {
-                    Log::error("[TaqamulHTTP] reCAPTCHA solving timeout for {$email}");
+                    $logStep("[Token Bot ❌] reCAPTCHA solving timeout for {$email}");
                     continue;
                 }
 
                 $requestStartTime = round(microtime(true) * 1000);
 
                 // 2. Request OTP dispatch POST /api/v1/sessions/login?locale=en
-                Log::info("[TaqamulHTTP] Dispatching OTP login request for {$email}...");
+                $logStep("[Token Bot 🚀] Dispatching OTP login request to Taqamul API...");
                 $loginRes = Http::timeout(15)->withHeaders([
                     'Host' => 'svp-international-api.pacc.sa',
                     'X-Tenant-Name' => 'svp-international',
@@ -395,7 +403,7 @@ class TaqamulTokenService
                 ]);
 
                 if (!$loginRes->successful()) {
-                    Log::error("[TaqamulHTTP] Login step 1 failed ({$loginRes->status()}): " . $loginRes->body());
+                    $logStep("[Token Bot ❌] Login step 1 failed ({$loginRes->status()}): " . $loginRes->body());
                     continue;
                 }
 
@@ -403,25 +411,26 @@ class TaqamulTokenService
                 if (!empty($loginData['access_payload']['access'])) {
                     $token = $loginData['access_payload']['access'];
                     $this->updateAccountToken($email, $token);
+                    $logStep("[Token Bot 🔑] Direct login successful without 2FA!");
                     return $token;
                 }
 
                 if (empty($loginData['required_2fa'])) {
-                    Log::error("[TaqamulHTTP] 2FA not triggered: " . $loginRes->body());
+                    $logStep("[Token Bot ❌] 2FA not triggered: " . $loginRes->body());
                     continue;
                 }
 
                 // 3. Poll WafidMail API for fresh OTP
-                Log::info("[TaqamulHTTP] Polling WafidMail for fresh OTP...");
+                $logStep("[WafidMail API ✉️] Login OTP dispatched! Polling WafidMail inbox for fresh OTP...");
                 $wafidMailService = app(WafidMailService::class);
-                $otpCode = $wafidMailService->waitForLatestOtp($email, 35);
+                $otpCode = $wafidMailService->waitForLatestOtp($email, 45, $logger);
 
                 if (empty($otpCode)) {
-                    Log::error("[TaqamulHTTP] OTP timeout for {$email}");
+                    $logStep("[WafidMail API ⚠️] OTP email timeout for {$email}. Retrying...");
                     continue;
                 }
 
-                Log::info("[TaqamulHTTP] Found OTP {$otpCode} for {$email}. Submitting...");
+                $logStep("[WafidMail API 📩] Found OTP code: {$otpCode}! Submitting to Taqamul API...");
 
                 // 4. Submit OTP POST /api/v1/sessions/otp?locale=en
                 $otpRes = Http::timeout(15)->withHeaders([
@@ -452,15 +461,15 @@ class TaqamulTokenService
                 if ($otpRes->successful()) {
                     $token = $otpRes->json('access_payload.access');
                     if ($this->isValidTokenFormat($token)) {
-                        Log::info("[TaqamulHTTP] Pure HTTP Login successful for {$email}!");
+                        $logStep("[Token Bot 🔑] Pure HTTP Login successful for {$email}!");
                         $this->updateAccountToken($email, $token);
                         return $token;
                     }
                 }
 
-                Log::error("[TaqamulHTTP] OTP submission failed for {$email}: " . $otpRes->body());
+                $logStep("[Token Bot ❌] OTP submission failed: " . $otpRes->body());
             } catch (Exception $e) {
-                Log::error("[TaqamulHTTP] Exception during pure HTTP login for {$email}: " . $e->getMessage());
+                $logStep("[Token Bot ❌] Exception during login: " . $e->getMessage());
             }
         }
         return null;

@@ -238,13 +238,18 @@ class WafidMailService
     /**
      * Poll until latest OTP arrives
      */
-    public function waitForLatestOtp(string $mailboxName, int $timeoutSec = 30): ?string
+    public function waitForLatestOtp(string $mailboxName, int $timeoutSec = 45, ?callable $logger = null): ?string
     {
         $domain = str_contains($mailboxName, '@') ? strtolower(trim(explode('@', $mailboxName)[1])) : 'renonx.tech';
         $cleanName = preg_replace('/@.*$/', '', $mailboxName);
         $startTime = time();
 
         while ((time() - $startTime) < $timeoutSec) {
+            $elapsed = time() - $startTime;
+            if ($logger) {
+                $logger("[WafidMail API ⏳] Polling inbox for {$cleanName}@{$domain} ({$elapsed}s/{$timeoutSec}s)...");
+            }
+
             $messages = $this->getMessages($mailboxName);
 
             if (!empty($messages)) {

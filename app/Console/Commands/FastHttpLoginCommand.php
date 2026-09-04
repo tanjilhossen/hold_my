@@ -24,9 +24,8 @@ class FastHttpLoginCommand extends Command
         };
 
         @file_put_contents($logFile, "[Token Bot] Starting Pure HTTP API Login for: {$email}...\n");
-        $log("[CapSolver AI ⚡] Solving reCAPTCHA v2...");
 
-        $token = $tokenService->loginAndFetchTokenHttp($email, $password);
+        $token = $tokenService->loginAndFetchTokenHttp($email, $password, $log);
 
         if ($token) {
             Setting::set('slot_checker_global_saved_token', $token);
