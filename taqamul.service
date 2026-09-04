@@ -1,0 +1,14 @@
+[Unit]
+Description=Taqamul Expert Engine Service (Port 7777)
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/var/www/taqamul
+ExecStart=/usr/bin/php artisan serve --host=0.0.0.0 --port=7777
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

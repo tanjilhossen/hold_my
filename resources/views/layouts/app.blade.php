@@ -117,9 +117,26 @@
                     <span class="badge bg-light text-dark border">
                         <i class="fa-solid fa-clock text-primary"></i> <span id="live-time"></span>
                     </span>
-                    <span class="badge bg-primary">
-                        <i class="fa-solid fa-user-shield me-1"></i> Admin Panel
-                    </span>
+                    @auth
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa-solid fa-circle-user text-primary fs-6"></i>
+                            <span class="fw-semibold text-dark">{{ Auth::user()->name ?? 'User' }}</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="userMenu">
+                            <li><span class="dropdown-item-text text-muted small"><i class="fa-regular fa-envelope me-1"></i> {{ Auth::user()->email }}</span></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                                    @csrf
+                                    <button type="submit" class="dropdown-item text-danger fw-semibold">
+                                        <i class="fa-solid fa-right-from-bracket me-1"></i> Log Out
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                    @endauth
                 </div>
             </div>
 
