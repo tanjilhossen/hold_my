@@ -50,7 +50,7 @@ class SlotVaultController extends Controller
                     'total_assigned_slots' => 0,
                     'is_locking_in_progress' => false,
                     'expires_at' => $hold->expires_at ? $hold->expires_at->toIso8601String() : null,
-                    'remaining_seconds' => $hold->expires_at ? max(0, now()->diffInSeconds($hold->expires_at, false)) : 0,
+                    'remaining_seconds' => ($hold->expires_at && $hold->expires_at->isFuture()) ? now()->diffInSeconds($hold->expires_at) : 0,
                     'slots' => [],
                 ];
             }
@@ -70,7 +70,7 @@ class SlotVaultController extends Controller
                 'temp_seat_id' => $hold->status === 'pending_locking' ? 'Processing...' : $hold->temp_seat_id,
                 'status' => $hold->status,
                 'expires_at' => ($hold->status === 'active' && $hold->expires_at) ? $hold->expires_at->format('h:i:s A') : 'Queued',
-                'remaining_seconds' => ($hold->status === 'active' && $hold->expires_at) ? max(0, now()->diffInSeconds($hold->expires_at, false)) : 0,
+                'remaining_seconds' => ($hold->status === 'active' && $hold->expires_at && $hold->expires_at->isFuture()) ? now()->diffInSeconds($hold->expires_at) : 0,
                 'renew_count' => $hold->renew_count,
             ];
         }
