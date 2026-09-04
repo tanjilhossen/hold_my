@@ -273,10 +273,207 @@ class TaqamulTokenService
     }
 
     /**
+     * Update token for candidate account in pool and database
+     */
+    public function updateAccountToken(string $email, string $token): void
+    {
+        $accounts = $this->getPoolAccounts();
+        $targetEmail = strtolower(trim($email));
+        $updated = false;
+
+        foreach ($accounts as &$acc) {
+            if (strtolower(trim($acc['email'] ?? '')) === $targetEmail) {
+                $acc['token'] = $token;
+                $acc['status'] = 'active';
+                $updated = true;
+            }
+        }
+        unset($acc);
+
+        if ($updated) {
+            $this->savePoolAccounts($accounts);
+        }
+
+        try {
+            Passenger::where('email', $email)->update(['token' => $token]);
+        } catch (Exception $e) {}
+    }
+
+    /**
+     * Direct fast pure HTTP login in PHP without launching browser
+     */
+    public function loginAndFetchTokenHttp(string $email, string $password): ?string
+    {
+        try {
+            $capsolverKey = Setting::get('capsolver_api_key', env('CAPSOLVER_API_KEY', 'CAP-1C910649B8AEADE973B68571F5449DA4ACE38F5A22ADE82D2596BE826B28C133'));
+            
+            // 1. Solve reCAPTCHA v2 via CapSolver
+            Log::info("[TaqamulHTTP] Solving reCAPTCHA for {$email}...");
+            $createRes = Http::post('https://api.capsolver.com/createTask', [
+                'clientKey' => $capsolverKey,
+                'task' => [
+                    'type' => 'ReCaptchaV2TaskProxyLess',
+                    'websiteURL' => 'https://svp-international.pacc.sa/auth/login?role=labor',
+                    'websiteKey' => '6Ld_AwktAAAAAKAPK-1BGolix7oeSFA7ibXEhYQy',
+                ]
+            ]);
+
+            $taskId = $createRes->json('taskId');
+            if (empty($taskId)) {
+                Log::error("[TaqamulHTTP] CapSolver task creation failed: " . $createRes->body());
+                return null;
+            }
+
+            $recaptchaToken = null;
+            for ($i = 0; $i < 60; $i++) {
+                usleep(400000); // 400ms
+                $resultRes = Http::post('https://api.capsolver.com/getTaskResult', [
+                    'clientKey' => $capsolverKey,
+                    'taskId' => $taskId
+                ]);
+
+                if ($resultRes->json('status') === 'ready') {
+                    $recaptchaToken = $resultRes->json('solution.gRecaptchaResponse');
+                    break;
+                }
+                if ($resultRes->json('status') === 'failed') {
+                    Log::error("[TaqamulHTTP] CapSolver failed: " . $resultRes->body());
+                    return null;
+                }
+            }
+
+            if (empty($recaptchaToken)) {
+                Log::error("[TaqamulHTTP] CapSolver timeout for {$email}");
+                return null;
+            }
+
+            $requestStartTime = round(microtime(true) * 1000);
+
+            // 2. Request OTP dispatch POST /api/v1/sessions/login?locale=en
+            Log::info("[TaqamulHTTP] Dispatching OTP login request for {$email}...");
+            $loginRes = Http::withHeaders([
+                'Host' => 'svp-international-api.pacc.sa',
+                'X-Tenant-Name' => 'svp-international',
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json, text/plain, */*',
+                'Origin' => 'https://svp-international.pacc.sa',
+                'Referer' => 'https://svp-international.pacc.sa/',
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36'
+            ])->post("{$this->apiBaseUrl}/api/v1/sessions/login?locale=en", [
+                'user' => [
+                    'login' => $email,
+                    'password' => $password,
+                    'otp_method' => 'email',
+                    'fe_app' => 'legislator',
+                    'recaptcha_response' => $recaptchaToken
+                ]
+            ]);
+
+            if (!$loginRes->successful()) {
+                Log::error("[TaqamulHTTP] Login step 1 failed ({$loginRes->status()}): " . $loginRes->body());
+                return null;
+            }
+
+            $loginData = $loginRes->json();
+            if (!empty($loginData['access_payload']['access'])) {
+                $token = $loginData['access_payload']['access'];
+                $this->updateAccountToken($email, $token);
+                return $token;
+            }
+
+            if (empty($loginData['required_2fa'])) {
+                Log::error("[TaqamulHTTP] 2FA not triggered: " . $loginRes->body());
+                return null;
+            }
+
+            // 3. Poll WafidMail API for fresh OTP
+            Log::info("[TaqamulHTTP] Polling WafidMail for fresh OTP...");
+            $wafidBaseUrl = Setting::get('wafid_mail_base_url', env('WAFID_MAIL_BASE_URL', 'https://mail.wafidmaster.com'));
+            $wafidKeyId = Setting::get('wafid_mail_key_id', env('WAFID_MAIL_KEY_ID', 'ak_live_f845898cbeb87d63e21d04a6'));
+            $wafidSecretKey = Setting::get('wafid_mail_secret_key', env('WAFID_MAIL_SECRET_KEY', 'sk_live_dd00dc26382465e37c31b246e37b3f345ff5c874d1ce0426'));
+
+            $otpCode = null;
+            for ($attempt = 0; $attempt < 35; $attempt++) {
+                sleep(1);
+                $mailRes = Http::withHeaders([
+                    'X-API-KEY-ID' => $wafidKeyId,
+                    'X-API-SECRET-KEY' => $wafidSecretKey,
+                    'Accept' => 'application/json',
+                ])->get("{$wafidBaseUrl}/api/v1/messages/search", [
+                    'recipient' => $email,
+                    'limit' => 5
+                ]);
+
+                if ($mailRes->successful()) {
+                    $messages = $mailRes->json('data.messages') ?? $mailRes->json('messages') ?? [];
+                    foreach ($messages as $msg) {
+                        $msgTime = isset($msg['received_at']) ? strtotime($msg['received_at']) * 1000 : 0;
+                        if ($requestStartTime > 0 && $msgTime > 0 && $msgTime < ($requestStartTime - 5000)) {
+                            continue;
+                        }
+                        $body = ($msg['text_body'] ?? '') . ' ' . ($msg['subject'] ?? '') . ' ' . ($msg['html_body'] ?? '');
+                        if (preg_match('/\b(\d{6})\b/', $body, $m)) {
+                            $otpCode = $m[1];
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            if (empty($otpCode)) {
+                Log::error("[TaqamulHTTP] OTP timeout for {$email}");
+                return null;
+            }
+
+            Log::info("[TaqamulHTTP] Found OTP {$otpCode} for {$email}. Submitting...");
+
+            // 4. Submit OTP POST /api/v1/sessions/otp?locale=en
+            $otpRes = Http::withHeaders([
+                'Host' => 'svp-international-api.pacc.sa',
+                'X-Tenant-Name' => 'svp-international',
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json, text/plain, */*',
+                'Origin' => 'https://svp-international.pacc.sa',
+                'Referer' => 'https://svp-international.pacc.sa/',
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36'
+            ])->post("{$this->apiBaseUrl}/api/v1/sessions/otp?locale=en", [
+                'user' => [
+                    'login' => $email,
+                    'password' => $password,
+                    'otp_attempt' => (string)$otpCode,
+                    'fe_app' => 'legislator',
+                    'otp_method' => 'email'
+                ]
+            ]);
+
+            if ($otpRes->successful()) {
+                $token = $otpRes->json('access_payload.access');
+                if ($this->isValidTokenFormat($token)) {
+                    Log::info("[TaqamulHTTP] Pure HTTP Login successful for {$email}!");
+                    $this->updateAccountToken($email, $token);
+                    return $token;
+                }
+            }
+
+            Log::error("[TaqamulHTTP] OTP submission failed for {$email}: " . $otpRes->body());
+        } catch (Exception $e) {
+            Log::error("[TaqamulHTTP] Exception during pure HTTP login for {$email}: " . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
      * Perform background login to get a fresh Bearer token
      */
     public function loginAndFetchToken(string $email, string $password): ?string
     {
+        // ⚡ Try ultra-fast PHP pure HTTP login first (< 10s)
+        $httpToken = $this->loginAndFetchTokenHttp($email, $password);
+        if (!empty($httpToken) && $this->isValidTokenFormat($httpToken)) {
+            return $httpToken;
+        }
+
         if (function_exists('session') && session()->isStarted()) {
             session()->save();
         }

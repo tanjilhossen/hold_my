@@ -98,15 +98,155 @@ async function fetchLoginOtp(email, wafidClient, maxWaitSec = 45, minTimestamp =
     return null;
 }
 
-// Autonomous On-Screen Visual Login & Token Extractor
-async function fetchBearerToken(config) {
-    let browser = null;
-    let capturedBearer = null;
+function postJsonWithHeaders(urlStr, payload, customHeaders = {}) {
+    return new Promise((resolve, reject) => {
+        const data = JSON.stringify(payload);
+        const u = new URL(urlStr);
+        const req = https.request({
+            hostname: u.hostname,
+            port: 443,
+            path: u.pathname + u.search,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(data),
+                ...customHeaders
+            }
+        }, (res) => {
+            let body = '';
+            res.on('data', d => body += d);
+            res.on('end', () => {
+                try {
+                    resolve(JSON.parse(body));
+                } catch (e) {
+                    reject(new Error(`Invalid JSON response (Status ${res.statusCode}): ${body}`));
+                }
+            });
+        });
+        req.on('error', reject);
+        req.write(data);
+        req.end();
+    });
+}
 
+// ⚡ Ultra-Fast Pure HTTP Login Engine (Bypasses Puppeteer Chrome overhead)
+async function fetchBearerTokenFastHttp(config) {
     const email = config.email;
     const password = config.password;
     const capsolverKey = config.capsolver_api_key || "CAP-1C910649B8AEADE973B68571F5449DA4ACE38F5A22ADE82D2596BE826B28C133";
     
+    const wafidClient = new WafidMailClient(
+        config.wafid_mail_base_url || process.env.WAFID_MAIL_BASE_URL || 'https://mail.wafidmaster.com',
+        config.wafid_mail_key_id || process.env.WAFID_MAIL_KEY_ID || 'ak_live_f845898cbeb87d63e21d04a6',
+        config.wafid_mail_secret_key || process.env.WAFID_MAIL_SECRET_KEY || 'sk_live_dd00dc26382465e37c31b246e37b3f345ff5c874d1ce0426'
+    );
+
+    logStream(`[Token Bot HTTP ⚡] Starting Direct Pure HTTP Login for: ${email}`);
+
+    // Step 1: Solve reCAPTCHA v2 token via CapSolver AI
+    const recaptchaToken = await solveLoginRecaptcha(capsolverKey);
+    logStream(`[Token Bot HTTP ⚡] Solved reCAPTCHA v2 token successfully!`);
+
+    const requestStartTime = Date.now();
+
+    // Step 2: Request OTP dispatch via POST /api/v1/sessions/login?locale=en
+    const loginPayload = {
+        user: {
+            login: email,
+            password: password,
+            otp_method: "email",
+            fe_app: "legislator",
+            recaptcha_response: recaptchaToken
+        }
+    };
+
+    logStream(`[Token Bot HTTP ⚡] Sending POST /api/v1/sessions/login...`);
+    const loginRes = await postJsonWithHeaders("https://svp-international-api.pacc.sa/api/v1/sessions/login?locale=en", loginPayload, {
+        'Host': 'svp-international-api.pacc.sa',
+        'X-Tenant-Name': 'svp-international',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json, text/plain, */*',
+        'Origin': 'https://svp-international.pacc.sa',
+        'Referer': 'https://svp-international.pacc.sa/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36'
+    });
+
+    logStream(`[Token Bot HTTP ⚡] Step 1 Response: ${JSON.stringify(loginRes)}`);
+
+    if (loginRes?.access_payload?.access) {
+        logStream(`[Token Bot HTTP 🔑] Direct login returned Bearer Token without OTP!`);
+        return loginRes.access_payload.access;
+    }
+
+    if (!loginRes || !loginRes.required_2fa) {
+        throw new Error(`Login step 1 failed: ${JSON.stringify(loginRes)}`);
+    }
+
+    await delay(1500);
+
+    // Step 3: Fetch fresh OTP code from WafidMail API
+    logStream(`[Token Bot HTTP 📩] Waiting for fresh OTP for ${email}...`);
+    const otpCode = await fetchLoginOtp(email, wafidClient, 35, requestStartTime);
+    if (!otpCode) {
+        throw new Error(`Failed to receive OTP for ${email} within timeout.`);
+    }
+    logStream(`[Token Bot HTTP 📩] Received fresh OTP code: ${otpCode}`);
+
+    // Step 4: Submit OTP via POST /api/v1/sessions/otp?locale=en
+    const otpPayload = {
+        user: {
+            login: email,
+            password: password,
+            otp_attempt: String(otpCode).trim(),
+            fe_app: "legislator",
+            otp_method: "email"
+        }
+    };
+
+    logStream(`[Token Bot HTTP ⚡] Submitting OTP via POST /api/v1/sessions/otp...`);
+    const otpRes = await postJsonWithHeaders("https://svp-international-api.pacc.sa/api/v1/sessions/otp?locale=en", otpPayload, {
+        'Host': 'svp-international-api.pacc.sa',
+        'X-Tenant-Name': 'svp-international',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json, text/plain, */*',
+        'Origin': 'https://svp-international.pacc.sa',
+        'Referer': 'https://svp-international.pacc.sa/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36'
+    });
+
+    logStream(`[Token Bot HTTP ⚡] Step 2 Response: ${JSON.stringify(otpRes)}`);
+
+    const bearerToken = otpRes?.access_payload?.access;
+    if (bearerToken && typeof bearerToken === 'string' && bearerToken.length > 20) {
+        logStream(`[Token Bot HTTP 🔑] Fast HTTP Login Success! Token acquired!`);
+        return bearerToken;
+    }
+
+    throw new Error(`OTP Verification failed: ${JSON.stringify(otpRes)}`);
+}
+
+// Autonomous On-Screen Visual Login & Token Extractor
+async function fetchBearerToken(config) {
+    const email = config.email;
+    const password = config.password;
+    const capsolverKey = config.capsolver_api_key || "CAP-1C910649B8AEADE973B68571F5449DA4ACE38F5A22ADE82D2596BE826B28C133";
+    
+    // ⚡ STEP 1: Attempt Ultra-Fast Pure HTTP Login (< 10 seconds, zero Chrome browser overhead)
+    try {
+        logStream(`[Token Bot ⚡] Attempting Pure Fast HTTP Login for: ${email}...`);
+        const fastToken = await fetchBearerTokenFastHttp(config);
+        if (fastToken && typeof fastToken === 'string' && fastToken.length > 20) {
+            logStream(`[Token Bot 🚀] PURE HTTP FAST LOGIN SUCCESS FOR ${email}! Token acquired!`);
+            return { success: true, email: email, token: fastToken };
+        }
+    } catch (httpErr) {
+        logStream(`[Token Bot ⚠️] Fast HTTP Login attempt failed: ${httpErr.message}. Falling back to Visual Chrome Browser mode...`);
+    }
+
+    // 🚀 STEP 2: Fallback to Puppeteer Chrome Visual Browser Mode
+    let browser = null;
+    let capturedBearer = null;
+
     const wafidClient = new WafidMailClient(
         config.wafid_mail_base_url || process.env.WAFID_MAIL_BASE_URL || 'https://mail.wafidmaster.com',
         config.wafid_mail_key_id || process.env.WAFID_MAIL_KEY_ID || 'ak_live_f845898cbeb87d63e21d04a6',
