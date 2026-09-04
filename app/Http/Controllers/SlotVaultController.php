@@ -32,10 +32,12 @@ class SlotVaultController extends Controller
      */
     public function getVaultData()
     {
-        $activeHolds = SlotHold::active()->orderBy('created_at', 'desc')->get();
+        $allHolds = SlotHold::activeOrPending()->orderBy('created_at', 'desc')->get();
 
         $grouped = [];
-        foreach ($activeHolds as $hold) {
+        $activeCount = 0;
+
+        foreach ($allHolds as $hold) {
             $hash = $hold->mother_hash;
             if (!isset($grouped[$hash])) {
                 $grouped[$hash] = [
@@ -45,12 +47,19 @@ class SlotVaultController extends Controller
                     'category_name' => $hold->category_name,
                     'exam_date' => $hold->exam_date ? $hold->exam_date->format('Y-m-d') : 'N/A',
                     'total_locked_slots' => 0,
+                    'is_locking_in_progress' => false,
                     'expires_at' => $hold->expires_at ? $hold->expires_at->toIso8601String() : null,
                     'remaining_seconds' => $hold->expires_at ? max(0, now()->diffInSeconds($hold->expires_at, false)) : 0,
                     'slots' => [],
                 ];
             }
 
+            if ($hold->status === 'pending_locking') {
+                $grouped[$hash]['is_locking_in_progress'] = true;
+                continue;
+            }
+
+            $activeCount++;
             $grouped[$hash]['total_locked_slots']++;
             $grouped[$hash]['slots'][] = [
                 'id' => $hold->id,
@@ -64,7 +73,7 @@ class SlotVaultController extends Controller
         return response()->json([
             'success' => true,
             'count' => count($grouped),
-            'total_active_holds' => count($activeHolds),
+            'total_active_holds' => $activeCount,
             'groups' => array_values($grouped),
         ]);
     }

@@ -37,4 +37,9 @@ class SlotHold extends Model
     {
         return $query->where('status', 'active');
     }
+
+    public function scopeActiveOrPending($query)
+    {
+        return $query->whereIn('status', ['active', 'pending_locking']);
+    }
 }

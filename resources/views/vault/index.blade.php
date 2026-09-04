@@ -227,7 +227,10 @@
                         </button>
                     </td>
                     <td>
-                        <span class="badge bg-success fs-6"><i class="fa-solid fa-lock me-1"></i> ${g.total_locked_slots} Slots Locked</span>
+                        ${g.is_locking_in_progress 
+                            ? `<span class="badge bg-warning text-dark fs-6"><span class="spinner-border spinner-border-sm me-1" role="status"></span> Locking ${g.total_locked_slots > 0 ? g.total_locked_slots + ' Slots Locked' : 'In Progress...'}</span>`
+                            : `<span class="badge bg-success fs-6"><i class="fa-solid fa-lock me-1"></i> ${g.total_locked_slots} Slots Locked</span>`
+                        }
                     </td>
                     <td>
                         <span class="font-monospace fw-bold text-warning timer-badge" data-seconds="${g.remaining_seconds}">

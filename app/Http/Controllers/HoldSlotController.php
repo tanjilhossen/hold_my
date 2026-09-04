@@ -639,152 +639,52 @@ class HoldSlotController extends Controller
             $city = trim($request->input('city'));
             $centerName = trim($request->input('center_name'));
             $examDate = trim($request->input('exam_date'));
+            $categoryName = $request->input('category_name', 'Profession');
 
-            [$occId, $langCode] = $this->getOccupationAndLanguageForCategory($categoryId);
-
-            // Get up to $requestedCount valid candidate pool accounts
-            $poolAccounts = $this->tokenService->getValidPoolAccountTokens($requestedCount);
-
-            if (empty($poolAccounts)) {
-                $allAccounts = $this->tokenService->getPoolAccounts();
-                foreach ($allAccounts as $acc) {
-                    if (count($poolAccounts) >= $requestedCount) break;
-                    if (!empty($acc['email'])) {
-                        $poolAccounts[] = [
-                            'email' => $acc['email'],
-                            'password' => $acc['password'] ?? 'Taqamul@2723!',
-                            'token' => $acc['token'] ?? null,
-                        ];
-                    }
-                }
-            }
-
-            if (empty($poolAccounts)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No candidate pool accounts available to execute hold.'
-                ], 422);
-            }
-
-            $lockedCount = 0;
-            $createdHoldIds = [];
-            $failedEmails = [];
-            $usedEmails = [];
-
-            foreach ($poolAccounts as $acc) {
-                $email = strtolower(trim($acc['email'] ?? ''));
-                if (empty($email) || in_array($email, $usedEmails)) continue;
-
-                $token = $acc['token'] ?? null;
-
-                if (empty($token) || !$this->tokenService->isValidTokenFormat($token)) {
-                    $failedEmails[] = $email;
-                    $apiLogs[] = [
-                        'email' => $email,
-                        'endpoint' => 'POST /api/v1/individual_labor_space/exam_reservations',
-                        'http_status' => 401,
-                        'response' => 'No pre-authenticated Bearer token for candidate account. Skipped to prevent heavy browser load.'
-                    ];
-                    continue;
-                }
-
-                $usedEmails[] = $email;
-
-                $headers = [
-                    'Accept' => 'application/json',
-                    'X-Tenant-Name' => 'svp-international',
-                    'Authorization' => str_starts_with($token, 'Bearer ') ? $token : "Bearer {$token}",
-                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                ];
-
-                try {
-                    $holdRes = Http::timeout(4)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
-                        'exam_session_id' => $motherHash,
-                        'occupation_id' => $occId,
-                        'language_code' => $langCode,
-                        'methodology' => 'in_person',
-                    ]);
-
-                    $resId = null;
-                    $status = $holdRes->status();
-                    $bodyStr = $holdRes->body();
-
-                    if ($holdRes->successful()) {
-                        $resId = $holdRes->json()['id'] ?? null;
-                    } else {
-                        $tempRes = Http::timeout(4)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats?locale=en", [
-                            'exam_session_id' => [$motherHash],
-                            'methodology' => 'in_person',
-                        ]);
-                        if ($tempRes->successful()) {
-                            $resId = $tempRes->json()['id'] ?? null;
-                            $status = $tempRes->status();
-                            $bodyStr = $tempRes->body();
-                        }
-                    }
-
-                    if (!$resId) {
-                        $resId = 'HOLD_' . strtoupper(uniqid());
-                    }
-
-                    $hold = SlotHold::create([
-                        'mother_hash' => $motherHash,
-                        'center_name' => $centerName,
-                        'city' => $city,
-                        'category_id' => $categoryId,
-                        'category_name' => $request->input('category_name', 'Profession'),
-                        'exam_date' => date('Y-m-d', strtotime($examDate)),
-                        'temp_seat_id' => (string)$resId,
-                        'held_with_email' => $email,
-                        'status' => 'active',
-                        'renew_count' => 0,
-                        'target_duration_minutes' => 20,
-                        'expires_at' => now()->addMinutes(20),
-                        'auto_renew_until' => now()->addHours(24),
-                        'last_renewed_at' => now(),
-                    ]);
-
-                    $createdHoldIds[] = $hold->id;
-                    $lockedCount++;
-
-                    $apiLogs[] = [
-                        'email' => $email,
-                        'endpoint' => 'POST /api/v1/individual_labor_space/exam_reservations',
-                        'http_status' => $status,
-                        'reservation_id' => $resId,
-                        'response' => Str::limit($bodyStr, 150)
-                    ];
-
-                } catch (Exception $e) {
-                    Log::warning("Hold failed for email {$email}: " . $e->getMessage());
-                    $failedEmails[] = $email;
-                    $apiLogs[] = [
-                        'email' => $email,
-                        'endpoint' => 'POST /api/v1/individual_labor_space/exam_reservations',
-                        'http_status' => 500,
-                        'response' => $e->getMessage()
-                    ];
-                }
-            }
-
-            if ($lockedCount > 0) {
-                return response()->json([
-                    'success' => true,
-                    'locked_count' => $lockedCount,
-                    'requested_count' => $requestedCount,
+            // 1. Create a pending hold record so Slot Vault instantly displays the hash
+            SlotHold::firstOrCreate(
+                [
                     'mother_hash' => $motherHash,
+                    'held_with_email' => 'pending_pool@wafidmaster.com',
+                ],
+                [
                     'center_name' => $centerName,
-                    'message' => "Successfully locked {$lockedCount} slot(s) for {$centerName} into Slot Vault for 20 minutes.",
-                    'api_logs' => $apiLogs,
-                    'failed_emails' => $failedEmails
-                ]);
+                    'city' => $city,
+                    'category_id' => $categoryId,
+                    'category_name' => $categoryName,
+                    'exam_date' => date('Y-m-d', strtotime($examDate)),
+                    'temp_seat_id' => 'PENDING_' . rand(1000, 9999),
+                    'status' => 'pending_locking',
+                    'renew_count' => 0,
+                    'target_duration_minutes' => 20,
+                    'expires_at' => now()->addMinutes(20),
+                    'auto_renew_until' => now()->addHours(24),
+                    'last_renewed_at' => now(),
+                ]
+            );
+
+            // 2. Launch background process-lock Artisan command asynchronously
+            $phpPath = 'D:\\xampp\\php\\php.exe';
+            if (!file_exists($phpPath)) {
+                $phpPath = 'php';
+            }
+
+            $sanitizedCenter = str_replace('"', '', $centerName);
+            $sanitizedCity = str_replace('"', '', $city);
+            $sanitizedCategory = str_replace('"', '', $categoryName);
+
+            if (str_contains(PHP_OS_FAMILY, 'Windows')) {
+                @pclose(@popen("start /B {$phpPath} artisan vault:process-lock \"{$motherHash}\" {$requestedCount} {$categoryId} \"{$sanitizedCenter}\" \"{$sanitizedCity}\" \"{$examDate}\" \"{$sanitizedCategory}\"", "r"));
+            } else {
+                @exec("{$phpPath} artisan vault:process-lock \"{$motherHash}\" {$requestedCount} {$categoryId} \"{$sanitizedCenter}\" \"{$sanitizedCity}\" \"{$examDate}\" \"{$sanitizedCategory}\" > /dev/null 2>&1 &");
             }
 
             return response()->json([
-                'success' => false,
-                'message' => 'Failed to lock slots on candidate pool accounts. Please verify pool credentials.',
-                'api_logs' => $apiLogs
-            ], 500);
+                'success' => true,
+                'message' => "Transferred {$centerName} ({$requestedCount} slots) to Slot Vault! Background locking initiated.",
+                'mother_hash' => $motherHash,
+                'requested_count' => $requestedCount,
+            ]);
 
         } catch (Exception $ex) {
             Log::error("Lock All Slots error: " . $ex->getMessage());

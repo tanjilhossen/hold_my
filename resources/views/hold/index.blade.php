@@ -656,23 +656,33 @@
             }
 
             if (data.success) {
-                appendLog(`[SUCCESS]: Locked ${data.locked_count} slot(s) for ${centerName} into Slot Vault for 20 minutes.`);
+                appendLog(`[SUCCESS]: Transferred ${centerName} (${seats} slots) to Slot Vault! Background holding initiated.`);
                 
-                $(btnElement).closest('tr').fadeOut(500, function() {
+                $(btnElement).closest('tr').fadeOut(400, function() {
                     $(this).remove();
-                    if ($('#scan-results-table tr').length === 0) {
+                    
+                    // Update localStorage persistence
+                    const remainingHtml = $('#scan-results-table').html();
+                    if ($('#scan-results-table tr').length === 0 || $('#scan-results-table tr td').length <= 1) {
                         $('#scan-results-table').html(`
                             <tr>
-                                <td colspan="6" class="text-center text-success py-4">
+                                <td colspan="7" class="text-center text-success py-4">
                                     <i class="fa-solid fa-circle-check fa-2x mb-2 d-block"></i>
                                     All slots for this session have been locked and moved to <strong>Slot Vault</strong>.
                                     <br>
-                                    <a href="{{ route('vault') }}" class="btn btn-sm btn-primary mt-2 fw-bold">
+                                    <a href="{{ route('vault') }}" class="btn btn-sm btn-primary mt-2 fw-bold shadow-sm">
                                         <i class="fa-solid fa-vault me-1"></i> View in Slot Vault
                                     </a>
                                 </td>
                             </tr>
                         `);
+                        localStorage.removeItem('hold_slot_last_scan_results');
+                    } else {
+                        localStorage.setItem('hold_slot_last_scan_results', JSON.stringify({
+                            html: $('#scan-results-table').html(),
+                            summary: $('#scan-summary-text').text(),
+                            log: $('#console-log').text()
+                        }));
                     }
                 });
             } else {
