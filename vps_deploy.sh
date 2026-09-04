@@ -37,6 +37,7 @@ fi
 echo "📁 [4/6] Setting up Laravel application directory & permissions..."
 APP_DIR="/var/www/taqamul"
 sudo mkdir -p $APP_DIR
+git config --global --add safe.directory $APP_DIR 2>/dev/null || true
 
 if [ -d "$APP_DIR/.git" ]; then
     echo "🔄 Updating existing repository..."
