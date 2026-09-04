@@ -41,6 +41,7 @@ class DatabaseSeeder extends Seeder
         Setting::set('auto_generate_password', '1');
         Setting::set('capsolver_key', 'CAP-1C910649B8AEADE973B68571F5449DA4ACE38F5A22ADE82D2596BE826B28C133');
         Setting::set('capsolver_api_key', 'CAP-1C910649B8AEADE973B68571F5449DA4ACE38F5A22ADE82D2596BE826B28C133');
+        Setting::set('slot_checker_global_saved_token', 'eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE3ODg1MzczNTEsInVzZXJfaWQiOjEzMjc0NTAsImF1dGhfcHJvdmlkZXIiOiJsb2NhbCIsInVpZCI6IjhkMmVmYzE5LTM2OTktNDhmYS1hNjU3LTczNmE3M2M1MWU1NSIsInJ1aWQiOiI5ZjlhMzQ1Ny1lYjY1LTQwNDItYmI3NC04ODUxZGQ0MjE0MTgifQ.xzR42G2tZyeVHckiN7_Gc183U_LmI-Rtq4iX05OeO2A');
 
         // Seed Candidate Pool Accounts
         $jsonPath = database_path('pool_accounts.json');

@@ -524,14 +524,18 @@ class TaqamulTokenService
         }
 
         try {
-            // Use full node path to work under Apache (which may not inherit system PATH)
-            $nodePath = 'C:\\Program Files\\nodejs\\node.exe';
+            // OS-aware node path resolution for Windows and Linux/Ubuntu VPS
+            $nodePath = PHP_OS_FAMILY === 'Windows' ? 'C:\\Program Files\\nodejs\\node.exe' : '/usr/bin/node';
             if (!file_exists($nodePath)) {
-                $nodePath = trim(shell_exec('where node 2>nul') ?: '');
+                $whichCmd = PHP_OS_FAMILY === 'Windows' ? 'where node 2>nul' : 'which node 2>/dev/null';
+                $nodePath = trim(shell_exec($whichCmd) ?: '');
                 if (empty($nodePath)) $nodePath = 'node';
             }
 
-            $cmd = "\"{$nodePath}\" \"{$botScript}\" \"{$tempFile}\"";
+            $cmd = PHP_OS_FAMILY === 'Windows' 
+                ? "\"{$nodePath}\" \"{$botScript}\" \"{$tempFile}\""
+                : "{$nodePath} {$botScript} {$tempFile}";
+
             $output = shell_exec($cmd . ' 2>&1');
             Log::info('[BotLogin] Raw output: ' . substr($output ?? 'NULL', 0, 1000));
 
