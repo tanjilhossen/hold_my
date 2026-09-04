@@ -66,6 +66,11 @@ sudo chmod 777 $APP_DIR/database/database.sqlite
 # Generate APP_KEY if missing
 sudo php artisan key:generate --force
 
+# Copy Taqamul Professions & Metadata to Storage
+echo "📋 Syncing Taqamul Professions & Metadata..."
+sudo mkdir -p $APP_DIR/storage/app
+sudo cp $APP_DIR/database/data/*.json $APP_DIR/storage/app/ 2>/dev/null || true
+
 # Install PHP Dependencies & Run Migrations
 echo "📦 Running composer install & artisan migrate..."
 sudo composer install --no-dev --optimize-autoloader

@@ -1,0 +1,3975 @@
+[
+    {
+        "id": 14,
+        "english_name": "Auto Electrician",
+        "arabic_name": "كهربائي سيارات",
+        "occupations_count": 4,
+        "occupations": [
+            {
+                "id": 759,
+                "name": "Auto Electrician",
+                "arabic_name": "كهربائي سيارات",
+                "occupation_key": "741201",
+                "category_id": 14,
+                "category": {
+                    "id": 14,
+                    "english_name": "Auto Electrician",
+                    "arabic_name": "كهربائي سيارات"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 42,
+        "english_name": "Auto Mechanic",
+        "arabic_name": "ميكانيكي سيارات",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 959,
+                "name": "Auto Mechanic",
+                "arabic_name": "ميكانيكي سيارات",
+                "occupation_key": "723101",
+                "category_id": 42,
+                "category": {
+                    "id": 42,
+                    "english_name": "Auto Mechanic",
+                    "arabic_name": "ميكانيكي سيارات"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 43,
+        "english_name": "Auto plumber",
+        "arabic_name": "سمكري مركبات",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 799,
+                "name": "Auto plumber",
+                "arabic_name": "سمكري المركبات",
+                "occupation_key": "721304",
+                "category_id": 43,
+                "category": {
+                    "id": 43,
+                    "english_name": "Auto plumber",
+                    "arabic_name": "سمكري مركبات"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 199,
+        "english_name": "Automated Mechanized Welder",
+        "arabic_name": "لحام ميكانيكي آلي",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 10,
+        "english_name": "Automotive Mechanics",
+        "arabic_name": "ميكانيكا السيارات",
+        "occupations_count": 35,
+        "occupations": [
+            {
+                "id": 806,
+                "name": "Bus Mechanic",
+                "arabic_name": "ميكانيكي حافلات",
+                "occupation_key": "723102",
+                "category_id": 10,
+                "category": {
+                    "id": 10,
+                    "english_name": "Automotive Mechanics",
+                    "arabic_name": "ميكانيكا السيارات"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 985,
+                "name": "Motorcycle mechanic",
+                "arabic_name": "ميكانيكي دراجة نارية",
+                "occupation_key": "723103",
+                "category_id": 10,
+                "category": {
+                    "id": 10,
+                    "english_name": "Automotive Mechanics",
+                    "arabic_name": "ميكانيكا السيارات"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 19,
+        "english_name": "Automotive Primary Service",
+        "arabic_name": "صيانة اولية",
+        "occupations_count": 7,
+        "occupations": [
+            {
+                "id": 808,
+                "name": "Auto Glazier",
+                "arabic_name": "مصلح زجاج مركبات",
+                "occupation_key": "723105",
+                "category_id": 19,
+                "category": {
+                    "id": 19,
+                    "english_name": "Automotive Primary Service",
+                    "arabic_name": "صيانة اولية"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 807,
+                "name": "Tire Installer",
+                "arabic_name": "مركب إطارات",
+                "occupation_key": "723104",
+                "category_id": 19,
+                "category": {
+                    "id": 19,
+                    "english_name": "Automotive Primary Service",
+                    "arabic_name": "صيانة اولية"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 843,
+                "name": "Used tires reconstruction worker",
+                "arabic_name": "عامل إعادة بناء إطارات مستعملة",
+                "occupation_key": "814106",
+                "category_id": 19,
+                "category": {
+                    "id": 19,
+                    "english_name": "Automotive Primary Service",
+                    "arabic_name": "صيانة اولية"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 906,
+                "name": "Vehicles Oiler and Greaser",
+                "arabic_name": "مشحم ومزيت مركبات",
+                "occupation_key": "723106",
+                "category_id": 19,
+                "category": {
+                    "id": 19,
+                    "english_name": "Automotive Primary Service",
+                    "arabic_name": "صيانة اولية"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 61,
+        "english_name": "Bakery and Pastries",
+        "arabic_name": "المخبوزات والمعجنات",
+        "occupations_count": 3,
+        "occupations": [
+            {
+                "id": 914,
+                "name": "Baker",
+                "arabic_name": "خباز",
+                "occupation_key": "751201",
+                "category_id": 61,
+                "category": {
+                    "id": 61,
+                    "english_name": "Bakery and Pastries",
+                    "arabic_name": "المخبوزات والمعجنات"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2282,
+                "name": "Food & Beverages Classifier",
+                "arabic_name": "مصنف أطعمة ومشروبات",
+                "occupation_key": "751502",
+                "category_id": 61,
+                "category": {
+                    "id": 61,
+                    "english_name": "Bakery and Pastries",
+                    "arabic_name": "المخبوزات والمعجنات"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2288,
+                "name": "Sweets Maker",
+                "arabic_name": "صانع حلويات",
+                "occupation_key": "751203",
+                "category_id": 61,
+                "category": {
+                    "id": 61,
+                    "english_name": "Bakery and Pastries",
+                    "arabic_name": "المخبوزات والمعجنات"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 50,
+        "english_name": "Barber",
+        "arabic_name": "حلاق",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 2008,
+                "name": "Barber",
+                "arabic_name": "حلاق",
+                "occupation_key": "514101",
+                "category_id": 50,
+                "category": {
+                    "id": 50,
+                    "english_name": "Barber",
+                    "arabic_name": "حلاق"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 164,
+        "english_name": "Barista",
+        "arabic_name": "معد قهوة",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 2080,
+                "name": "Barista",
+                "arabic_name": "معد قهوة",
+                "occupation_key": "513202",
+                "category_id": 164,
+                "category": {
+                    "id": 164,
+                    "english_name": "Barista",
+                    "arabic_name": "معد قهوة"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 39,
+        "english_name": "Blacksmith",
+        "arabic_name": "حداد",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 989,
+                "name": "Blacksmith",
+                "arabic_name": "حداد",
+                "occupation_key": "722101",
+                "category_id": 39,
+                "category": {
+                    "id": 39,
+                    "english_name": "Blacksmith",
+                    "arabic_name": "حداد"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 8,
+        "english_name": "Blacksmith construction",
+        "arabic_name": "حدادة المباني",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 757,
+                "name": "Metal Construction Assembler",
+                "arabic_name": "محضر ومركب هياكل معدنية",
+                "occupation_key": "721402",
+                "category_id": 8,
+                "category": {
+                    "id": 8,
+                    "english_name": "Blacksmith construction",
+                    "arabic_name": "حدادة المباني"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 3,
+        "english_name": "Blacksmithing",
+        "arabic_name": "الحدادة",
+        "occupations_count": 28,
+        "occupations": [
+            {
+                "id": 805,
+                "name": "A sharpener and a metal tool grinder",
+                "arabic_name": "سنان ومجلخ أدوات معدنية",
+                "occupation_key": "722402",
+                "category_id": 3,
+                "category": {
+                    "id": 3,
+                    "english_name": "Blacksmithing",
+                    "arabic_name": "الحدادة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 798,
+                "name": "Copper Blacksmith",
+                "arabic_name": "حداد نحاس",
+                "occupation_key": "721302",
+                "category_id": 3,
+                "category": {
+                    "id": 3,
+                    "english_name": "Blacksmithing",
+                    "arabic_name": "الحدادة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 801,
+                "name": "Forged press blacksmith",
+                "arabic_name": "حداد مكبس تشكيلي",
+                "occupation_key": "722102",
+                "category_id": 3,
+                "category": {
+                    "id": 3,
+                    "english_name": "Blacksmithing",
+                    "arabic_name": "الحدادة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 978,
+                "name": "Haddad blades",
+                "arabic_name": "حداد نصال",
+                "occupation_key": "722104",
+                "category_id": 3,
+                "category": {
+                    "id": 3,
+                    "english_name": "Blacksmithing",
+                    "arabic_name": "الحدادة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 752,
+                "name": "lathe operator",
+                "arabic_name": "مشغل مخرطة",
+                "occupation_key": "722301",
+                "category_id": 3,
+                "category": {
+                    "id": 3,
+                    "english_name": "Blacksmithing",
+                    "arabic_name": "الحدادة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 905,
+                "name": "Locksmith",
+                "arabic_name": "صانع أقفال",
+                "occupation_key": "722202",
+                "category_id": 3,
+                "category": {
+                    "id": 3,
+                    "english_name": "Blacksmithing",
+                    "arabic_name": "الحدادة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 802,
+                "name": "Mechanical hammer smith",
+                "arabic_name": "حداد مطرقة آلية",
+                "occupation_key": "722103",
+                "category_id": 3,
+                "category": {
+                    "id": 3,
+                    "english_name": "Blacksmithing",
+                    "arabic_name": "الحدادة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 921,
+                "name": "Metal forging machine operator",
+                "arabic_name": "مشغل آلة طرق معادن",
+                "occupation_key": "812106",
+                "category_id": 3,
+                "category": {
+                    "id": 3,
+                    "english_name": "Blacksmithing",
+                    "arabic_name": "الحدادة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 902,
+                "name": "Tinsmith",
+                "arabic_name": "حداد صفيح",
+                "occupation_key": "721303",
+                "category_id": 3,
+                "category": {
+                    "id": 3,
+                    "english_name": "Blacksmithing",
+                    "arabic_name": "الحدادة"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 37,
+        "english_name": "Builders",
+        "arabic_name": "البناؤون",
+        "occupations_count": 2,
+        "occupations": [
+            {
+                "id": 899,
+                "name": "A glazier",
+                "arabic_name": "مركب زجاج",
+                "occupation_key": "712501",
+                "category_id": 37,
+                "category": {
+                    "id": 37,
+                    "english_name": "Builders",
+                    "arabic_name": "البناؤون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 781,
+                "name": "Builder",
+                "arabic_name": "بناء",
+                "occupation_key": "711101",
+                "category_id": 37,
+                "category": {
+                    "id": 37,
+                    "english_name": "Builders",
+                    "arabic_name": "البناؤون"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 34,
+        "english_name": "Building Electrician",
+        "arabic_name": "كهربائي مباني",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 729,
+                "name": "Building Electrician",
+                "arabic_name": "كهربائي مباني",
+                "occupation_key": "741101",
+                "category_id": 34,
+                "category": {
+                    "id": 34,
+                    "english_name": "Building Electrician",
+                    "arabic_name": "كهربائي مباني"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 187,
+        "english_name": "Building Maintenance Technician",
+        "arabic_name": "فني صيانة مباني",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 51,
+        "english_name": "Bus Driver",
+        "arabic_name": "سائق حافلة",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 2024,
+                "name": "Bus Driver",
+                "arabic_name": "سائق حافلة",
+                "occupation_key": "833101",
+                "category_id": 51,
+                "category": {
+                    "id": 51,
+                    "english_name": "Bus Driver",
+                    "arabic_name": "سائق حافلة"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 62,
+        "english_name": "Butchering",
+        "arabic_name": "الجزارة",
+        "occupations_count": 2,
+        "occupations": [
+            {
+                "id": 2017,
+                "name": "Butcher",
+                "arabic_name": "جزار",
+                "occupation_key": "751101",
+                "category_id": 62,
+                "category": {
+                    "id": 62,
+                    "english_name": "Butchering",
+                    "arabic_name": "الجزارة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2074,
+                "name": "Slaughterer",
+                "arabic_name": "قصاب",
+                "occupation_key": "751103",
+                "category_id": 62,
+                "category": {
+                    "id": 62,
+                    "english_name": "Butchering",
+                    "arabic_name": "الجزارة"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 30,
+        "english_name": "Car body Repair",
+        "arabic_name": "السمكرة",
+        "occupations_count": 2,
+        "occupations": [
+            {
+                "id": 2002,
+                "name": "NMVs Repairer",
+                "arabic_name": "مصلح عربات من غير محرك",
+                "occupation_key": "723401",
+                "category_id": 30,
+                "category": {
+                    "id": 30,
+                    "english_name": "Car body Repair",
+                    "arabic_name": "السمكرة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 936,
+                "name": "Vehicle Assembler",
+                "arabic_name": "مجمع سيارات",
+                "occupation_key": "821104",
+                "category_id": 30,
+                "category": {
+                    "id": 30,
+                    "english_name": "Car body Repair",
+                    "arabic_name": "السمكرة"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 52,
+        "english_name": "Car Drivers",
+        "arabic_name": "سائقو السيارات",
+        "occupations_count": 4,
+        "occupations": [
+            {
+                "id": 2021,
+                "name": "Car Driver",
+                "arabic_name": "سائق سيارة",
+                "occupation_key": "832201",
+                "category_id": 52,
+                "category": {
+                    "id": 52,
+                    "english_name": "Car Drivers",
+                    "arabic_name": "سائقو السيارات"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2084,
+                "name": "Car parking worker",
+                "arabic_name": "عامل مواقف سيارات",
+                "occupation_key": "962901",
+                "category_id": 52,
+                "category": {
+                    "id": 52,
+                    "english_name": "Car Drivers",
+                    "arabic_name": "سائقو السيارات"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2151,
+                "name": "Private Car Driver - Musaned",
+                "arabic_name": "سائق سيارة خاص - مساند",
+                "occupation_key": "9141055",
+                "category_id": 52,
+                "category": {
+                    "id": 52,
+                    "english_name": "Car Drivers",
+                    "arabic_name": "سائقو السيارات"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2149,
+                "name": "Valet Parking Attendant",
+                "arabic_name": "سائق خدمة صف سيارات",
+                "occupation_key": "832206",
+                "category_id": 52,
+                "category": {
+                    "id": 52,
+                    "english_name": "Car Drivers",
+                    "arabic_name": "سائقو السيارات"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 15,
+        "english_name": "Carpentry",
+        "arabic_name": "النجارة",
+        "occupations_count": 67,
+        "occupations": [
+            {
+                "id": 897,
+                "name": "Carpenter",
+                "arabic_name": "نجار",
+                "occupation_key": "711501",
+                "category_id": 15,
+                "category": {
+                    "id": 15,
+                    "english_name": "Carpentry",
+                    "arabic_name": "النجارة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 820,
+                "name": "Craftsman of wooden products",
+                "arabic_name": "حرفي منتجات خشبية",
+                "occupation_key": "731702",
+                "category_id": 15,
+                "category": {
+                    "id": 15,
+                    "english_name": "Carpentry",
+                    "arabic_name": "النجارة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 824,
+                "name": "Drilling and shell carpenter",
+                "arabic_name": "نجار حفر وصدفيات",
+                "occupation_key": "752201",
+                "category_id": 15,
+                "category": {
+                    "id": 15,
+                    "english_name": "Carpentry",
+                    "arabic_name": "النجارة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 561,
+                "name": "Ship carpenter",
+                "arabic_name": "نجار سفن",
+                "occupation_key": "711504",
+                "category_id": 15,
+                "category": {
+                    "id": 15,
+                    "english_name": "Carpentry",
+                    "arabic_name": "النجارة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 927,
+                "name": "Veneer making machine operator",
+                "arabic_name": "مشغل آلة تصنيع قشرة",
+                "occupation_key": "817208",
+                "category_id": 15,
+                "category": {
+                    "id": 15,
+                    "english_name": "Carpentry",
+                    "arabic_name": "النجارة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 819,
+                "name": "Weaving Canes, Bamboo, Fronds & Wicker Artificer",
+                "arabic_name": "حرفي نسج قصب وخيزران وسعف و خوص",
+                "occupation_key": "731701",
+                "category_id": 15,
+                "category": {
+                    "id": 15,
+                    "english_name": "Carpentry",
+                    "arabic_name": "النجارة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 306,
+                "name": "Wood cutting machine operator",
+                "arabic_name": "مشغل آلة قطع خشب",
+                "occupation_key": "817209",
+                "category_id": 15,
+                "category": {
+                    "id": 15,
+                    "english_name": "Carpentry",
+                    "arabic_name": "النجارة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 926,
+                "name": "Wood Drying Oven Operator",
+                "arabic_name": "مشغل فرن تجفيف الخشب",
+                "occupation_key": "817207",
+                "category_id": 15,
+                "category": {
+                    "id": 15,
+                    "english_name": "Carpentry",
+                    "arabic_name": "النجارة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 785,
+                "name": "Wooden formwork carpenter",
+                "arabic_name": "نجار هياكل خشبية",
+                "occupation_key": "711503",
+                "category_id": 15,
+                "category": {
+                    "id": 15,
+                    "english_name": "Carpentry",
+                    "arabic_name": "النجارة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 851,
+                "name": "Wood planing machine operator",
+                "arabic_name": "مشغل آلة تسوية أسطح أخشاب",
+                "occupation_key": "817202",
+                "category_id": 15,
+                "category": {
+                    "id": 15,
+                    "english_name": "Carpentry",
+                    "arabic_name": "النجارة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 925,
+                "name": "Wood Press Machine Operator",
+                "arabic_name": "مشغل مكبس أخشاب",
+                "occupation_key": "817205",
+                "category_id": 15,
+                "category": {
+                    "id": 15,
+                    "english_name": "Carpentry",
+                    "arabic_name": "النجارة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 823,
+                "name": "Wood Processor",
+                "arabic_name": "معالج أخشاب",
+                "occupation_key": "752101",
+                "category_id": 15,
+                "category": {
+                    "id": 15,
+                    "english_name": "Carpentry",
+                    "arabic_name": "النجارة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2001,
+                "name": "Wood Product Manufacturing Machine Operator",
+                "arabic_name": "مشغل آلة تصنيع منتجات خشبية",
+                "occupation_key": "817206",
+                "category_id": 15,
+                "category": {
+                    "id": 15,
+                    "english_name": "Carpentry",
+                    "arabic_name": "النجارة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 850,
+                "name": "Wood saw operator",
+                "arabic_name": "مشغل منشار خشب",
+                "occupation_key": "817201",
+                "category_id": 15,
+                "category": {
+                    "id": 15,
+                    "english_name": "Carpentry",
+                    "arabic_name": "النجارة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2000,
+                "name": "Wood Shaping Machine Operator",
+                "arabic_name": "مشغل آلة تشكيل خشب",
+                "occupation_key": "817203",
+                "category_id": 15,
+                "category": {
+                    "id": 15,
+                    "english_name": "Carpentry",
+                    "arabic_name": "النجارة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 825,
+                "name": "Woodworking Machines and Tools Operator and Preparer",
+                "arabic_name": "معد ومشغل أدوات وآلات النجارة",
+                "occupation_key": "752301",
+                "category_id": 15,
+                "category": {
+                    "id": 15,
+                    "english_name": "Carpentry",
+                    "arabic_name": "النجارة"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 53,
+        "english_name": "Chefs",
+        "arabic_name": "الطهاة",
+        "occupations_count": 4,
+        "occupations": [
+            {
+                "id": 2010,
+                "name": "Chef",
+                "arabic_name": "طاهي",
+                "occupation_key": "512001",
+                "category_id": 53,
+                "category": {
+                    "id": 53,
+                    "english_name": "Chefs",
+                    "arabic_name": "الطهاة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2433,
+                "name": "Chef in Transportations",
+                "arabic_name": "طاهي وسائل نقل",
+                "occupation_key": "512003",
+                "category_id": 53,
+                "category": {
+                    "id": 53,
+                    "english_name": "Chefs",
+                    "arabic_name": "الطهاة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2432,
+                "name": "House Food Chef",
+                "arabic_name": "طاهي مأكولات منزلية",
+                "occupation_key": "512004",
+                "category_id": 53,
+                "category": {
+                    "id": 53,
+                    "english_name": "Chefs",
+                    "arabic_name": "الطهاة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2434,
+                "name": "Pantry Chef",
+                "arabic_name": "محضر أطعمة باردة",
+                "occupation_key": "512002",
+                "category_id": 53,
+                "category": {
+                    "id": 53,
+                    "english_name": "Chefs",
+                    "arabic_name": "الطهاة"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 202,
+        "english_name": "CNC Machine Operator",
+        "arabic_name": "مشغل ماكينات",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 201,
+        "english_name": "CNC Machinist",
+        "arabic_name": "مشغل ماكينات التحكم الرقمي",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 63,
+        "english_name": "Concrete",
+        "arabic_name": "الخرسانة",
+        "occupations_count": 2,
+        "occupations": [
+            {
+                "id": 782,
+                "name": "Concrete Finisher",
+                "arabic_name": "عامل خرسانة",
+                "occupation_key": "711401",
+                "category_id": 63,
+                "category": {
+                    "id": 63,
+                    "english_name": "Concrete",
+                    "arabic_name": "الخرسانة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2076,
+                "name": "Concrete Mix Worker",
+                "arabic_name": "عامل خلطة خرسانية",
+                "occupation_key": "931302",
+                "category_id": 63,
+                "category": {
+                    "id": 63,
+                    "english_name": "Concrete",
+                    "arabic_name": "الخرسانة"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 75,
+        "english_name": "Constructing Worker",
+        "arabic_name": "عامل بناء",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 977,
+                "name": "Constructing Worker",
+                "arabic_name": "عامل بناء",
+                "occupation_key": "931301",
+                "category_id": 75,
+                "category": {
+                    "id": 75,
+                    "english_name": "Constructing Worker",
+                    "arabic_name": "عامل بناء"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 2,
+        "english_name": "Construction and Building",
+        "arabic_name": "التشييد و البناء",
+        "occupations_count": 53,
+        "occupations": [
+            {
+                "id": 786,
+                "name": "Asphalt roofing agent and synthetic components",
+                "arabic_name": "عامل تسقيف أسفلت ومكونات اصطناعية",
+                "occupation_key": "712101",
+                "category_id": 2,
+                "category": {
+                    "id": 2,
+                    "english_name": "Construction and Building",
+                    "arabic_name": "التشييد و البناء"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 956,
+                "name": "Brick mason",
+                "arabic_name": "بناء طوب",
+                "occupation_key": "711201",
+                "category_id": 2,
+                "category": {
+                    "id": 2,
+                    "english_name": "Construction and Building",
+                    "arabic_name": "التشييد و البناء"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 894,
+                "name": "Build stacks",
+                "arabic_name": "بناء مداخن",
+                "occupation_key": "711202",
+                "category_id": 2,
+                "category": {
+                    "id": 2,
+                    "english_name": "Construction and Building",
+                    "arabic_name": "التشييد و البناء"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 975,
+                "name": "Clay mason",
+                "arabic_name": "بناء طين",
+                "occupation_key": "711102",
+                "category_id": 2,
+                "category": {
+                    "id": 2,
+                    "english_name": "Construction and Building",
+                    "arabic_name": "التشييد و البناء"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 948,
+                "name": "demolition worker",
+                "arabic_name": "عامل هدم",
+                "occupation_key": "931303",
+                "category_id": 2,
+                "category": {
+                    "id": 2,
+                    "english_name": "Construction and Building",
+                    "arabic_name": "التشييد و البناء"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 828,
+                "name": "Mine roofing installer",
+                "arabic_name": "عامل تثبيت أسقف مناجم",
+                "occupation_key": "811103",
+                "category_id": 2,
+                "category": {
+                    "id": 2,
+                    "english_name": "Construction and Building",
+                    "arabic_name": "التشييد و البناء"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 784,
+                "name": "Mosaic molding agent",
+                "arabic_name": "عامل تشكيل وصب الموزاييك",
+                "occupation_key": "711404",
+                "category_id": 2,
+                "category": {
+                    "id": 2,
+                    "english_name": "Construction and Building",
+                    "arabic_name": "التشييد و البناء"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 826,
+                "name": "Naval Construction Diver",
+                "arabic_name": "غواص إنشاءات بحرية",
+                "occupation_key": "754103",
+                "category_id": 2,
+                "category": {
+                    "id": 2,
+                    "english_name": "Construction and Building",
+                    "arabic_name": "التشييد و البناء"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 783,
+                "name": "Readymix concrete construction",
+                "arabic_name": "بناء خرسانة جاهزة",
+                "occupation_key": "711402",
+                "category_id": 2,
+                "category": {
+                    "id": 2,
+                    "english_name": "Construction and Building",
+                    "arabic_name": "التشييد و البناء"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 903,
+                "name": "Riveting worker",
+                "arabic_name": "عامل برشمة",
+                "occupation_key": "721401",
+                "category_id": 2,
+                "category": {
+                    "id": 2,
+                    "english_name": "Construction and Building",
+                    "arabic_name": "التشييد و البناء"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 787,
+                "name": "Roofing Sheet metal worker",
+                "arabic_name": "عامل تسقيف ألواح معدنية",
+                "occupation_key": "712102",
+                "category_id": 2,
+                "category": {
+                    "id": 2,
+                    "english_name": "Construction and Building",
+                    "arabic_name": "التشييد و البناء"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 788,
+                "name": "Timber and mud roofing worker",
+                "arabic_name": "عامل تسقيف اخشاب وطين",
+                "occupation_key": "712103",
+                "category_id": 2,
+                "category": {
+                    "id": 2,
+                    "english_name": "Construction and Building",
+                    "arabic_name": "التشييد و البناء"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 4,
+        "english_name": "Construction formwork Carpenter",
+        "arabic_name": "نجار قوالب انشائية",
+        "occupations_count": 4,
+        "occupations": [
+            {
+                "id": 971,
+                "name": "Construction formwork Carpenter",
+                "arabic_name": "نجار قوالب انشائية",
+                "occupation_key": "711502",
+                "category_id": 4,
+                "category": {
+                    "id": 4,
+                    "english_name": "Construction formwork Carpenter",
+                    "arabic_name": "نجار قوالب انشائية"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 74,
+        "english_name": "Construction Worker",
+        "arabic_name": "عامل إنشاءات",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 2028,
+                "name": "Construction Worker",
+                "arabic_name": "عامل إنشاءات",
+                "occupation_key": "931201",
+                "category_id": 74,
+                "category": {
+                    "id": 74,
+                    "english_name": "Construction Worker",
+                    "arabic_name": "عامل إنشاءات"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 158,
+        "english_name": "Drilling Workers",
+        "arabic_name": "عمال الحفر",
+        "occupations_count": 4,
+        "occupations": [
+            {
+                "id": 857,
+                "name": "Drilling Worker",
+                "arabic_name": "عامل حفر",
+                "occupation_key": "931206",
+                "category_id": 158,
+                "category": {
+                    "id": 158,
+                    "english_name": "Drilling Workers",
+                    "arabic_name": "عمال الحفر"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2259,
+                "name": "Operator of Water Well Drilling Machines",
+                "arabic_name": "مشغل آلات حفر آبار مياه",
+                "occupation_key": "811305",
+                "category_id": 158,
+                "category": {
+                    "id": 158,
+                    "english_name": "Drilling Workers",
+                    "arabic_name": "عمال الحفر"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2256,
+                "name": "Operator of well pump",
+                "arabic_name": "مشغل مضخة آبار",
+                "occupation_key": "811308",
+                "category_id": 158,
+                "category": {
+                    "id": 158,
+                    "english_name": "Drilling Workers",
+                    "arabic_name": "عمال الحفر"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2257,
+                "name": "Worker of Lining Water Well",
+                "arabic_name": "عامل تبطين آبار مياه",
+                "occupation_key": "811307",
+                "category_id": 158,
+                "category": {
+                    "id": 158,
+                    "english_name": "Drilling Workers",
+                    "arabic_name": "عمال الحفر"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 183,
+        "english_name": "Electrical Craftsperson",
+        "arabic_name": "فني أعمال كهربائية",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 40,
+        "english_name": "Electrical Devices Maintenance Technician",
+        "arabic_name": "عامل صيانة أجهزة كهربائية",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 717,
+                "name": "Electrical Devices Maintenance Technician",
+                "arabic_name": "عامل صيانة أجهزة كهربائية",
+                "occupation_key": "741207",
+                "category_id": 40,
+                "category": {
+                    "id": 40,
+                    "english_name": "Electrical Devices Maintenance Technician",
+                    "arabic_name": "عامل صيانة أجهزة كهربائية"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 45,
+        "english_name": "Electrical Mechanic",
+        "arabic_name": "ميكانيكي كهرباء",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 738,
+                "name": "Electro mechanic",
+                "arabic_name": "ميكانيكي كهرباء",
+                "occupation_key": "741202",
+                "category_id": 45,
+                "category": {
+                    "id": 45,
+                    "english_name": "Electrical Mechanic",
+                    "arabic_name": "ميكانيكي كهرباء"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 184,
+        "english_name": "Electrical Technician",
+        "arabic_name": "فني كهرباء",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 1,
+        "english_name": "Electrician",
+        "arabic_name": "الكهرباء",
+        "occupations_count": 89,
+        "occupations": [
+            {
+                "id": 967,
+                "name": "Drilling Rig Electrician",
+                "arabic_name": "كهربائي منصة حفر",
+                "occupation_key": "741206",
+                "category_id": 1,
+                "category": {
+                    "id": 1,
+                    "english_name": "Electrician",
+                    "arabic_name": "الكهرباء"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 733,
+                "name": "Electrical Equipment Assembler",
+                "arabic_name": "مجمع معدات كهربائية",
+                "occupation_key": "821201",
+                "category_id": 1,
+                "category": {
+                    "id": 1,
+                    "english_name": "Electrician",
+                    "arabic_name": "الكهرباء"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 732,
+                "name": "Electrical transformer assembly",
+                "arabic_name": "مجمع محولات كهربائية",
+                "occupation_key": "821203",
+                "category_id": 1,
+                "category": {
+                    "id": 1,
+                    "english_name": "Electrician",
+                    "arabic_name": "الكهرباء"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 730,
+                "name": "Electric Devices Assembler",
+                "arabic_name": "مجمع أجهزة كهربائية",
+                "occupation_key": "821205",
+                "category_id": 1,
+                "category": {
+                    "id": 1,
+                    "english_name": "Electrician",
+                    "arabic_name": "الكهرباء"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 734,
+                "name": "Electronic Exchange Assembler",
+                "arabic_name": "مجمع مقاسم إلكترونية",
+                "occupation_key": "821208",
+                "category_id": 1,
+                "category": {
+                    "id": 1,
+                    "english_name": "Electrician",
+                    "arabic_name": "الكهرباء"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 854,
+                "name": "Electronic Mechanical Equipment Assembler",
+                "arabic_name": "مجمع معدات إلكترونية",
+                "occupation_key": "821202",
+                "category_id": 1,
+                "category": {
+                    "id": 1,
+                    "english_name": "Electrician",
+                    "arabic_name": "الكهرباء"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 731,
+                "name": "Power Distribution Boards Assembler",
+                "arabic_name": "مجمع لوحات توزيع كهربائية",
+                "occupation_key": "821204",
+                "category_id": 1,
+                "category": {
+                    "id": 1,
+                    "english_name": "Electrician",
+                    "arabic_name": "الكهرباء"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 13,
+        "english_name": "Electronic Telecom",
+        "arabic_name": "الكتروني اتصالات",
+        "occupations_count": 65,
+        "occupations": [
+            {
+                "id": 742,
+                "name": "ICT Lines Installer",
+                "arabic_name": "عامل تركيب خطوط الاتصالات وتقنية المعلومات",
+                "occupation_key": "742202",
+                "category_id": 13,
+                "category": {
+                    "id": 13,
+                    "english_name": "Electronic Telecom",
+                    "arabic_name": "الكتروني اتصالات"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2035,
+                "name": "ICT Services Technician",
+                "arabic_name": "عامل خدمات الاتصالات وتقنية المعلومات",
+                "occupation_key": "742201",
+                "category_id": 13,
+                "category": {
+                    "id": 13,
+                    "english_name": "Electronic Telecom",
+                    "arabic_name": "الكتروني اتصالات"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 57,
+        "english_name": "Facade and Roof Cleaning",
+        "arabic_name": "تنظيف الواجهات والأسطح",
+        "occupations_count": 4,
+        "occupations": [
+            {
+                "id": 2060,
+                "name": "Building Facade Cleaner",
+                "arabic_name": "منظف واجهات مباني",
+                "occupation_key": "713301",
+                "category_id": 57,
+                "category": {
+                    "id": 57,
+                    "english_name": "Facade and Roof Cleaning",
+                    "arabic_name": "تنظيف الواجهات والأسطح"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2312,
+                "name": "Chimney cleaner",
+                "arabic_name": "عامل تنظيف مداخن",
+                "occupation_key": "713304",
+                "category_id": 57,
+                "category": {
+                    "id": 57,
+                    "english_name": "Facade and Roof Cleaning",
+                    "arabic_name": "تنظيف الواجهات والأسطح"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2016,
+                "name": "Roofs Cleaner",
+                "arabic_name": "عامل تنظيف أسطح مباني",
+                "occupation_key": "713303",
+                "category_id": 57,
+                "category": {
+                    "id": 57,
+                    "english_name": "Facade and Roof Cleaning",
+                    "arabic_name": "تنظيف الواجهات والأسطح"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2070,
+                "name": "Windows cleaner",
+                "arabic_name": "منظف نوافذ",
+                "occupation_key": "912301",
+                "category_id": 57,
+                "category": {
+                    "id": 57,
+                    "english_name": "Facade and Roof Cleaning",
+                    "arabic_name": "تنظيف الواجهات والأسطح"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 188,
+        "english_name": "Facilities Maintenance Craftsperson",
+        "arabic_name": "فني أعمال صيانة المرافق",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 195,
+        "english_name": "Facilities Maintenance Fitter",
+        "arabic_name": "فني صيانة مرافق المباني",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 189,
+        "english_name": "Facilities Maintenance Technician",
+        "arabic_name": "فني صيانة المرافق",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 153,
+        "english_name": "Fast Food Preparation",
+        "arabic_name": "تحضير الوجبات السريعة",
+        "occupations_count": 2,
+        "occupations": [
+            {
+                "id": 2030,
+                "name": "Fast food maker",
+                "arabic_name": "معد وجبات سريعة",
+                "occupation_key": "941101",
+                "category_id": 153,
+                "category": {
+                    "id": 153,
+                    "english_name": "Fast Food Preparation",
+                    "arabic_name": "تحضير الوجبات السريعة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2075,
+                "name": "Meal Maker For a Food Cart",
+                "arabic_name": "معد وجبات عربة طعام",
+                "occupation_key": "941102",
+                "category_id": 153,
+                "category": {
+                    "id": 153,
+                    "english_name": "Fast Food Preparation",
+                    "arabic_name": "تحضير الوجبات السريعة"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 190,
+        "english_name": "Fitting and Assembly Technician",
+        "arabic_name": "فني تركيب وتجميع",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 64,
+        "english_name": "Furniture Assembling Worker",
+        "arabic_name": "عامل تجميع أثاث",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 2019,
+                "name": "Furniture Assembling Worker",
+                "arabic_name": "عامل تجميع أثاث",
+                "occupation_key": "821901",
+                "category_id": 64,
+                "category": {
+                    "id": 64,
+                    "english_name": "Furniture Assembling Worker",
+                    "arabic_name": "عامل تجميع أثاث"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 46,
+        "english_name": "Furniture Carpenter",
+        "arabic_name": "نجار أثاث",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 21,
+                "name": "Furniture Carpenter",
+                "arabic_name": "نجار اثاث",
+                "occupation_key": "752202",
+                "category_id": 46,
+                "category": {
+                    "id": 46,
+                    "english_name": "Furniture Carpenter",
+                    "arabic_name": "نجار أثاث"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 161,
+        "english_name": "Garden clean workers",
+        "arabic_name": "عمال نظافة الحدائق",
+        "occupations_count": 3,
+        "occupations": [
+            {
+                "id": 2086,
+                "name": "Firewood collector",
+                "arabic_name": "جامع حطب",
+                "occupation_key": "962401",
+                "category_id": 161,
+                "category": {
+                    "id": 161,
+                    "english_name": "Garden clean workers",
+                    "arabic_name": "عمال نظافة الحدائق"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2077,
+                "name": "garden clean worker",
+                "arabic_name": "عامل نظافة حدائق",
+                "occupation_key": "961302",
+                "category_id": 161,
+                "category": {
+                    "id": 161,
+                    "english_name": "Garden clean workers",
+                    "arabic_name": "عمال نظافة الحدائق"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2111,
+                "name": "Nursery worker",
+                "arabic_name": "عامل مشتل",
+                "occupation_key": "921402",
+                "category_id": 161,
+                "category": {
+                    "id": 161,
+                    "english_name": "Garden clean workers",
+                    "arabic_name": "عمال نظافة الحدائق"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 65,
+        "english_name": "Gas Station Attendant",
+        "arabic_name": "عامل محطة وقود",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 2013,
+                "name": "Gas Station Attendant",
+                "arabic_name": "عامل محطة وقود",
+                "occupation_key": "524501",
+                "category_id": 65,
+                "category": {
+                    "id": 65,
+                    "english_name": "Gas Station Attendant",
+                    "arabic_name": "عامل محطة وقود"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 66,
+        "english_name": "Gypsum Worker",
+        "arabic_name": "مجبس",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 898,
+                "name": "Gypsum Worker",
+                "arabic_name": "مجبس",
+                "occupation_key": "712301",
+                "category_id": 66,
+                "category": {
+                    "id": 66,
+                    "english_name": "Gypsum Worker",
+                    "arabic_name": "مجبس"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 67,
+        "english_name": "Hairdresser",
+        "arabic_name": "مصفف شعر",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 2011,
+                "name": "Hairdresser",
+                "arabic_name": "مصفف شعر",
+                "occupation_key": "514102",
+                "category_id": 67,
+                "category": {
+                    "id": 67,
+                    "english_name": "Hairdresser",
+                    "arabic_name": "مصفف شعر"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 12,
+        "english_name": "Heating Ventilation and Air Conditioning",
+        "arabic_name": "التبريد والتكييف",
+        "occupations_count": 32,
+        "occupations": [
+            {
+                "id": 741,
+                "name": "boiler smith",
+                "arabic_name": "حداد مراجل",
+                "occupation_key": "721301",
+                "category_id": 12,
+                "category": {
+                    "id": 12,
+                    "english_name": "Heating Ventilation and Air Conditioning",
+                    "arabic_name": "التبريد والتكييف"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 744,
+                "name": "Refrigeration assembler",
+                "arabic_name": "مجمع أجهزة تبريد",
+                "occupation_key": "821101",
+                "category_id": 12,
+                "category": {
+                    "id": 12,
+                    "english_name": "Heating Ventilation and Air Conditioning",
+                    "arabic_name": "التبريد والتكييف"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 44,
+        "english_name": "Heavy Equipment Technician",
+        "arabic_name": "ميكانيكي معدات ثقيلة",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 746,
+                "name": "Heavy Equipment Mechanic",
+                "arabic_name": "ميكانيكي معدات ثقيلة",
+                "occupation_key": "723302",
+                "category_id": 44,
+                "category": {
+                    "id": 44,
+                    "english_name": "Heavy Equipment Technician",
+                    "arabic_name": "ميكانيكي معدات ثقيلة"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 55,
+        "english_name": "Heavy Truck Drivers",
+        "arabic_name": "سائقو المعدات الثقيلة",
+        "occupations_count": 9,
+        "occupations": [
+            {
+                "id": 12121693,
+                "name": "Agricultural Driver",
+                "arabic_name": "سائق زراعي",
+                "occupation_key": "832207",
+                "category_id": 55,
+                "category": {
+                    "id": 55,
+                    "english_name": "Heavy Truck Drivers",
+                    "arabic_name": "سائقو المعدات الثقيلة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2144,
+                "name": "Agricultural Tractor Driver",
+                "arabic_name": "سائق جرار زراعي",
+                "occupation_key": "834101",
+                "category_id": 55,
+                "category": {
+                    "id": 55,
+                    "english_name": "Heavy Truck Drivers",
+                    "arabic_name": "سائقو المعدات الثقيلة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 943,
+                "name": "Asphalt equipment operator",
+                "arabic_name": "مشغل معدات سفلتة",
+                "occupation_key": "834205",
+                "category_id": 55,
+                "category": {
+                    "id": 55,
+                    "english_name": "Heavy Truck Drivers",
+                    "arabic_name": "سائقو المعدات الثقيلة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2139,
+                "name": "Bulldozer Operator",
+                "arabic_name": "مشغل جرافة",
+                "occupation_key": "834203",
+                "category_id": 55,
+                "category": {
+                    "id": 55,
+                    "english_name": "Heavy Truck Drivers",
+                    "arabic_name": "سائقو المعدات الثقيلة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2146,
+                "name": "Concrete Mixer Driver",
+                "arabic_name": "سائق خلاط إسمنت",
+                "occupation_key": "833204",
+                "category_id": 55,
+                "category": {
+                    "id": 55,
+                    "english_name": "Heavy Truck Drivers",
+                    "arabic_name": "سائقو المعدات الثقيلة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2138,
+                "name": "Grader Operator",
+                "arabic_name": "مشغل آلة تمهيد أراضي",
+                "occupation_key": "834206",
+                "category_id": 55,
+                "category": {
+                    "id": 55,
+                    "english_name": "Heavy Truck Drivers",
+                    "arabic_name": "سائقو المعدات الثقيلة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2027,
+                "name": "Heavy truck Driver",
+                "arabic_name": "سائق معدات ثقيلة",
+                "occupation_key": "834207",
+                "category_id": 55,
+                "category": {
+                    "id": 55,
+                    "english_name": "Heavy Truck Drivers",
+                    "arabic_name": "سائقو المعدات الثقيلة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2140,
+                "name": "Loader Operator",
+                "arabic_name": "مشغل مجرفة تحميل",
+                "occupation_key": "834201",
+                "category_id": 55,
+                "category": {
+                    "id": 55,
+                    "english_name": "Heavy Truck Drivers",
+                    "arabic_name": "سائقو المعدات الثقيلة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 942,
+                "name": "Road roller operator",
+                "arabic_name": "مشغل مدحلة طرق",
+                "occupation_key": "834202",
+                "category_id": 55,
+                "category": {
+                    "id": 55,
+                    "english_name": "Heavy Truck Drivers",
+                    "arabic_name": "سائقو المعدات الثقيلة"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 163,
+        "english_name": "Hospital Cleaner",
+        "arabic_name": "عامل تنظيف مستشفيات",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 2079,
+                "name": "Hospital Cleaner",
+                "arabic_name": "عامل تنظيف مستشفيات",
+                "occupation_key": "911204",
+                "category_id": 163,
+                "category": {
+                    "id": 163,
+                    "english_name": "Hospital Cleaner",
+                    "arabic_name": "عامل تنظيف مستشفيات"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 54,
+        "english_name": "Hospitality and Food Services",
+        "arabic_name": "خدمة الضيافة والمأكولات",
+        "occupations_count": 2,
+        "occupations": [
+            {
+                "id": 2014,
+                "name": "Food & Beverage's Counter Server",
+                "arabic_name": "عامل كاونتر مأكولات ومشروبات",
+                "occupation_key": "524601",
+                "category_id": 54,
+                "category": {
+                    "id": 54,
+                    "english_name": "Hospitality and Food Services",
+                    "arabic_name": "خدمة الضيافة والمأكولات"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2057,
+                "name": "Waiter",
+                "arabic_name": "مضيف مطعم",
+                "occupation_key": "513101",
+                "category_id": 54,
+                "category": {
+                    "id": 54,
+                    "english_name": "Hospitality and Food Services",
+                    "arabic_name": "خدمة الضيافة والمأكولات"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 193,
+        "english_name": "HSE Advisor",
+        "arabic_name": "مستشار الصحة السلامة والبيئة",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 47,
+        "english_name": "HVAC Mechanic",
+        "arabic_name": "ميكانيكي تدفئة وتهوية وتكييف",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 745,
+                "name": "HVAC mechanic",
+                "arabic_name": "ميكانيكي تدفئة وتهوية وتكييف",
+                "occupation_key": "712702",
+                "category_id": 47,
+                "category": {
+                    "id": 47,
+                    "english_name": "HVAC Mechanic",
+                    "arabic_name": "ميكانيكي تدفئة وتهوية وتكييف"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 192,
+        "english_name": "Instrument Craftsperson",
+        "arabic_name": "فني أجهزة القياس والتحكم",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 207,
+        "english_name": "Instrument Technician",
+        "arabic_name": "فني أجهزة قياس",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 29,
+        "english_name": "Kitchen Workers",
+        "arabic_name": "عمال المطابخ",
+        "occupations_count": 2,
+        "occupations": [
+            {
+                "id": 2062,
+                "name": "Kitchen Worker",
+                "arabic_name": "عامل مطبخ",
+                "occupation_key": "941202",
+                "category_id": 29,
+                "category": {
+                    "id": 29,
+                    "english_name": "Kitchen Workers",
+                    "arabic_name": "عمال المطابخ"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2096,
+                "name": "Worker to clean kitchen appliances",
+                "arabic_name": "عامل تنظيف أدوات مطبخ",
+                "occupation_key": "941201",
+                "category_id": 29,
+                "category": {
+                    "id": 29,
+                    "english_name": "Kitchen Workers",
+                    "arabic_name": "عمال المطابخ"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 170,
+        "english_name": "Labeling worker",
+        "arabic_name": "عامل وضع ملصقات",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 2101,
+                "name": "Labeling worker",
+                "arabic_name": "عامل وضع ملصقات",
+                "occupation_key": "932102",
+                "category_id": 170,
+                "category": {
+                    "id": 170,
+                    "english_name": "Labeling worker",
+                    "arabic_name": "عامل وضع ملصقات"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 149,
+        "english_name": "Laundry and Ironing",
+        "arabic_name": "غسيل وكي الملابس",
+        "occupations_count": 7,
+        "occupations": [
+            {
+                "id": 2072,
+                "name": "Carpet and rug Cleaner",
+                "arabic_name": "عامل غسيل سجاد وموكيت",
+                "occupation_key": "912103",
+                "category_id": 149,
+                "category": {
+                    "id": 149,
+                    "english_name": "Laundry and Ironing",
+                    "arabic_name": "غسيل وكي الملابس"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2073,
+                "name": "Curtain washer",
+                "arabic_name": "عامل غسيل ستائر",
+                "occupation_key": "912104",
+                "category_id": 149,
+                "category": {
+                    "id": 149,
+                    "english_name": "Laundry and Ironing",
+                    "arabic_name": "غسيل وكي الملابس"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2071,
+                "name": "Ironer",
+                "arabic_name": "عامل كي",
+                "occupation_key": "912102",
+                "category_id": 149,
+                "category": {
+                    "id": 149,
+                    "english_name": "Laundry and Ironing",
+                    "arabic_name": "غسيل وكي الملابس"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2198,
+                "name": "Ironing machine operator",
+                "arabic_name": "مشغل آلة كي",
+                "occupation_key": "815703",
+                "category_id": 149,
+                "category": {
+                    "id": 149,
+                    "english_name": "Laundry and Ironing",
+                    "arabic_name": "غسيل وكي الملابس"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2225,
+                "name": "Iron press machine operator",
+                "arabic_name": "مشغل آلة مكبس كي",
+                "occupation_key": "815305",
+                "category_id": 149,
+                "category": {
+                    "id": 149,
+                    "english_name": "Laundry and Ironing",
+                    "arabic_name": "غسيل وكي الملابس"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2200,
+                "name": "Laundry and linen machine operator",
+                "arabic_name": "مشغل آلة غسيل ملابس وبياضات",
+                "occupation_key": "815701",
+                "category_id": 149,
+                "category": {
+                    "id": 149,
+                    "english_name": "Laundry and Ironing",
+                    "arabic_name": "غسيل وكي الملابس"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2029,
+                "name": "Laundryman",
+                "arabic_name": "عامل غسيل ملابس",
+                "occupation_key": "912101",
+                "category_id": 149,
+                "category": {
+                    "id": 149,
+                    "english_name": "Laundry and Ironing",
+                    "arabic_name": "غسيل وكي الملابس"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 159,
+        "english_name": "Load and unload workers",
+        "arabic_name": "عمال التحميل والتنزيل",
+        "occupations_count": 3,
+        "occupations": [
+            {
+                "id": 2089,
+                "name": "Carrier",
+                "arabic_name": "حمال",
+                "occupation_key": "962102",
+                "category_id": 159,
+                "category": {
+                    "id": 159,
+                    "english_name": "Load and unload workers",
+                    "arabic_name": "عمال التحميل والتنزيل"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2061,
+                "name": "Load and Unload Worker",
+                "arabic_name": "عامل تحميل و تنزيل",
+                "occupation_key": "933301",
+                "category_id": 159,
+                "category": {
+                    "id": 159,
+                    "english_name": "Load and unload workers",
+                    "arabic_name": "عمال التحميل والتنزيل"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2099,
+                "name": "Wheelbarrow worker",
+                "arabic_name": "عامل جر عربة يدوية",
+                "occupation_key": "933101",
+                "category_id": 159,
+                "category": {
+                    "id": 159,
+                    "english_name": "Load and unload workers",
+                    "arabic_name": "عمال التحميل والتنزيل"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 198,
+        "english_name": "Machine Operator",
+        "arabic_name": "مشغل آلات",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 18,
+        "english_name": "Machine repair",
+        "arabic_name": "صيانة الآلات",
+        "occupations_count": 43,
+        "occupations": [
+            {
+                "id": 2005,
+                "name": "Inflatable Musical Instruments Maker & Repairer",
+                "arabic_name": "صانع ومصلح آلات موسيقية نفخية",
+                "occupation_key": "731202",
+                "category_id": 18,
+                "category": {
+                    "id": 18,
+                    "english_name": "Machine repair",
+                    "arabic_name": "صيانة الآلات"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 813,
+                "name": "Measuring Instruments Repairer",
+                "arabic_name": "مصلح أجهزة قياس",
+                "occupation_key": "731101",
+                "category_id": 18,
+                "category": {
+                    "id": 18,
+                    "english_name": "Machine repair",
+                    "arabic_name": "صيانة الآلات"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2004,
+                "name": "Optical Instruments Repairer",
+                "arabic_name": "مصلح أجهزة بصرية",
+                "occupation_key": "731104",
+                "category_id": 18,
+                "category": {
+                    "id": 18,
+                    "english_name": "Machine repair",
+                    "arabic_name": "صيانة الآلات"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2006,
+                "name": "Percussion Musical Instruments Maker & Repairer",
+                "arabic_name": "صانع ومصلح آلات موسيقية نقر",
+                "occupation_key": "731204",
+                "category_id": 18,
+                "category": {
+                    "id": 18,
+                    "english_name": "Machine repair",
+                    "arabic_name": "صيانة الآلات"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 814,
+                "name": "Precision instrument repairer",
+                "arabic_name": "مصلح أجهزة دقيقة",
+                "occupation_key": "731102",
+                "category_id": 18,
+                "category": {
+                    "id": 18,
+                    "english_name": "Machine repair",
+                    "arabic_name": "صيانة الآلات"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 815,
+                "name": "String Musical Instruments Maker & Repairer",
+                "arabic_name": "صانع ومصلح آلات موسيقية وترية",
+                "occupation_key": "731203",
+                "category_id": 18,
+                "category": {
+                    "id": 18,
+                    "english_name": "Machine repair",
+                    "arabic_name": "صيانة الآلات"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 803,
+                "name": "Tool and kit maker",
+                "arabic_name": "صانع أدوات و عدة",
+                "occupation_key": "722203",
+                "category_id": 18,
+                "category": {
+                    "id": 18,
+                    "english_name": "Machine repair",
+                    "arabic_name": "صيانة الآلات"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2003,
+                "name": "Watch Repairer",
+                "arabic_name": "مصلح ساعات",
+                "occupation_key": "731103",
+                "category_id": 18,
+                "category": {
+                    "id": 18,
+                    "english_name": "Machine repair",
+                    "arabic_name": "صيانة الآلات"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 197,
+        "english_name": "Machine Tool Technician",
+        "arabic_name": "فني آلات التشغيل",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 196,
+        "english_name": "Machinist",
+        "arabic_name": "فني تشغيل ماكينات",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 182,
+        "english_name": "Manual Welder",
+        "arabic_name": "لحام يدوي",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 156,
+        "english_name": "Manufacturing Officer",
+        "arabic_name": "عامل تصنيع",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 949,
+                "name": "Manufacturing Officer",
+                "arabic_name": "عامل تصنيع",
+                "occupation_key": "932901",
+                "category_id": 156,
+                "category": {
+                    "id": 156,
+                    "english_name": "Manufacturing Officer",
+                    "arabic_name": "عامل تصنيع"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 28,
+        "english_name": "Mechanical",
+        "arabic_name": "الميكانيكا",
+        "occupations_count": 35,
+        "occupations": [
+            {
+                "id": 747,
+                "name": "Agricultural equipment mechanic",
+                "arabic_name": "ميكانيكي معدات زراعية",
+                "occupation_key": "723301",
+                "category_id": 28,
+                "category": {
+                    "id": 28,
+                    "english_name": "Mechanical",
+                    "arabic_name": "الميكانيكا"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 983,
+                "name": "Compressor mechanic",
+                "arabic_name": "ميكانيكي ضاغطة",
+                "occupation_key": "712701",
+                "category_id": 28,
+                "category": {
+                    "id": 28,
+                    "english_name": "Mechanical",
+                    "arabic_name": "الميكانيكا"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 740,
+                "name": "electronic equipment mechanic",
+                "arabic_name": "ميكانيكي معدات الكرتونية",
+                "occupation_key": "742102",
+                "category_id": 28,
+                "category": {
+                    "id": 28,
+                    "english_name": "Mechanical",
+                    "arabic_name": "الميكانيكا"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 739,
+                "name": "Elevator mechanic",
+                "arabic_name": "ميكانيكي مصاعد",
+                "occupation_key": "741203",
+                "category_id": 28,
+                "category": {
+                    "id": 28,
+                    "english_name": "Mechanical",
+                    "arabic_name": "الميكانيكا"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 811,
+                "name": "Light equipment mechanic",
+                "arabic_name": "ميكانيكي معدات خفيفة",
+                "occupation_key": "723303",
+                "category_id": 28,
+                "category": {
+                    "id": 28,
+                    "english_name": "Mechanical",
+                    "arabic_name": "الميكانيكا"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 756,
+                "name": "Mechanical Equipment Assembler",
+                "arabic_name": "مجمع معدات ميكانيكية",
+                "occupation_key": "821106",
+                "category_id": 28,
+                "category": {
+                    "id": 28,
+                    "english_name": "Mechanical",
+                    "arabic_name": "الميكانيكا"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 984,
+                "name": "Refrigeration mechanic",
+                "arabic_name": "ميكانيكي برادات",
+                "occupation_key": "712703",
+                "category_id": 28,
+                "category": {
+                    "id": 28,
+                    "english_name": "Mechanical",
+                    "arabic_name": "الميكانيكا"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 185,
+        "english_name": "Mechanical Craftsperson",
+        "arabic_name": "فني أعمال ميكانيكية",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 186,
+        "english_name": "Mechanical Technician",
+        "arabic_name": "فني ميكانيكا",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 26,
+        "english_name": "Mining",
+        "arabic_name": "التعدين",
+        "occupations_count": 16,
+        "occupations": [
+            {
+                "id": 834,
+                "name": "Metal casting machine operator",
+                "arabic_name": "مشغل آلة صب المعادن",
+                "occupation_key": "812102",
+                "category_id": 26,
+                "category": {
+                    "id": 26,
+                    "english_name": "Mining",
+                    "arabic_name": "التعدين"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 945,
+                "name": "Miner",
+                "arabic_name": "عامل منجم",
+                "occupation_key": "931101",
+                "category_id": 26,
+                "category": {
+                    "id": 26,
+                    "english_name": "Mining",
+                    "arabic_name": "التعدين"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 909,
+                "name": "Mining equipment mechanic",
+                "arabic_name": "ميكانيكي معدات التعدين",
+                "occupation_key": "723305",
+                "category_id": 26,
+                "category": {
+                    "id": 26,
+                    "english_name": "Mining",
+                    "arabic_name": "التعدين"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 915,
+                "name": "Mining worker",
+                "arabic_name": "عامل تعدين",
+                "occupation_key": "811101",
+                "category_id": 26,
+                "category": {
+                    "id": 26,
+                    "english_name": "Mining",
+                    "arabic_name": "التعدين"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 919,
+                "name": "Sifting machine operator",
+                "arabic_name": "مشغل آلة غربلة",
+                "occupation_key": "811203",
+                "category_id": 26,
+                "category": {
+                    "id": 26,
+                    "english_name": "Mining",
+                    "arabic_name": "التعدين"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 56,
+        "english_name": "Minitruck Drivers",
+        "arabic_name": "سائقو الشاحنات الصغيرة",
+        "occupations_count": 2,
+        "occupations": [
+            {
+                "id": 2150,
+                "name": "Ambulance Driver",
+                "arabic_name": "سائق سيارة إسعاف",
+                "occupation_key": "832204",
+                "category_id": 56,
+                "category": {
+                    "id": 56,
+                    "english_name": "Minitruck Drivers",
+                    "arabic_name": "سائقو الشاحنات الصغيرة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2023,
+                "name": "Minitruck driver",
+                "arabic_name": "سائق شاحنة صغيرة",
+                "occupation_key": "832205",
+                "category_id": 56,
+                "category": {
+                    "id": 56,
+                    "english_name": "Minitruck Drivers",
+                    "arabic_name": "سائقو الشاحنات الصغيرة"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 68,
+        "english_name": "Motorcycle Driver",
+        "arabic_name": "سائق دراجة نارية",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 2020,
+                "name": "Motorcycle Driver",
+                "arabic_name": "سائق دراجة نارية",
+                "occupation_key": "832101",
+                "category_id": 68,
+                "category": {
+                    "id": 68,
+                    "english_name": "Motorcycle Driver",
+                    "arabic_name": "سائق دراجة نارية"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 69,
+        "english_name": "Nail Care Specialist",
+        "arabic_name": "مختص عناية أظافر",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 2012,
+                "name": "Nail Care Specialist",
+                "arabic_name": "مختص عناية أظافر",
+                "occupation_key": "514202",
+                "category_id": 69,
+                "category": {
+                    "id": 69,
+                    "english_name": "Nail Care Specialist",
+                    "arabic_name": "مختص عناية أظافر"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 160,
+        "english_name": "Offices and Facilities Cleaning Workers",
+        "arabic_name": "عمال تنظيف المكاتب والمنشآت",
+        "occupations_count": 6,
+        "occupations": [
+            {
+                "id": 2125,
+                "name": "Aircraft cleaning worker",
+                "arabic_name": "عامل تنظيف طائرات",
+                "occupation_key": "912202",
+                "category_id": 160,
+                "category": {
+                    "id": 160,
+                    "english_name": "Offices and Facilities Cleaning Workers",
+                    "arabic_name": "عمال تنظيف المكاتب والمنشآت"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2128,
+                "name": "Mosque Caretaker",
+                "arabic_name": "خادم مسجد",
+                "occupation_key": "911201",
+                "category_id": 160,
+                "category": {
+                    "id": 160,
+                    "english_name": "Offices and Facilities Cleaning Workers",
+                    "arabic_name": "عمال تنظيف المكاتب والمنشآت"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2063,
+                "name": "Offices and Facilities Cleaning Worker",
+                "arabic_name": "عامل تنظيف مكاتب ومنشآت",
+                "occupation_key": "911203",
+                "category_id": 160,
+                "category": {
+                    "id": 160,
+                    "english_name": "Offices and Facilities Cleaning Workers",
+                    "arabic_name": "عمال تنظيف المكاتب والمنشآت"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2124,
+                "name": "Ship cleaning worker",
+                "arabic_name": "عامل تنظيف سفن",
+                "occupation_key": "912203",
+                "category_id": 160,
+                "category": {
+                    "id": 160,
+                    "english_name": "Offices and Facilities Cleaning Workers",
+                    "arabic_name": "عمال تنظيف المكاتب والمنشآت"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2313,
+                "name": "Tile cleaning worker",
+                "arabic_name": "جلاء بلاط",
+                "occupation_key": "713302",
+                "category_id": 160,
+                "category": {
+                    "id": 160,
+                    "english_name": "Offices and Facilities Cleaning Workers",
+                    "arabic_name": "عمال تنظيف المكاتب والمنشآت"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2123,
+                "name": "Train cleaning worker",
+                "arabic_name": "عامل تنظيف قطارات",
+                "occupation_key": "912204",
+                "category_id": 160,
+                "category": {
+                    "id": 160,
+                    "english_name": "Offices and Facilities Cleaning Workers",
+                    "arabic_name": "عمال تنظيف المكاتب والمنشآت"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 168,
+        "english_name": "Packaging the Shelves Worker",
+        "arabic_name": "عامل تعبئة رفوف",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 2097,
+                "name": "Packing the shelves worker",
+                "arabic_name": "عامل تعبئة رفوف",
+                "occupation_key": "933401",
+                "category_id": 168,
+                "category": {
+                    "id": 168,
+                    "english_name": "Packaging the Shelves Worker",
+                    "arabic_name": "عامل تعبئة رفوف"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 169,
+        "english_name": "Packaging Workers",
+        "arabic_name": "عمال التعبئة والتغليف",
+        "occupations_count": 2,
+        "occupations": [
+            {
+                "id": 2102,
+                "name": "Packaging worker",
+                "arabic_name": "عامل تعبئة وتغليف",
+                "occupation_key": "932101",
+                "category_id": 169,
+                "category": {
+                    "id": 169,
+                    "english_name": "Packaging Workers",
+                    "arabic_name": "عمال التعبئة والتغليف"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2100,
+                "name": "Product sorting worker",
+                "arabic_name": "عامل فرز منتجات",
+                "occupation_key": "932902",
+                "category_id": 169,
+                "category": {
+                    "id": 169,
+                    "english_name": "Packaging Workers",
+                    "arabic_name": "عمال التعبئة والتغليف"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 6,
+        "english_name": "Painting",
+        "arabic_name": "الدهان",
+        "occupations_count": 37,
+        "occupations": [
+            {
+                "id": 818,
+                "name": "Decorative Painter",
+                "arabic_name": "دهان زخرفي",
+                "occupation_key": "731601",
+                "category_id": 6,
+                "category": {
+                    "id": 6,
+                    "english_name": "Painting",
+                    "arabic_name": "الدهان"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 900,
+                "name": "Painter",
+                "arabic_name": "دهان",
+                "occupation_key": "713101",
+                "category_id": 6,
+                "category": {
+                    "id": 6,
+                    "english_name": "Painting",
+                    "arabic_name": "الدهان"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 796,
+                "name": "Products Spray Painter",
+                "arabic_name": "عامل طلاء مصنوعات",
+                "occupation_key": "713204",
+                "category_id": 6,
+                "category": {
+                    "id": 6,
+                    "english_name": "Painting",
+                    "arabic_name": "الدهان"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 794,
+                "name": "Spray Painter",
+                "arabic_name": "عامل طلاء بالرش",
+                "occupation_key": "713201",
+                "category_id": 6,
+                "category": {
+                    "id": 6,
+                    "english_name": "Painting",
+                    "arabic_name": "الدهان"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2314,
+                "name": "Varnish painter",
+                "arabic_name": "عامل طلاء بالورنيش",
+                "occupation_key": "713202",
+                "category_id": 6,
+                "category": {
+                    "id": 6,
+                    "english_name": "Painting",
+                    "arabic_name": "الدهان"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 793,
+                "name": "Wallpaper Hanger",
+                "arabic_name": "مركب ورق جدران",
+                "occupation_key": "713102",
+                "category_id": 6,
+                "category": {
+                    "id": 6,
+                    "english_name": "Painting",
+                    "arabic_name": "الدهان"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 70,
+        "english_name": "Pipe and Boiler Insulation Worker",
+        "arabic_name": "عامل عزل أنابيب ومراجل",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 2015,
+                "name": "Pipe and Boiler Insulation Worker",
+                "arabic_name": "عامل عزل أنابيب ومراجل",
+                "occupation_key": "712401",
+                "category_id": 70,
+                "category": {
+                    "id": 70,
+                    "english_name": "Pipe and Boiler Insulation Worker",
+                    "arabic_name": "عامل عزل أنابيب ومراجل"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 194,
+        "english_name": "Pipe and Fitting Assembling Technician",
+        "arabic_name": "فني تجميع وتركيب الأنابيب والوصلات",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 204,
+        "english_name": "Pipe and Tube Fabricator",
+        "arabic_name": "فني تصنيع الأنابيب والمواسير",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 38,
+        "english_name": "Pipe Installer",
+        "arabic_name": "مركب أنابيب",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 750,
+                "name": "Pipe installer",
+                "arabic_name": "مركب أنابيب",
+                "occupation_key": "712602",
+                "category_id": 38,
+                "category": {
+                    "id": 38,
+                    "english_name": "Pipe Installer",
+                    "arabic_name": "مركب أنابيب"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 5,
+        "english_name": "Plasterer",
+        "arabic_name": "مليس",
+        "occupations_count": 4,
+        "occupations": [
+            {
+                "id": 896,
+                "name": "Plasterer",
+                "arabic_name": "مليس",
+                "occupation_key": "711403",
+                "category_id": 5,
+                "category": {
+                    "id": 5,
+                    "english_name": "Plasterer",
+                    "arabic_name": "مليس"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 191,
+        "english_name": "Plate Worker",
+        "arabic_name": "فني تشكيل الصفائح المعدنية",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 35,
+        "english_name": "Plumber",
+        "arabic_name": "سباك",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 748,
+                "name": "Plumber",
+                "arabic_name": "سباك",
+                "occupation_key": "712601",
+                "category_id": 35,
+                "category": {
+                    "id": 35,
+                    "english_name": "Plumber",
+                    "arabic_name": "سباك"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 41,
+        "english_name": "Power Cable Connector",
+        "arabic_name": "موصل كابلات كهربائية",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 737,
+                "name": "Power Cable Connector",
+                "arabic_name": "موصل كابلات كهربائية",
+                "occupation_key": "741301",
+                "category_id": 41,
+                "category": {
+                    "id": 41,
+                    "english_name": "Power Cable Connector",
+                    "arabic_name": "موصل كابلات كهربائية"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 71,
+        "english_name": "Power Lines Operator",
+        "arabic_name": "عامل خطوط طاقة كهربائية",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 716,
+                "name": "Power Lines Operator",
+                "arabic_name": "عامل خطوط طاقة كهربائية",
+                "occupation_key": "741302",
+                "category_id": 71,
+                "category": {
+                    "id": 71,
+                    "english_name": "Power Lines Operator",
+                    "arabic_name": "عامل خطوط طاقة كهربائية"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 200,
+        "english_name": "Production Assembler",
+        "arabic_name": "مجمع منتجات",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 154,
+        "english_name": "Road Maintenance Workers",
+        "arabic_name": "عمال صيانة الطرق",
+        "occupations_count": 2,
+        "occupations": [
+            {
+                "id": 947,
+                "name": "Asphalting worker",
+                "arabic_name": "عامل سفلتة",
+                "occupation_key": "931203",
+                "category_id": 154,
+                "category": {
+                    "id": 154,
+                    "english_name": "Road Maintenance Workers",
+                    "arabic_name": "عمال صيانة الطرق"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 946,
+                "name": "Road maintenance worker",
+                "arabic_name": "عامل صيانة الطرق",
+                "occupation_key": "931202",
+                "category_id": 154,
+                "category": {
+                    "id": 154,
+                    "english_name": "Road Maintenance Workers",
+                    "arabic_name": "عمال صيانة الطرق"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 49,
+        "english_name": "Scaffold Laborer",
+        "arabic_name": "ناصب سقالات",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 2007,
+                "name": "Scaffold Laborer",
+                "arabic_name": "ناصب سقالات",
+                "occupation_key": "711901",
+                "category_id": 49,
+                "category": {
+                    "id": 49,
+                    "english_name": "Scaffold Laborer",
+                    "arabic_name": "ناصب سقالات"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 58,
+        "english_name": "Sellers",
+        "arabic_name": "البائعون",
+        "occupations_count": 30,
+        "occupations": [
+            {
+                "id": 2040,
+                "name": "Clothes Seller",
+                "arabic_name": "بائع ملابس جاهزة",
+                "occupation_key": "522304",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2044,
+                "name": "Cosmetics and Toiletries Seller",
+                "arabic_name": "بائع مستحضرات وادوات تجميل",
+                "occupation_key": "522308",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2066,
+                "name": "Food and Beverage Seller",
+                "arabic_name": "بائع مأكولات ومشروبات",
+                "occupation_key": "522302",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2065,
+                "name": "Food Peddler",
+                "arabic_name": "بائع طعام متجول",
+                "occupation_key": "521201",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2046,
+                "name": "Furniture Seller",
+                "arabic_name": "بائع اثاث",
+                "occupation_key": "522310",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2036,
+                "name": "Grocer",
+                "arabic_name": "بقال",
+                "occupation_key": "522102",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2058,
+                "name": "Jewelry Seller",
+                "arabic_name": "بائع مجوهرات",
+                "occupation_key": "522313",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2041,
+                "name": "Lingerie Female Seller",
+                "arabic_name": "بائعة ملابس داخلية نسائية",
+                "occupation_key": "522305",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2054,
+                "name": "Market Seller",
+                "arabic_name": "بائع أسواق",
+                "occupation_key": "524905",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2069,
+                "name": "Newspaper Seller",
+                "arabic_name": "بائع صحف",
+                "occupation_key": "952002",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2068,
+                "name": "Peddler",
+                "arabic_name": "بائع متجول",
+                "occupation_key": "952001",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2056,
+                "name": "Peddler-Green Grocer",
+                "arabic_name": "بائع خضار وفاكهة متجول",
+                "occupation_key": "524904",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2043,
+                "name": "Perfume Seller",
+                "arabic_name": "بائع عطور",
+                "occupation_key": "522307",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2009,
+                "name": "Seller",
+                "arabic_name": "بائع",
+                "occupation_key": "522301",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2051,
+                "name": "Seller of Agricultural Supplies",
+                "arabic_name": "بائع لوازم زراعية",
+                "occupation_key": "522317",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 990,
+                "name": "Seller of Building Materials",
+                "arabic_name": "بائع مواد انشائية",
+                "occupation_key": "522318",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2050,
+                "name": "Seller of Flowers and Plants",
+                "arabic_name": "بائع زهور ونباتات",
+                "occupation_key": "522316",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2067,
+                "name": "Seller of Fuelwood and Coal",
+                "arabic_name": "بائع فحم وخشب وقود",
+                "occupation_key": "524903",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 991,
+                "name": "Seller of Household Appliances and Tools",
+                "arabic_name": "بائع ادوات واجهزة منزلية",
+                "occupation_key": "522312",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2049,
+                "name": "Seller of Musical Instruments",
+                "arabic_name": "بائع ادوات موسيقية",
+                "occupation_key": "522315",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2055,
+                "name": "Seller of Vehicles Spare Parts",
+                "arabic_name": "بائع قطع غيار مركبات",
+                "occupation_key": "522320",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2053,
+                "name": "Seller of Vehicles Supplies",
+                "arabic_name": "بائع لوازم مركبات",
+                "occupation_key": "522321",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2045,
+                "name": "Sewing and Knitting Supplies Seller",
+                "arabic_name": "بائع لوازم خياطة وحياكة",
+                "occupation_key": "522309",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2042,
+                "name": "Shoes and Bags Seller",
+                "arabic_name": "بائع احذية وحقائب",
+                "occupation_key": "522306",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2039,
+                "name": "Spice Seller",
+                "arabic_name": "عطار",
+                "occupation_key": "522303",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2037,
+                "name": "Stall seller",
+                "arabic_name": "بائع كشك",
+                "occupation_key": "521101",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2038,
+                "name": "Store Keeper",
+                "arabic_name": "أمين متجر",
+                "occupation_key": "522101",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2047,
+                "name": "Textile Seller",
+                "arabic_name": "بائع منسوجات",
+                "occupation_key": "522311",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2052,
+                "name": "Vehicles Seller",
+                "arabic_name": "بائع مركبات",
+                "occupation_key": "522319",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2048,
+                "name": "Watch Seller",
+                "arabic_name": "بائع ساعات",
+                "occupation_key": "522314",
+                "category_id": 58,
+                "category": {
+                    "id": 58,
+                    "english_name": "Sellers",
+                    "arabic_name": "البائعون"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 203,
+        "english_name": "Sheet Metalworker",
+        "arabic_name": "عامل تشكيل الصفائح المعدنية",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 48,
+        "english_name": "Stone mason",
+        "arabic_name": "بناء حجر",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 957,
+                "name": "Stone mason",
+                "arabic_name": "بناء حجر",
+                "occupation_key": "711301",
+                "category_id": 48,
+                "category": {
+                    "id": 48,
+                    "english_name": "Stone mason",
+                    "arabic_name": "بناء حجر"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 162,
+        "english_name": "Street Clean Workers",
+        "arabic_name": "عمال نظافة الشوارع",
+        "occupations_count": 3,
+        "occupations": [
+            {
+                "id": 2078,
+                "name": "Street clean worker",
+                "arabic_name": "عامل نظافة شوارع",
+                "occupation_key": "961301",
+                "category_id": 162,
+                "category": {
+                    "id": 162,
+                    "english_name": "Street Clean Workers",
+                    "arabic_name": "عمال نظافة الشوارع"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2092,
+                "name": "Waste collector",
+                "arabic_name": "جامع نفايات",
+                "occupation_key": "961101",
+                "category_id": 162,
+                "category": {
+                    "id": 162,
+                    "english_name": "Street Clean Workers",
+                    "arabic_name": "عمال نظافة الشوارع"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2091,
+                "name": "Waste sorter",
+                "arabic_name": "فارز نفايات",
+                "occupation_key": "961201",
+                "category_id": 162,
+                "category": {
+                    "id": 162,
+                    "english_name": "Street Clean Workers",
+                    "arabic_name": "عمال نظافة الشوارع"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 205,
+        "english_name": "Structural Steelworker",
+        "arabic_name": "فني الإنشاءات الفولاذية",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 59,
+        "english_name": "Tailoring",
+        "arabic_name": "الخياطة",
+        "occupations_count": 10,
+        "occupations": [
+            {
+                "id": 2279,
+                "name": "Agal Tailor",
+                "arabic_name": "مفصل عقال",
+                "occupation_key": "753104",
+                "category_id": 59,
+                "category": {
+                    "id": 59,
+                    "english_name": "Tailoring",
+                    "arabic_name": "الخياطة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2223,
+                "name": "Embroidery machine operator",
+                "arabic_name": "مشغل آلة تطريز",
+                "occupation_key": "815307",
+                "category_id": 59,
+                "category": {
+                    "id": 59,
+                    "english_name": "Tailoring",
+                    "arabic_name": "الخياطة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2277,
+                "name": "Embroidery Worker",
+                "arabic_name": "عامل تطريز",
+                "occupation_key": "753302",
+                "category_id": 59,
+                "category": {
+                    "id": 59,
+                    "english_name": "Tailoring",
+                    "arabic_name": "الخياطة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2064,
+                "name": "Fur Clothing & Bisht Tailor",
+                "arabic_name": "خياط ملابس فرائية ومشالح",
+                "occupation_key": "753103",
+                "category_id": 59,
+                "category": {
+                    "id": 59,
+                    "english_name": "Tailoring",
+                    "arabic_name": "الخياطة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2278,
+                "name": "Garment Patternmaker",
+                "arabic_name": "صانع نماذج ملابس",
+                "occupation_key": "753201",
+                "category_id": 59,
+                "category": {
+                    "id": 59,
+                    "english_name": "Tailoring",
+                    "arabic_name": "الخياطة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2032,
+                "name": "Men's Clothing Tailor",
+                "arabic_name": "خياط ملابس رجالية",
+                "occupation_key": "753102",
+                "category_id": 59,
+                "category": {
+                    "id": 59,
+                    "english_name": "Tailoring",
+                    "arabic_name": "الخياطة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2059,
+                "name": "Military Tailor",
+                "arabic_name": "خياط ملابس عسكرية",
+                "occupation_key": "753105",
+                "category_id": 59,
+                "category": {
+                    "id": 59,
+                    "english_name": "Tailoring",
+                    "arabic_name": "الخياطة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2229,
+                "name": "Sewing machine operator",
+                "arabic_name": "مشغل آلة خياطة",
+                "occupation_key": "815301",
+                "category_id": 59,
+                "category": {
+                    "id": 59,
+                    "english_name": "Tailoring",
+                    "arabic_name": "الخياطة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2018,
+                "name": "Tailor",
+                "arabic_name": "خياط",
+                "occupation_key": "753301",
+                "category_id": 59,
+                "category": {
+                    "id": 59,
+                    "english_name": "Tailoring",
+                    "arabic_name": "الخياطة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2031,
+                "name": "Women's Clothing Tailor",
+                "arabic_name": "خياط ملابس نسائية",
+                "occupation_key": "753101",
+                "category_id": 59,
+                "category": {
+                    "id": 59,
+                    "english_name": "Tailoring",
+                    "arabic_name": "الخياطة"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 72,
+        "english_name": "Taxi Driver",
+        "arabic_name": "سائق سيارة أجرة",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 2022,
+                "name": "Taxi Driver",
+                "arabic_name": "سائق سيارة أجرة",
+                "occupation_key": "832203",
+                "category_id": 72,
+                "category": {
+                    "id": 72,
+                    "english_name": "Taxi Driver",
+                    "arabic_name": "سائق سيارة أجرة"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 36,
+        "english_name": "Tile setter",
+        "arabic_name": "مبلط",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 958,
+                "name": "Tile setter",
+                "arabic_name": "مبلط",
+                "occupation_key": "712202",
+                "category_id": 36,
+                "category": {
+                    "id": 36,
+                    "english_name": "Tile setter",
+                    "arabic_name": "مبلط"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 7,
+        "english_name": "Tilling",
+        "arabic_name": "التبليط",
+        "occupations_count": 13,
+        "occupations": [
+            {
+                "id": 790,
+                "name": "Carpet rug and plastic flooring installer",
+                "arabic_name": "مركب سجاد وموكيت وأرضيات لدائنية",
+                "occupation_key": "712201",
+                "category_id": 7,
+                "category": {
+                    "id": 7,
+                    "english_name": "Tilling",
+                    "arabic_name": "التبليط"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 791,
+                "name": "Hardwood floor installer",
+                "arabic_name": "عامل تركيب أرضية خشبية",
+                "occupation_key": "712203",
+                "category_id": 7,
+                "category": {
+                    "id": 7,
+                    "english_name": "Tilling",
+                    "arabic_name": "التبليط"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 792,
+                "name": "mosaic composite",
+                "arabic_name": "مركب الفسيفساء",
+                "occupation_key": "712204",
+                "category_id": 7,
+                "category": {
+                    "id": 7,
+                    "english_name": "Tilling",
+                    "arabic_name": "التبليط"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 789,
+                "name": "Roof slate and tiles worker",
+                "arabic_name": "عامل تسقيف اردواز وقرميد",
+                "occupation_key": "712104",
+                "category_id": 7,
+                "category": {
+                    "id": 7,
+                    "english_name": "Tilling",
+                    "arabic_name": "التبليط"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 166,
+        "english_name": "Transport Car Workers",
+        "arabic_name": "عمال دراجات النقل",
+        "occupations_count": 3,
+        "occupations": [
+            {
+                "id": 2098,
+                "name": "Animal cart Worker",
+                "arabic_name": "عامل قيادة عربة جر بالحيوان",
+                "occupation_key": "933201",
+                "category_id": 166,
+                "category": {
+                    "id": 166,
+                    "english_name": "Transport Car Workers",
+                    "arabic_name": "عمال دراجات النقل"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2087,
+                "name": "Bill distributer",
+                "arabic_name": "موزع فواتير",
+                "occupation_key": "962303",
+                "category_id": 166,
+                "category": {
+                    "id": 166,
+                    "english_name": "Transport Car Workers",
+                    "arabic_name": "عمال دراجات النقل"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2082,
+                "name": "Transport car worker",
+                "arabic_name": "عامل دراجة نقل",
+                "occupation_key": "933102",
+                "category_id": 166,
+                "category": {
+                    "id": 166,
+                    "english_name": "Transport Car Workers",
+                    "arabic_name": "عمال دراجات النقل"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 60,
+        "english_name": "Truck Drivers",
+        "arabic_name": "سائقو الشاحنات الثقيلة",
+        "occupations_count": 2,
+        "occupations": [
+            {
+                "id": 2145,
+                "name": "Garbage Truck Driver",
+                "arabic_name": "سائق شاحنة رفع قمامة",
+                "occupation_key": "833205",
+                "category_id": 60,
+                "category": {
+                    "id": 60,
+                    "english_name": "Truck Drivers",
+                    "arabic_name": "سائقو الشاحنات الثقيلة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2025,
+                "name": "Truck Driver",
+                "arabic_name": "سائق شاحنة ثقيلة",
+                "occupation_key": "833201",
+                "category_id": 60,
+                "category": {
+                    "id": 60,
+                    "english_name": "Truck Drivers",
+                    "arabic_name": "سائقو الشاحنات الثقيلة"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 157,
+        "english_name": "Unique Occupation Workers",
+        "arabic_name": "عمال المهن الفريدة",
+        "occupations_count": 2,
+        "occupations": [
+            {
+                "id": 2034,
+                "name": "Unique Occupation Worker",
+                "arabic_name": "عامل مهن فريدة",
+                "occupation_key": "962201",
+                "category_id": 157,
+                "category": {
+                    "id": 157,
+                    "english_name": "Unique Occupation Workers",
+                    "arabic_name": "عمال المهن الفريدة"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 2085,
+                "name": "Water collector",
+                "arabic_name": "جامع مياه",
+                "occupation_key": "962402",
+                "category_id": 157,
+                "category": {
+                    "id": 157,
+                    "english_name": "Unique Occupation Workers",
+                    "arabic_name": "عمال المهن الفريدة"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 165,
+        "english_name": "Warehouse Worker",
+        "arabic_name": "عامل مخزن",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 2081,
+                "name": "Warehouse Worker",
+                "arabic_name": "عامل مخزن",
+                "occupation_key": "933402",
+                "category_id": 165,
+                "category": {
+                    "id": 165,
+                    "english_name": "Warehouse Worker",
+                    "arabic_name": "عامل مخزن"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 11,
+        "english_name": "Welding",
+        "arabic_name": "اللحام",
+        "occupations_count": 34,
+        "occupations": [
+            {
+                "id": 754,
+                "name": "Flame cutting machine operator",
+                "arabic_name": "قاطع لهب",
+                "occupation_key": "721203",
+                "category_id": 11,
+                "category": {
+                    "id": 11,
+                    "english_name": "Welding",
+                    "arabic_name": "اللحام"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 982,
+                "name": "Underwater welder",
+                "arabic_name": "لحام تحت الماء",
+                "occupation_key": "721202",
+                "category_id": 11,
+                "category": {
+                    "id": 11,
+                    "english_name": "Welding",
+                    "arabic_name": "اللحام"
+                },
+                "prometric_codes": []
+            },
+            {
+                "id": 755,
+                "name": "Welder",
+                "arabic_name": "لحام",
+                "occupation_key": "721201",
+                "category_id": 11,
+                "category": {
+                    "id": 11,
+                    "english_name": "Welding",
+                    "arabic_name": "اللحام"
+                },
+                "prometric_codes": []
+            }
+        ]
+    },
+    {
+        "id": 206,
+        "english_name": "Welding Assistant",
+        "arabic_name": "مساعد لحام",
+        "occupations_count": 0,
+        "occupations": []
+    },
+    {
+        "id": 155,
+        "english_name": "Workshop Worker",
+        "arabic_name": "عامل ورشة",
+        "occupations_count": 1,
+        "occupations": [
+            {
+                "id": 2033,
+                "name": "Workshop Worker",
+                "arabic_name": "عامل ورشة",
+                "occupation_key": "932903",
+                "category_id": 155,
+                "category": {
+                    "id": 155,
+                    "english_name": "Workshop Worker",
+                    "arabic_name": "عامل ورشة"
+                },
+                "prometric_codes": []
+            }
+        ]
+    }
+]
