@@ -255,33 +255,7 @@
         if (currentSelectedHash && $('#expandedSlotsModal').hasClass('show')) {
             const group = vaultGroupsData.find(g => g.mother_hash === currentSelectedHash);
             if (group) {
-                const modalBody = document.getElementById('modal-slots-table-body');
-                if (modalBody && group.slots) {
-                    modalBody.innerHTML = '';
-                    group.slots.forEach((s, idx) => {
-                        const isPending = s.status === 'pending_locking';
-                        const seatIdBadge = isPending 
-                            ? `<span class="badge bg-warning text-dark"><i class="fa-solid fa-spinner fa-spin me-1"></i> Reserving...</span>` 
-                            : `<span class="badge bg-secondary font-monospace">${s.temp_seat_id}</span>`;
-                        const expiryText = isPending 
-                            ? `<span class="text-muted small"><i class="fa-solid fa-hourglass-half me-1"></i> Reserving in background...</span>` 
-                            : `<span class="text-info">${s.expires_at}</span>`;
-                        const actionBtn = isPending
-                            ? `<span class="badge bg-dark border border-secondary text-warning"><i class="fa-solid fa-spinner fa-spin me-1"></i> Reserving Seat...</span>`
-                            : `<button class="btn btn-sm btn-outline-danger" onclick="releaseSingleSlot(${s.id})"><i class="fa-solid fa-xmark me-1"></i> Release Slot</button>`;
-
-                        modalBody.innerHTML += `
-                            <tr>
-                                <td class="fw-bold">${idx + 1}</td>
-                                <td><code>${s.email}</code></td>
-                                <td>${seatIdBadge}</td>
-                                <td>${expiryText}</td>
-                                <td><span class="badge bg-info">${s.renew_count} renewals</span></td>
-                                <td class="text-end">${actionBtn}</td>
-                            </tr>
-                        `;
-                    });
-                }
+                renderModalRows(group);
             }
         }
     }
@@ -302,9 +276,62 @@
                     sec--;
                     el.setAttribute('data-seconds', sec);
                     el.innerHTML = `<i class="fa-solid fa-stopwatch me-1"></i> ${formatTimer(sec)}`;
+                } else {
+                    el.innerHTML = `<span class="badge bg-info text-dark"><i class="fa-solid fa-arrows-rotate fa-spin me-1"></i> Auto-Renewing...</span>`;
                 }
             });
         }, 1000);
+    }
+
+    function renderModalRows(group) {
+        const tbody = document.getElementById('modal-slots-table-body');
+        if (!tbody) return;
+
+        document.getElementById('modalCenterName').innerHTML = `<i class="fa-solid fa-list-check me-2 text-warning"></i> ${group.center_name}`;
+        document.getElementById('modalMotherHash').innerHTML = `
+            <div class="d-flex align-items-center gap-2 mt-2">
+                <small class="text-muted fw-bold">Mother Hash:</small>
+                <code class="user-select-all bg-dark text-warning border border-secondary px-2 py-1 rounded font-monospace">${group.mother_hash}</code>
+                <button class="btn btn-sm btn-outline-warning px-2 py-0" onclick="navigator.clipboard.writeText('${group.mother_hash}'); alert('Copied Mother Hash!');">
+                    <i class="fa-solid fa-copy me-1"></i> Copy
+                </button>
+            </div>
+        `;
+
+        tbody.innerHTML = '';
+        if (!group.slots || group.slots.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No slots found</td></tr>`;
+            return;
+        }
+
+        group.slots.forEach((s, idx) => {
+            const isPending = s.status === 'pending_locking';
+            const seatIdBadge = isPending 
+                ? `<span class="badge bg-warning text-dark"><i class="fa-solid fa-spinner fa-spin me-1"></i> Reserving...</span>` 
+                : `<span class="badge bg-secondary font-monospace fs-6 px-2 py-1">${s.temp_seat_id}</span>`;
+
+            const expiryText = isPending 
+                ? `<span class="badge bg-warning text-dark"><i class="fa-solid fa-hourglass-half fa-spin me-1"></i> Reserving in background...</span>` 
+                : `<span class="font-monospace fw-bold text-warning timer-badge" data-seconds="${s.remaining_seconds}">
+                      <i class="fa-solid fa-stopwatch me-1"></i> ${formatTimer(s.remaining_seconds)}
+                   </span>
+                   <div class="text-muted small">(${s.expires_at})</div>`;
+
+            const actionBtn = isPending
+                ? `<span class="badge bg-dark border border-secondary text-warning"><i class="fa-solid fa-spinner fa-spin me-1"></i> Reserving Seat...</span>`
+                : `<button class="btn btn-sm btn-outline-danger" onclick="releaseSingleSlot(${s.id})"><i class="fa-solid fa-xmark me-1"></i> Release Slot</button>`;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td class="fw-bold">${idx + 1}</td>
+                    <td><code class="fs-6 text-info">${s.email}</code></td>
+                    <td>${seatIdBadge}</td>
+                    <td>${expiryText}</td>
+                    <td><span class="badge bg-info fs-7"><i class="fa-solid fa-rotate me-1"></i> ${s.renew_count} renewals</span></td>
+                    <td class="text-end">${actionBtn}</td>
+                </tr>
+            `;
+        });
     }
 
     function openExpandedModal(hash) {
@@ -312,39 +339,7 @@
         const group = vaultGroupsData.find(g => g.mother_hash === hash);
         if (!group) return;
 
-        document.getElementById('modalCenterName').innerText = group.center_name;
-        document.getElementById('modalMotherHash').innerText = `Mother Hash: ${group.mother_hash}`;
-
-        const tbody = document.getElementById('modal-slots-table-body');
-        tbody.innerHTML = '';
-
-        if (!group.slots || group.slots.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No slots found</td></tr>`;
-        } else {
-            group.slots.forEach((s, idx) => {
-                const isPending = s.status === 'pending_locking';
-                const seatIdBadge = isPending 
-                    ? `<span class="badge bg-warning text-dark"><i class="fa-solid fa-spinner fa-spin me-1"></i> Reserving...</span>` 
-                    : `<span class="badge bg-secondary font-monospace">${s.temp_seat_id}</span>`;
-                const expiryText = isPending 
-                    ? `<span class="text-muted small"><i class="fa-solid fa-hourglass-half me-1"></i> Reserving in background...</span>` 
-                    : `<span class="text-info">${s.expires_at}</span>`;
-                const actionBtn = isPending
-                    ? `<span class="badge bg-dark border border-secondary text-warning"><i class="fa-solid fa-spinner fa-spin me-1"></i> Logging In...</span>`
-                    : `<button class="btn btn-sm btn-outline-danger" onclick="releaseSingleSlot(${s.id})"><i class="fa-solid fa-xmark me-1"></i> Release Slot</button>`;
-
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="fw-bold">${idx + 1}</td>
-                        <td><code>${s.email}</code></td>
-                        <td>${seatIdBadge}</td>
-                        <td>${expiryText}</td>
-                        <td><span class="badge bg-info">${s.renew_count} renewals</span></td>
-                        <td class="text-end">${actionBtn}</td>
-                    </tr>
-                `;
-            });
-        }
+        renderModalRows(group);
 
         document.getElementById('btn-modal-release-all').onclick = function() {
             releaseGroup(hash);

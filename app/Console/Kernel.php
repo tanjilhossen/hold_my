@@ -17,6 +17,9 @@ class Kernel extends ConsoleKernel
     {
         // Keep candidate pool tokens 100% active and fresh continuously
         $schedule->command('taqamul:keep-alive-pool')->everyFifteenMinutes();
+
+        // Auto-renew active Slot Vault holds near 20-min expiry continuously
+        $schedule->command('vault:renew-slots')->everyMinute();
     }
 
     /**
