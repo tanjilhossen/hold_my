@@ -551,38 +551,24 @@ class TaqamulTokenService
      */
     public function startLoginBotAsync(string $email, string $password): bool
     {
-        $botScript = base_path('bot/taqamul_token_fetcher.js');
-        if (!file_exists($botScript)) {
-            return false;
-        }
-
-        $config = [
-            'email' => $email,
-            'password' => $password,
-            'capsolver_api_key' => Setting::get('capsolver_api_key', env('CAPSOLVER_API_KEY', '')),
-            'wafid_mail_base_url' => Setting::get('wafid_mail_base_url', env('WAFID_MAIL_BASE_URL', 'https://mail.wafidmaster.com')),
-            'wafid_mail_key_id' => Setting::get('wafid_mail_key_id', env('WAFID_MAIL_KEY_ID', '')),
-            'wafid_mail_secret_key' => Setting::get('wafid_mail_secret_key', env('WAFID_MAIL_SECRET_KEY', '')),
-        ];
-
-        $tempFile = storage_path('app/temp_token_cfg_' . uniqid() . '.json');
-        file_put_contents($tempFile, json_encode($config));
-
         $logStreamFile = storage_path('app/bot_login_stream.log');
-        @file_put_contents($logStreamFile, "[Token Bot] Launching background Fast Visual Login for: {$email}\n");
+        @file_put_contents($logStreamFile, "[Token Bot] Launching pure HTTP API Login for: {$email}...\n");
 
-        $nodePath = 'C:\\Program Files\\nodejs\\node.exe';
-        if (!file_exists($nodePath)) {
-            $nodePath = trim(@shell_exec('where node 2>nul') ?: '');
-            if (empty($nodePath)) $nodePath = 'node';
+        $phpPath = PHP_OS_FAMILY === 'Windows' ? 'D:\\xampp\\php\\php.exe' : '/usr/bin/php';
+        if (!file_exists($phpPath)) {
+            $whichCmd = PHP_OS_FAMILY === 'Windows' ? 'where php 2>nul' : 'which php 2>/dev/null';
+            $phpPath = trim(shell_exec($whichCmd) ?: 'php');
         }
 
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $botDir = base_path('bot');
-            $cmd = "cd /d \"{$botDir}\" && start \"\" \"{$nodePath}\" \"{$botScript}\" \"{$tempFile}\"";
+        $artisanPath = base_path('artisan');
+        $escEmail = escapeshellarg($email);
+        $escPass = escapeshellarg($password);
+
+        if (PHP_OS_FAMILY === 'Windows') {
+            $cmd = "start \"\" /B \"{$phpPath}\" \"{$artisanPath}\" taqamul:fast-login {$escEmail} {$escPass}";
             pclose(popen($cmd, "r"));
         } else {
-            exec("\"{$nodePath}\" \"{$botScript}\" \"{$tempFile}\" > /dev/null 2>&1 &");
+            exec("{$phpPath} {$artisanPath} taqamul:fast-login {$escEmail} {$escPass} > /dev/null 2>&1 &");
         }
 
         return true;
