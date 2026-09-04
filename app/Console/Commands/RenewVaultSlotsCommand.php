@@ -119,29 +119,47 @@ class RenewVaultSlotsCommand extends Command
             }
 
             $newResId = null;
-            $isSuccess = $res->successful();
+            $newCenterName = null;
+            $newCity = null;
+            $isSuccess = false;
 
-            if ($isSuccess) {
+            if ($res->successful()) {
                 $resData = $res->json();
                 $newResId = $resData['id'] ?? ($resData['data']['id'] ?? null);
+                
+                $session = $resData['exam_session'] ?? ($resData['data']['exam_session'] ?? []);
+                $tc = $resData['test_center'] ?? ($resData['data']['test_center'] ?? ($session['test_center'] ?? []));
+                
+                $newCenterName = $tc['test_center_name'] ?? ($tc['name'] ?? null);
+                $newCity = $tc['test_center_city'] ?? ($tc['city'] ?? null);
+
+                if (!empty($newResId)) {
+                    $isSuccess = true;
+                }
             }
 
             if (empty($newResId) || str_starts_with((string)$newResId, 'VAULT_')) {
                 $newResId = $hold->temp_seat_id;
             }
 
-            // If successful extend 20 minutes, if temporary failure extend 5 minutes to prevent stuck UI
-            $extensionMinutes = $isSuccess ? 20 : 5;
-
-            $hold->update([
+            $updateFields = [
                 'temp_seat_id' => (string)$newResId,
                 'renew_count' => $isSuccess ? ($hold->renew_count + 1) : $hold->renew_count,
-                'expires_at' => now()->addMinutes($extensionMinutes),
+                'expires_at' => $isSuccess ? now()->addMinutes(20) : now()->addMinutes(3),
                 'last_renewed_at' => now(),
-            ]);
+            ];
+
+            if (!empty($newCenterName)) {
+                $updateFields['center_name'] = $newCenterName;
+            }
+            if (!empty($newCity)) {
+                $updateFields['city'] = $newCity;
+            }
+
+            $hold->update($updateFields);
 
             $renewedCount++;
-            $this->info("[VaultAutoRenew] Successfully renewed slot hold for {$email} (Renew Count: {$hold->renew_count}, Expires: " . now()->addMinutes(20)->format('h:i:s A') . ").");
+            $this->info("[VaultAutoRenew] Validated & renewed slot for {$email} (Seat ID: {$newResId}, Center: " . ($newCenterName ?: $hold->center_name) . ", Renew Count: {$hold->renew_count}, Expires: " . $updateFields['expires_at']->format('h:i:s A') . ").");
         }
 
         $this->info("[VaultAutoRenew] Auto-renewal cycle completed for {$renewedCount} slot hold(s).");
