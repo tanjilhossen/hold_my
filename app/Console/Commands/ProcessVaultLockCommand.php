@@ -60,10 +60,11 @@ class ProcessVaultLockCommand extends Command
             return 1;
         }
 
-        // Get already used emails for this mother hash
-        $existingEmails = SlotHold::where('mother_hash', $motherHash)
-            ->where('status', 'active')
+        // Get ALL candidate emails currently busy holding seats in ANY active or pending hold
+        $busyEmails = SlotHold::activeOrPending()
             ->pluck('held_with_email')
+            ->map(fn($e) => strtolower(trim($e)))
+            ->unique()
             ->toArray();
 
         $checkerAcc = $tokenService->getSlotCheckerAccount();
@@ -74,10 +75,11 @@ class ProcessVaultLockCommand extends Command
             if (count($selectedAccounts) >= $requestedCount) break;
             $email = strtolower(trim($acc['email'] ?? ''));
 
-            // STRICT RULE: Dedicated Slot Checker Account MUST NOT be used for slot locking!
+            // STRICT RULE 1: Dedicated Slot Checker Account MUST NOT be used for slot locking!
             if ($email === $checkerEmail) continue;
 
-            if (!empty($email) && !in_array($email, $existingEmails) && !in_array($email, array_column($selectedAccounts, 'email'))) {
+            // STRICT RULE 2: Candidate account MUST NOT be currently holding a seat anywhere else!
+            if (!empty($email) && !in_array($email, $busyEmails) && !in_array($email, array_column($selectedAccounts, 'email'))) {
                 $selectedAccounts[] = [
                     'email' => $email,
                     'password' => $acc['password'] ?? 'Taqamul@2723!',
@@ -87,7 +89,7 @@ class ProcessVaultLockCommand extends Command
         }
 
         if (empty($selectedAccounts)) {
-            $this->error("[VaultLockWorker] All candidate accounts already holding slots for this hash.");
+            $this->error("[VaultLockWorker] No available candidate accounts in pool (all accounts are currently holding active seats).");
             return 1;
         }
 

@@ -2908,7 +2908,7 @@ class SlotCheckerController extends Controller
         }
 
         // 1. Identify all candidate pool accounts and filter out any accounts that already have active holds
-        $activeHoldEmails = SlotHold::where('status', 'active')->pluck('held_with_email')->toArray();
+        $activeHoldEmails = SlotHold::activeOrPending()->pluck('held_with_email')->toArray();
         $availablePoolAccounts = [];
 
         foreach ($poolAccounts as $acc) {
@@ -3064,7 +3064,7 @@ class SlotCheckerController extends Controller
             flush();
 
             $poolAccounts = $this->tokenService->getPoolAccounts();
-            $activeHoldEmails = SlotHold::where('status', 'active')->pluck('held_with_email')->toArray();
+            $activeHoldEmails = SlotHold::activeOrPending()->pluck('held_with_email')->toArray();
             $availablePoolAccounts = [];
 
             foreach ($poolAccounts as $acc) {

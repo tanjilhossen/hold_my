@@ -687,9 +687,15 @@ class HoldSlotController extends Controller
             $examDate = trim($request->input('exam_date'));
             $categoryName = $request->input('category_name', 'Profession');
 
-            // 1. Get assigned candidate pool accounts (excluding Slot Checker Account)
+            // 1. Get assigned candidate pool accounts (excluding Slot Checker Account and accounts holding seats anywhere)
             $checkerAcc = $this->tokenService->getSlotCheckerAccount();
             $checkerEmail = strtolower(trim($checkerAcc['email'] ?? 'pool__485381@wafidmaster.com'));
+
+            $busyEmails = SlotHold::activeOrPending()
+                ->pluck('held_with_email')
+                ->map(fn($e) => strtolower(trim($e)))
+                ->unique()
+                ->toArray();
 
             $allAccounts = $this->tokenService->getPoolAccounts();
             $assignedAccounts = [];
@@ -697,9 +703,16 @@ class HoldSlotController extends Controller
             foreach ($allAccounts as $acc) {
                 if (count($assignedAccounts) >= $requestedCount) break;
                 $email = strtolower(trim($acc['email'] ?? ''));
-                if (!empty($email) && $email !== $checkerEmail) {
+                if (!empty($email) && $email !== $checkerEmail && !in_array($email, $busyEmails) && !in_array($email, $assignedAccounts)) {
                     $assignedAccounts[] = $email;
                 }
+            }
+
+            if (empty($assignedAccounts)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'All candidate pool accounts are currently busy holding active seats. Please release existing slots or add more candidate accounts.',
+                ], 400);
             }
 
             // 2. Pre-create pending hold records so Slot Vault immediately lists assigned candidate emails
