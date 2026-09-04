@@ -309,7 +309,11 @@ class TaqamulTokenService
             
             // 1. Solve reCAPTCHA v2 via CapSolver
             Log::info("[TaqamulHTTP] Solving reCAPTCHA for {$email}...");
-            $createRes = Http::post('https://api.capsolver.com/createTask', [
+            $createRes = Http::timeout(15)->withOptions([
+                'curl' => [
+                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                ]
+            ])->post('https://api.capsolver.com/createTask', [
                 'clientKey' => $capsolverKey,
                 'task' => [
                     'type' => 'ReCaptchaV2TaskProxyLess',
@@ -327,7 +331,11 @@ class TaqamulTokenService
             $recaptchaToken = null;
             for ($i = 0; $i < 60; $i++) {
                 usleep(400000); // 400ms
-                $resultRes = Http::post('https://api.capsolver.com/getTaskResult', [
+                $resultRes = Http::timeout(15)->withOptions([
+                    'curl' => [
+                        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                    ]
+                ])->post('https://api.capsolver.com/getTaskResult', [
                     'clientKey' => $capsolverKey,
                     'taskId' => $taskId
                 ]);
@@ -358,7 +366,12 @@ class TaqamulTokenService
                 'Accept' => 'application/json, text/plain, */*',
                 'Origin' => 'https://svp-international.pacc.sa',
                 'Referer' => 'https://svp-international.pacc.sa/',
+                'Connection' => 'close',
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36'
+            ])->withOptions([
+                'curl' => [
+                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                ]
             ])->post("{$this->apiBaseUrl}/api/v1/sessions/login?locale=en", [
                 'user' => [
                     'login' => $email,
@@ -435,7 +448,12 @@ class TaqamulTokenService
                 'Accept' => 'application/json, text/plain, */*',
                 'Origin' => 'https://svp-international.pacc.sa',
                 'Referer' => 'https://svp-international.pacc.sa/',
+                'Connection' => 'close',
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36'
+            ])->withOptions([
+                'curl' => [
+                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                ]
             ])->post("{$this->apiBaseUrl}/api/v1/sessions/otp?locale=en", [
                 'user' => [
                     'login' => $email,
