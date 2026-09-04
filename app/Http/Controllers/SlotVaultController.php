@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use App\Models\SlotHold;
 use App\Services\TaqamulTokenService;
 use Exception;
@@ -33,18 +33,16 @@ class SlotVaultController extends Controller
      */
     public function getVaultData()
     {
-        @set_time_limit(180);
-
-        // Auto-renew any active holds nearing expiry (<= 3 mins remaining or past due) automatically on fetch
+        // Non-blocking background auto-renew trigger if any active hold is nearing expiry
         $hasExpiring = SlotHold::where('status', 'active')
             ->where('expires_at', '<=', now()->addMinutes(3))
             ->exists();
 
         if ($hasExpiring) {
-            try {
-                Artisan::call('vault:renew-slots');
-            } catch (Exception $e) {
-                Log::warning("Auto-renew trigger error in getVaultData: " . $e->getMessage());
+            $lastTrigger = Cache::get('vault_last_auto_renew_trigger', 0);
+            if (time() - $lastTrigger > 15) {
+                Cache::put('vault_last_auto_renew_trigger', time(), 30);
+                $this->triggerBackgroundAutoRenew();
             }
         }
 
@@ -194,6 +192,25 @@ class SlotVaultController extends Controller
             Http::timeout(5)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats/{$hold->temp_seat_id}?locale=en");
         } catch (Exception $e) {
             Log::warning("Error releasing reservation {$hold->temp_seat_id} on Taqamul: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Dispatch vault:renew-slots in the background non-blockingly
+     */
+    protected function triggerBackgroundAutoRenew(): void
+    {
+        $artisanPath = base_path('artisan');
+        if (PHP_OS_FAMILY === 'Windows') {
+            $phpPath = 'D:\\xampp\\php\\php.exe';
+            if (!file_exists($phpPath)) {
+                $phpPath = 'php';
+            }
+            $cmd = "start \"\" /B \"{$phpPath}\" \"{$artisanPath}\" vault:renew-slots > NUL 2>&1";
+            pclose(popen($cmd, "r"));
+        } else {
+            $cmd = "php \"{$artisanPath}\" vault:renew-slots > /dev/null 2>&1 &";
+            exec($cmd);
         }
     }
 }
