@@ -5,20 +5,21 @@
 # Target Port: 7777
 # ==============================================================================
 
-set -e
+export DEBIAN_FRONTEND=noninteractive
+APT_OPTS="-y -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\""
 
 echo "🚀 [Taqamul Deploy] Starting automated deployment on Port 7777..."
 
 # 1. System Update & Essential Packages
 echo "📦 [1/6] Updating Ubuntu packages and installing dependencies..."
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y software-properties-common curl git unzip zip ufw
+sudo apt update && sudo apt upgrade $APT_OPTS
+sudo apt install $APT_OPTS software-properties-common curl git unzip zip ufw
 
 # 2. Add PHP Repository & Install PHP 8.3 + Extensions
 echo "🐘 [2/6] Setting up PHP 8.3 & required extensions..."
 sudo add-apt-repository ppa:ondrej/php -y
 sudo apt update
-sudo apt install -y php8.3 php8.3-cli php8.3-fpm php8.3-sqlite3 php8.3-curl php8.3-mbstring php8.3-xml php8.3-zip php8.3-gd php8.3-bcmath php8.3-intl php8.3-readline
+sudo apt install $APT_OPTS php8.3 php8.3-cli php8.3-fpm php8.3-sqlite3 php8.3-curl php8.3-mbstring php8.3-xml php8.3-zip php8.3-gd php8.3-bcmath php8.3-intl php8.3-readline
 
 # 3. Install Composer & Node.js
 echo "🛠️ [3/6] Installing Composer & Node.js..."
