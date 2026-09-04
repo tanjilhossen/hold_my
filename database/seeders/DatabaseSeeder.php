@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Models\Setting;
-use App\Models\Passenger;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -43,28 +42,12 @@ class DatabaseSeeder extends Seeder
         Setting::set('capsolver_api_key', 'CAP-1C910649B8AEADE973B68571F5449DA4ACE38F5A22ADE82D2596BE826B28C133');
         Setting::set('slot_checker_global_saved_token', 'eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE3ODg1MzczNTEsInVzZXJfaWQiOjEzMjc0NTAsImF1dGhfcHJvdmlkZXIiOiJsb2NhbCIsInVpZCI6IjhkMmVmYzE5LTM2OTktNDhmYS1hNjU3LTczNmE3M2M1MWU1NSIsInJ1aWQiOiI5ZjlhMzQ1Ny1lYjY1LTQwNDItYmI3NC04ODUxZGQ0MjE0MTgifQ.xzR42G2tZyeVHckiN7_Gc183U_LmI-Rtq4iX05OeO2A');
 
-        // Seed Candidate Pool Accounts
+        // Seed Candidate Pool Accounts directly into Setting JSON
         $jsonPath = database_path('pool_accounts.json');
         if (file_exists($jsonPath)) {
             $poolJson = file_get_contents($jsonPath);
             if (!empty($poolJson)) {
                 Setting::set('slot_checker_pool_accounts', $poolJson);
-                
-                $accounts = json_decode($poolJson, true) ?: [];
-                foreach ($accounts as $acc) {
-                    if (!empty($acc['email'])) {
-                        Passenger::updateOrCreate(
-                            ['email' => $acc['email']],
-                            [
-                                'first_name' => $acc['name'] ?? 'Candidate',
-                                'last_name' => 'Pool',
-                                'password' => $acc['password'] ?? 'Taqamul@2723!',
-                                'token' => $acc['token'] ?? null,
-                                'status' => !empty($acc['token']) ? 'active' : 'expired',
-                            ]
-                        );
-                    }
-                }
             }
         }
     }
