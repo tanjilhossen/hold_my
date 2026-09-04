@@ -36,10 +36,12 @@ class WafidMailService
         $timestamp = (string) time();
         $nonce = Str::uuid()->toString();
 
+        $pathNoQuery = parse_url($path, PHP_URL_PATH);
+
         $bodyStr = ($body !== null && !empty($body)) ? json_encode($body, JSON_UNESCAPED_SLASHES) : '';
         $bodyHash = hash('sha256', $bodyStr);
 
-        $canonicalStr = strtoupper($method) . "\n" . $path . "\n" . $timestamp . "\n" . $nonce . "\n" . $bodyHash;
+        $canonicalStr = strtoupper($method) . "\n" . $pathNoQuery . "\n" . $timestamp . "\n" . $nonce . "\n" . $bodyHash;
         $signingKey = hash('sha256', (string) $this->secretKey);
         $signature = hash_hmac('sha256', $canonicalStr, $signingKey);
 

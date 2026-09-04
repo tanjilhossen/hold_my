@@ -308,53 +308,60 @@ class TaqamulTokenService
             try {
                 $capsolverKey = Setting::get('capsolver_api_key', env('CAPSOLVER_API_KEY', 'CAP-1C910649B8AEADE973B68571F5449DA4ACE38F5A22ADE82D2596BE826B28C133'));
                 
-                // 1. Solve reCAPTCHA v2 via CapSolver
-                Log::info("[TaqamulHTTP] Solving reCAPTCHA for {$email} (Attempt {$attemptRetry}/2)...");
-                $createRes = Http::timeout(15)->withOptions([
-                    'curl' => [
-                        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                        CURLOPT_SSL_VERIFYPEER => false,
-                    ]
-                ])->post('https://api.capsolver.com/createTask', [
-                    'clientKey' => $capsolverKey,
-                    'task' => [
-                        'type' => 'ReCaptchaV2TaskProxyLess',
-                        'websiteURL' => 'https://svp-international.pacc.sa/auth/login?role=labor',
-                        'websiteKey' => '6Ld_AwktAAAAAKAPK-1BGolix7oeSFA7ibXEhYQy',
-                    ]
-                ]);
+                $twoCaptchaKey = Setting::get('twocaptcha_key', env('TWOCAPTCHA_KEY', ''));
+                $recaptchaToken = null;
 
-                $taskId = $createRes->json('taskId');
-                if (empty($taskId)) {
-                    Log::error("[TaqamulHTTP] CapSolver task creation failed: " . $createRes->body());
-                    continue;
+                // Try 2Captcha first if API key is provided
+                if (!empty($twoCaptchaKey)) {
+                    Log::info("[TaqamulHTTP] Solving reCAPTCHA via 2Captcha API for {$email}...");
+                    $recaptchaToken = $this->solveRecaptchaTwoCaptcha($twoCaptchaKey);
                 }
 
-                $recaptchaToken = null;
-                for ($i = 0; $i < 60; $i++) {
-                    usleep(400000); // 400ms
-                    $resultRes = Http::timeout(15)->withOptions([
+                // Fallback to CapSolver AI
+                if (empty($recaptchaToken)) {
+                    Log::info("[TaqamulHTTP] Solving reCAPTCHA via CapSolver AI for {$email} (Attempt {$attemptRetry}/2)...");
+                    $createRes = Http::timeout(15)->withOptions([
                         'curl' => [
                             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
                             CURLOPT_SSL_VERIFYPEER => false,
                         ]
-                    ])->post('https://api.capsolver.com/getTaskResult', [
+                    ])->post('https://api.capsolver.com/createTask', [
                         'clientKey' => $capsolverKey,
-                        'taskId' => $taskId
+                        'task' => [
+                            'type' => 'ReCaptchaV2TaskProxyLess',
+                            'websiteURL' => 'https://svp-international.pacc.sa/auth/login?role=labor',
+                            'websiteKey' => '6Ld_AwktAAAAAKAPK-1BGolix7oeSFA7ibXEhYQy',
+                        ]
                     ]);
 
-                    if ($resultRes->json('status') === 'ready') {
-                        $recaptchaToken = $resultRes->json('solution.gRecaptchaResponse');
-                        break;
-                    }
-                    if ($resultRes->json('status') === 'failed') {
-                        Log::error("[TaqamulHTTP] CapSolver failed: " . $resultRes->body());
-                        break;
+                    $taskId = $createRes->json('taskId');
+                    if (!empty($taskId)) {
+                        for ($i = 0; $i < 60; $i++) {
+                            usleep(400000); // 400ms
+                            $resultRes = Http::timeout(15)->withOptions([
+                                'curl' => [
+                                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                                    CURLOPT_SSL_VERIFYPEER => false,
+                                ]
+                            ])->post('https://api.capsolver.com/getTaskResult', [
+                                'clientKey' => $capsolverKey,
+                                'taskId' => $taskId
+                            ]);
+
+                            if ($resultRes->json('status') === 'ready') {
+                                $recaptchaToken = $resultRes->json('solution.gRecaptchaResponse');
+                                break;
+                            }
+                            if ($resultRes->json('status') === 'failed') {
+                                Log::error("[TaqamulHTTP] CapSolver failed: " . $resultRes->body());
+                                break;
+                            }
+                        }
                     }
                 }
 
                 if (empty($recaptchaToken)) {
-                    Log::error("[TaqamulHTTP] CapSolver timeout for {$email}");
+                    Log::error("[TaqamulHTTP] reCAPTCHA solving timeout for {$email}");
                     continue;
                 }
 
@@ -406,39 +413,8 @@ class TaqamulTokenService
 
                 // 3. Poll WafidMail API for fresh OTP
                 Log::info("[TaqamulHTTP] Polling WafidMail for fresh OTP...");
-                $wafidBaseUrl = Setting::get('wafid_mail_base_url', env('WAFID_MAIL_BASE_URL', 'https://mail.wafidmaster.com'));
-                $wafidKeyId = Setting::get('wafid_mail_key_id', env('WAFID_MAIL_KEY_ID', 'ak_live_f845898cbeb87d63e21d04a6'));
-                $wafidSecretKey = Setting::get('wafid_mail_secret_key', env('WAFID_MAIL_SECRET_KEY', 'sk_live_dd00dc26382465e37c31b246e37b3f345ff5c874d1ce0426'));
-
-                $otpCode = null;
-                for ($attempt = 0; $attempt < 35; $attempt++) {
-                    sleep(1);
-                    try {
-                        $mailRes = Http::timeout(6)->withHeaders([
-                            'X-API-KEY-ID' => $wafidKeyId,
-                            'X-API-SECRET-KEY' => $wafidSecretKey,
-                            'Accept' => 'application/json',
-                        ])->get("{$wafidBaseUrl}/api/v1/messages/search", [
-                            'recipient' => $email,
-                            'limit' => 5
-                        ]);
-
-                        if ($mailRes->successful()) {
-                            $messages = $mailRes->json('data.messages') ?? $mailRes->json('messages') ?? [];
-                            foreach ($messages as $msg) {
-                                $msgTime = isset($msg['received_at']) ? strtotime($msg['received_at']) * 1000 : 0;
-                                if ($requestStartTime > 0 && $msgTime > 0 && $msgTime < ($requestStartTime - 5000)) {
-                                    continue;
-                                }
-                                $body = ($msg['text_body'] ?? '') . ' ' . ($msg['subject'] ?? '') . ' ' . ($msg['html_body'] ?? '');
-                                if (preg_match('/\b(\d{6})\b/', $body, $m)) {
-                                    $otpCode = $m[1];
-                                    break 2;
-                                }
-                            }
-                        }
-                    } catch (Exception $ex) {}
-                }
+                $wafidMailService = app(WafidMailService::class);
+                $otpCode = $wafidMailService->waitForLatestOtp($email, 35);
 
                 if (empty($otpCode)) {
                     Log::error("[TaqamulHTTP] OTP timeout for {$email}");
