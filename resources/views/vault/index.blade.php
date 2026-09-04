@@ -250,6 +250,40 @@
         });
 
         startLiveTimers();
+
+        // If modal is currently open for a hash, refresh modal rows live
+        if (currentSelectedHash && $('#expandedSlotsModal').hasClass('show')) {
+            const group = vaultGroupsData.find(g => g.mother_hash === currentSelectedHash);
+            if (group) {
+                const modalBody = document.getElementById('modal-slots-table-body');
+                if (modalBody && group.slots) {
+                    modalBody.innerHTML = '';
+                    group.slots.forEach((s, idx) => {
+                        const isPending = s.status === 'pending_locking';
+                        const seatIdBadge = isPending 
+                            ? `<span class="badge bg-warning text-dark"><i class="fa-solid fa-spinner fa-spin me-1"></i> Reserving...</span>` 
+                            : `<span class="badge bg-secondary font-monospace">${s.temp_seat_id}</span>`;
+                        const expiryText = isPending 
+                            ? `<span class="text-muted small"><i class="fa-solid fa-hourglass-half me-1"></i> Reserving in background...</span>` 
+                            : `<span class="text-info">${s.expires_at}</span>`;
+                        const actionBtn = isPending
+                            ? `<span class="badge bg-dark border border-secondary text-warning"><i class="fa-solid fa-spinner fa-spin me-1"></i> Logging In...</span>`
+                            : `<button class="btn btn-sm btn-outline-danger" onclick="releaseSingleSlot(${s.id})"><i class="fa-solid fa-xmark me-1"></i> Release Slot</button>`;
+
+                        modalBody.innerHTML += `
+                            <tr>
+                                <td class="fw-bold">${idx + 1}</td>
+                                <td><code>${s.email}</code></td>
+                                <td>${seatIdBadge}</td>
+                                <td>${expiryText}</td>
+                                <td><span class="badge bg-info">${s.renew_count} renewals</span></td>
+                                <td class="text-end">${actionBtn}</td>
+                            </tr>
+                        `;
+                    });
+                }
+            }
+        }
     }
 
     function formatTimer(sec) {
@@ -284,28 +318,43 @@
         const tbody = document.getElementById('modal-slots-table-body');
         tbody.innerHTML = '';
 
-        group.slots.forEach((s, idx) => {
-            tbody.innerHTML += `
-                <tr>
-                    <td class="fw-bold">${idx + 1}</td>
-                    <td><code>${s.email}</code></td>
-                    <td><span class="badge bg-secondary font-monospace">${s.temp_seat_id}</span></td>
-                    <td>${s.expires_at}</td>
-                    <td><span class="badge bg-info">${s.renew_count} renewals</span></td>
-                    <td class="text-end">
-                        <button class="btn btn-sm btn-outline-danger" onclick="releaseSingleSlot(${s.id})">
-                            <i class="fa-solid fa-xmark me-1"></i> Release Slot
-                        </button>
-                    </td>
-                </tr>
-            `;
-        });
+        if (!group.slots || group.slots.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No slots found</td></tr>`;
+        } else {
+            group.slots.forEach((s, idx) => {
+                const isPending = s.status === 'pending_locking';
+                const seatIdBadge = isPending 
+                    ? `<span class="badge bg-warning text-dark"><i class="fa-solid fa-spinner fa-spin me-1"></i> Reserving...</span>` 
+                    : `<span class="badge bg-secondary font-monospace">${s.temp_seat_id}</span>`;
+                const expiryText = isPending 
+                    ? `<span class="text-muted small"><i class="fa-solid fa-hourglass-half me-1"></i> Reserving in background...</span>` 
+                    : `<span class="text-info">${s.expires_at}</span>`;
+                const actionBtn = isPending
+                    ? `<span class="badge bg-dark border border-secondary text-warning"><i class="fa-solid fa-spinner fa-spin me-1"></i> Logging In...</span>`
+                    : `<button class="btn btn-sm btn-outline-danger" onclick="releaseSingleSlot(${s.id})"><i class="fa-solid fa-xmark me-1"></i> Release Slot</button>`;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="fw-bold">${idx + 1}</td>
+                        <td><code>${s.email}</code></td>
+                        <td>${seatIdBadge}</td>
+                        <td>${expiryText}</td>
+                        <td><span class="badge bg-info">${s.renew_count} renewals</span></td>
+                        <td class="text-end">${actionBtn}</td>
+                    </tr>
+                `;
+            });
+        }
 
         document.getElementById('btn-modal-release-all').onclick = function() {
             releaseGroup(hash);
         };
 
-        const modal = new bootstrap.Modal(document.getElementById('expandedSlotsModal'));
+        const modalEl = document.getElementById('expandedSlotsModal');
+        let modal = bootstrap.Modal.getInstance(modalEl);
+        if (!modal) {
+            modal = new bootstrap.Modal(modalEl);
+        }
         modal.show();
     }
 

@@ -47,6 +47,7 @@ class SlotVaultController extends Controller
                     'category_name' => $hold->category_name,
                     'exam_date' => $hold->exam_date ? $hold->exam_date->format('Y-m-d') : 'N/A',
                     'total_locked_slots' => 0,
+                    'total_assigned_slots' => 0,
                     'is_locking_in_progress' => false,
                     'expires_at' => $hold->expires_at ? $hold->expires_at->toIso8601String() : null,
                     'remaining_seconds' => $hold->expires_at ? max(0, now()->diffInSeconds($hold->expires_at, false)) : 0,
@@ -54,18 +55,21 @@ class SlotVaultController extends Controller
                 ];
             }
 
+            $grouped[$hash]['total_assigned_slots']++;
+
             if ($hold->status === 'pending_locking') {
                 $grouped[$hash]['is_locking_in_progress'] = true;
-                continue;
+            } else {
+                $activeCount++;
+                $grouped[$hash]['total_locked_slots']++;
             }
 
-            $activeCount++;
-            $grouped[$hash]['total_locked_slots']++;
             $grouped[$hash]['slots'][] = [
                 'id' => $hold->id,
                 'email' => $hold->held_with_email,
-                'temp_seat_id' => $hold->temp_seat_id,
-                'expires_at' => $hold->expires_at ? $hold->expires_at->format('h:i:s A') : 'N/A',
+                'temp_seat_id' => $hold->status === 'pending_locking' ? 'Processing...' : $hold->temp_seat_id,
+                'status' => $hold->status,
+                'expires_at' => ($hold->status === 'active' && $hold->expires_at) ? $hold->expires_at->format('h:i:s A') : 'Queued',
                 'renew_count' => $hold->renew_count,
             ];
         }

@@ -634,36 +634,53 @@ class HoldSlotController extends Controller
             ]);
 
             $motherHash = trim($request->input('mother_hash'));
-            $requestedCount = (int)$request->input('available_seats', 10);
+            $requestedCount = max(1, (int)$request->input('available_seats', 10));
             $categoryId = $request->input('category_id');
             $city = trim($request->input('city'));
             $centerName = trim($request->input('center_name'));
             $examDate = trim($request->input('exam_date'));
             $categoryName = $request->input('category_name', 'Profession');
 
-            // 1. Create a pending hold record so Slot Vault instantly displays the hash
-            SlotHold::firstOrCreate(
-                [
-                    'mother_hash' => $motherHash,
-                    'held_with_email' => 'pending_pool@wafidmaster.com',
-                ],
-                [
-                    'center_name' => $centerName,
-                    'city' => $city,
-                    'category_id' => $categoryId,
-                    'category_name' => $categoryName,
-                    'exam_date' => date('Y-m-d', strtotime($examDate)),
-                    'temp_seat_id' => 'PENDING_' . rand(1000, 9999),
-                    'status' => 'pending_locking',
-                    'renew_count' => 0,
-                    'target_duration_minutes' => 20,
-                    'expires_at' => now()->addMinutes(20),
-                    'auto_renew_until' => now()->addHours(24),
-                    'last_renewed_at' => now(),
-                ]
-            );
+            // 1. Get assigned candidate pool accounts (excluding Slot Checker Account)
+            $checkerAcc = $this->tokenService->getSlotCheckerAccount();
+            $checkerEmail = strtolower(trim($checkerAcc['email'] ?? 'pool__485381@wafidmaster.com'));
 
-            // 2. Launch background process-lock Artisan command asynchronously
+            $allAccounts = $this->tokenService->getPoolAccounts();
+            $assignedAccounts = [];
+
+            foreach ($allAccounts as $acc) {
+                if (count($assignedAccounts) >= $requestedCount) break;
+                $email = strtolower(trim($acc['email'] ?? ''));
+                if (!empty($email) && $email !== $checkerEmail) {
+                    $assignedAccounts[] = $email;
+                }
+            }
+
+            // 2. Pre-create pending hold records so Slot Vault immediately lists assigned candidate emails
+            foreach ($assignedAccounts as $email) {
+                SlotHold::firstOrCreate(
+                    [
+                        'mother_hash' => $motherHash,
+                        'held_with_email' => $email,
+                    ],
+                    [
+                        'center_name' => $centerName,
+                        'city' => $city,
+                        'category_id' => $categoryId,
+                        'category_name' => $categoryName,
+                        'exam_date' => date('Y-m-d', strtotime($examDate)),
+                        'temp_seat_id' => 'PENDING_' . rand(1000, 9999),
+                        'status' => 'pending_locking',
+                        'renew_count' => 0,
+                        'target_duration_minutes' => 20,
+                        'expires_at' => now()->addMinutes(20),
+                        'auto_renew_until' => now()->addHours(24),
+                        'last_renewed_at' => now(),
+                    ]
+                );
+            }
+
+            // 3. Launch background process-lock Artisan command asynchronously
             $phpPath = 'D:\\xampp\\php\\php.exe';
             if (!file_exists($phpPath)) {
                 $phpPath = 'php';
