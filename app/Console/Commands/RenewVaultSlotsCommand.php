@@ -67,8 +67,15 @@ class RenewVaultSlotsCommand extends Command
                 continue;
             }
 
-            $occId = $categoryId == 160 ? 2062 : ($categoryId ?: 159);
-            $langCode = $categoryId == 160 ? 'ar' : 'en';
+            $occId = 2061;
+            $langCode = 'LOABB';
+            if ($categoryId == 160) {
+                $occId = 2062;
+                $langCode = 'ar';
+            } elseif ($categoryId == 59) {
+                $occId = 2018;
+                $langCode = 'TLRBB';
+            }
 
             $headers = [
                 'Accept' => 'application/json',
