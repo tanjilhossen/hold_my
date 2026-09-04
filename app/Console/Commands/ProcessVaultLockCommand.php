@@ -92,8 +92,15 @@ class ProcessVaultLockCommand extends Command
         }
 
         $lockedCount = 0;
-        $occId = 159;
-        $langCode = 'en';
+        $occId = 2061;
+        $langCode = 'LOABB';
+        if ($categoryId == 160) {
+            $occId = 2062;
+            $langCode = 'en';
+        } elseif ($categoryId == 59) {
+            $occId = 2018;
+            $langCode = 'TLRBB';
+        }
 
         foreach ($selectedAccounts as $idx => $acc) {
             $email = $acc['email'];
