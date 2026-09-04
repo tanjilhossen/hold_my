@@ -209,8 +209,9 @@ class SlotVaultController extends Controller
             $cmd = "start \"\" /B \"{$phpPath}\" \"{$artisanPath}\" vault:renew-slots > NUL 2>&1";
             pclose(popen($cmd, "r"));
         } else {
-            $cmd = "php \"{$artisanPath}\" vault:renew-slots > /dev/null 2>&1 &";
-            exec($cmd);
+            $escArtisan = escapeshellarg($artisanPath);
+            $cmd = "nohup php {$escArtisan} vault:renew-slots > /dev/null 2>&1 &";
+            pclose(popen($cmd, "r"));
         }
     }
 }

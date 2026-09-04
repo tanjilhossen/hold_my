@@ -119,7 +119,9 @@ class RenewVaultSlotsCommand extends Command
             }
 
             $newResId = null;
-            if ($res->successful()) {
+            $isSuccess = $res->successful();
+
+            if ($isSuccess) {
                 $resData = $res->json();
                 $newResId = $resData['id'] ?? ($resData['data']['id'] ?? null);
             }
@@ -128,11 +130,13 @@ class RenewVaultSlotsCommand extends Command
                 $newResId = $hold->temp_seat_id;
             }
 
-            // Extend 20-minute expiry
+            // If successful extend 20 minutes, if temporary failure extend 5 minutes to prevent stuck UI
+            $extensionMinutes = $isSuccess ? 20 : 5;
+
             $hold->update([
                 'temp_seat_id' => (string)$newResId,
-                'renew_count' => $hold->renew_count + 1,
-                'expires_at' => now()->addMinutes(20),
+                'renew_count' => $isSuccess ? ($hold->renew_count + 1) : $hold->renew_count,
+                'expires_at' => now()->addMinutes($extensionMinutes),
                 'last_renewed_at' => now(),
             ]);
 
