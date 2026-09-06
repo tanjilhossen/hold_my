@@ -387,7 +387,14 @@ class TaqamulTokenService
                         ]
                     ]);
 
-                    $taskId = $createRes->json('taskId');
+                    $createJson = $createRes->json() ?: [];
+                    $taskId = $createJson['taskId'] ?? null;
+                    $capErr = $createJson['errorDescription'] ?? ($createJson['errorCode'] ?? null);
+
+                    if (!empty($capErr) || !empty($createJson['errorId'])) {
+                        $logStep("[CapSolver AI ❌] CapSolver Error: " . ($capErr ?: 'Insufficient balance ($0.00) or invalid API key.'));
+                    }
+
                     if (!empty($taskId)) {
                         for ($i = 0; $i < 60; $i++) {
                             usleep(400000); // 400ms
@@ -407,7 +414,7 @@ class TaqamulTokenService
                                 break;
                             }
                             if ($resultRes->json('status') === 'failed') {
-                                Log::error("[TaqamulHTTP] CapSolver failed: " . $resultRes->body());
+                                $logStep("[CapSolver AI ❌] CapSolver Task Failed: " . ($resultRes->json('errorDescription') ?? $resultRes->body()));
                                 break;
                             }
                         }
