@@ -15,7 +15,9 @@ class FastHttpLoginCommand extends Command
     public function handle(TaqamulTokenService $tokenService)
     {
         $email = $this->argument('email');
-        $password = $this->argument('password');
+        $rawPass = $this->argument('password');
+        $b64Decoded = base64_decode($rawPass, true);
+        $password = ($b64Decoded !== false && base64_encode($b64Decoded) === $rawPass) ? $b64Decoded : $rawPass;
         $logFile = storage_path('app/bot_login_stream.log');
 
         $log = function ($msg) use ($logFile) {

@@ -1,0 +1,28 @@
+=====================================================
+          TAQAMUL ENGINE - LOGIN CREDENTIALS
+=====================================================
+
+Project URL: http://127.0.0.1:8000
+Login URL:   http://127.0.0.1:8000/login
+
+-----------------------------------------------------
+1. SUPER ADMIN ACCOUNT
+-----------------------------------------------------
+Email:    admin@taqamul.com
+Password: admin123
+Role:     admin
+
+-----------------------------------------------------
+2. AGENCY STAFF ACCOUNT
+-----------------------------------------------------
+Email:    user@taqamul.com
+Password: user123
+Role:     user
+
+=====================================================
+Database Information:
+- Current Connection: SQLite (database/database.sqlite)
+- MySQL Default DB Name: taqamul_db
+- MySQL Host: 127.0.0.1
+- MySQL Port: 3306
+=====================================================

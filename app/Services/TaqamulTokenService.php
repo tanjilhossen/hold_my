@@ -71,7 +71,12 @@ class TaqamulTokenService
      */
     public function savePoolAccounts(array $accounts): void
     {
-        Setting::set('slot_checker_pool_accounts', json_encode(array_values($accounts)));
+        $json = json_encode(array_values($accounts), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        Setting::set('slot_checker_pool_accounts', $json);
+        $jsonPath = database_path('pool_accounts.json');
+        if (file_exists($jsonPath)) {
+            @file_put_contents($jsonPath, $json);
+        }
     }
 
     /**
@@ -88,8 +93,8 @@ class TaqamulTokenService
 
         return [
             'name' => 'Slot Checker Account',
-            'email' => 'pool__485381@wafidmaster.com',
-            'password' => 'Taqamul@2723!',
+            'email' => 'pool__259939@wafidmaster.com',
+            'password' => 'Taqamul@4642!',
             'token' => null,
             'status' => 'expired (no token)',
             'role_label' => 'ONLY FOR SLOT CHECKING',
@@ -329,7 +334,7 @@ class TaqamulTokenService
     /**
      * Direct fast pure HTTP login in PHP without launching browser
      */
-    public function loginAndFetchTokenHttp(string $email, string $password, ?callable $logger = null): ?string
+    public function loginAndFetchTokenHttp(string $email, string $password, ?callable $logger = null, bool $forceFresh = false): ?string
     {
         $logStep = function ($msg) use ($logger) {
             Log::info("[TaqamulHTTP] {$msg}");
@@ -338,23 +343,25 @@ class TaqamulTokenService
             }
         };
 
-        // 0. Quick probe check: If candidate already has an active, valid Bearer token, reuse it!
-        $existingToken = $this->getTokenForAccount($email);
-        if (!empty($existingToken) && $this->isValidTokenFormat($existingToken)) {
-            try {
-                $probeRes = Http::timeout(4)->withHeaders([
-                    'Accept' => 'application/json',
-                    'X-Tenant-Name' => 'svp-international',
-                    'Authorization' => str_starts_with($existingToken, 'Bearer ') ? $existingToken : "Bearer {$existingToken}",
-                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                ])->get("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en");
+        // 0. Quick probe check (if not forcing fresh login): If candidate already has an active, valid Bearer token, reuse it!
+        if (!$forceFresh) {
+            $existingToken = $this->getTokenForAccount($email);
+            if (!empty($existingToken) && $this->isValidTokenFormat($existingToken)) {
+                try {
+                    $probeRes = Http::timeout(4)->withHeaders([
+                        'Accept' => 'application/json',
+                        'X-Tenant-Name' => 'svp-international',
+                        'Authorization' => str_starts_with($existingToken, 'Bearer ') ? $existingToken : "Bearer {$existingToken}",
+                        'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    ])->get("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en");
 
-                if ($probeRes->status() !== 401 && !str_contains($probeRes->body(), 'Signature has expired')) {
-                    $logStep("[Token Bot 🔑] Existing token is active & valid! Reusing token for {$email}.");
-                    $this->updateAccountToken($email, $existingToken);
-                    return $existingToken;
-                }
-            } catch (Exception $e) {}
+                    if ($probeRes->status() !== 401 && !str_contains($probeRes->body(), 'Signature has expired')) {
+                        $logStep("[Token Bot 🔑] Existing token is active & valid! Reusing token for {$email}.");
+                        $this->updateAccountToken($email, $existingToken);
+                        return $existingToken;
+                    }
+                } catch (Exception $e) {}
+            }
         }
 
         for ($attemptRetry = 1; $attemptRetry <= 2; $attemptRetry++) {
@@ -380,7 +387,7 @@ class TaqamulTokenService
                     'Sec-Fetch-Site' => 'same-site',
                     'Sec-Fetch-Mode' => 'cors',
                     'Sec-Fetch-Dest' => 'empty',
-                    'Referer' => 'https://svp-international.pacc.sa/',
+                    'Referer' => 'https://svp-international.pacc.sa/'
                 ])->withOptions([
                     'curl' => [
                         CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
@@ -486,10 +493,65 @@ class TaqamulTokenService
                         }
                         $logStep("[Token Bot ⏳] Rate Limit active. Waiting 5 seconds before retry...");
                         sleep(5);
+                    } elseif (str_contains($loginRes->body(), 'recaptcha')) {
+                        $logStep("[Token Bot ⚠️] Taqamul API requires reCAPTCHA for '{$email}'. Checking solver fallback...");
+                        
+                        $twoCaptchaKey = Setting::get('twocaptcha_key', env('TWOCAPTCHA_KEY', ''));
+                        $capsolverKey = Setting::get('capsolver_api_key', env('CAPSOLVER_API_KEY', ''));
+                        $solvedToken = null;
+
+                        if (!empty($twoCaptchaKey)) {
+                            $logStep("[2Captcha API ⚡] Solving reCAPTCHA via 2Captcha...");
+                            $solvedToken = $this->solveRecaptchaTwoCaptcha($twoCaptchaKey);
+                        } elseif (!empty($capsolverKey)) {
+                            $logStep("[CapSolver AI ⚡] Solving reCAPTCHA via CapSolver...");
+                            $solvedToken = $this->solveRecaptchaCapSolver($capsolverKey);
+                        }
+
+                        if (!empty($solvedToken)) {
+                            $logStep("[Token Bot 🚀] reCAPTCHA solved! Retrying login with token...");
+                            $loginRes = Http::timeout(15)->withHeaders([
+                                'Host' => 'svp-international-api.pacc.sa',
+                                'X-Tenant-Name' => 'svp-international',
+                                'Content-Type' => 'application/json',
+                                'Accept' => 'application/json, text/plain, */*',
+                                'Origin' => 'https://svp-international.pacc.sa',
+                                'Referer' => 'https://svp-international.pacc.sa/',
+                                'Connection' => 'close',
+                                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36'
+                            ])->withOptions([
+                                'curl' => [
+                                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                                    CURLOPT_SSL_VERIFYPEER => false,
+                                    CURLOPT_SSL_VERIFYHOST => 0,
+                                ]
+                            ])->post("{$this->apiBaseUrl}/api/v1/sessions/login?locale=en", [
+                                'user' => [
+                                    'login' => $email,
+                                    'password' => $password,
+                                    'otp_method' => 'email',
+                                    'fe_app' => 'legislator',
+                                    'recaptcha_response' => $solvedToken
+                                ]
+                            ]);
+
+                            if ($loginRes->successful()) {
+                                // proceed to OTP verification below
+                            } else {
+                                $logStep("[Token Bot ❌] Retry with captcha failed ({$loginRes->status()}): " . $loginRes->body());
+                                continue;
+                            }
+                        } else {
+                            $logStep("[Token Bot ℹ️] NOTE: Taqamul server returned 'Recaptcha is not solved' for '{$email}'. Please use zero-captcha accounts like pool__259939 or pool__780330, or configure a funded solver key.");
+                            break;
+                        }
                     } else {
                         $logStep("[Token Bot ❌] Login step 1 failed ({$loginRes->status()}): " . $loginRes->body());
                     }
-                    continue;
+
+                    if (!$loginRes->successful()) {
+                        continue;
+                    }
                 }
 
                 $loginData = $loginRes->json();
@@ -648,7 +710,9 @@ class TaqamulTokenService
         $logStreamFile = storage_path('app/bot_login_stream.log');
         @file_put_contents($logStreamFile, "[Token Bot] Launching pure HTTP API Login for: {$email}...\n");
 
-        $phpPath = PHP_OS_FAMILY === 'Windows' ? 'D:\\xampp\\php\\php.exe' : '/usr/bin/php';
+        $phpPath = (defined('PHP_BINARY') && file_exists(PHP_BINARY))
+            ? PHP_BINARY
+            : (PHP_OS_FAMILY === 'Windows' ? 'C:\\Users\\MD Tanjil Hpssen\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.2_Microsoft.Winget.Source_8wekyb3d8bbwe\\php.exe' : '/usr/bin/php');
         if (!file_exists($phpPath)) {
             $whichCmd = PHP_OS_FAMILY === 'Windows' ? 'where php 2>nul' : 'which php 2>/dev/null';
             $phpPath = trim(shell_exec($whichCmd) ?: 'php');
@@ -656,7 +720,7 @@ class TaqamulTokenService
 
         $artisanPath = base_path('artisan');
         $escEmail = escapeshellarg($email);
-        $escPass = escapeshellarg($password);
+        $escPass = base64_encode($password);
 
         if (PHP_OS_FAMILY === 'Windows') {
             $cmd = "start \"\" /B \"{$phpPath}\" \"{$artisanPath}\" taqamul:fast-login {$escEmail} {$escPass}";
@@ -808,6 +872,53 @@ class TaqamulTokenService
             }
         } catch (Exception $e) {
             Log::error("[2Captcha] Exception: " . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Solve Google reCAPTCHA v2 using CapSolver API
+     */
+    public function solveRecaptchaCapSolver(string $apiKey): ?string
+    {
+        try {
+            $siteKey = '6Ld_AwktAAAAAKAPK-1BGolix7oeSFA7ibXEhYQy';
+            $pageUrl = 'https://svp-international.pacc.sa/auth/login?role=labor';
+
+            $createRes = Http::timeout(15)->post('https://api.capsolver.com/createTask', [
+                'clientKey' => $apiKey,
+                'task' => [
+                    'type' => 'ReCaptchaV2TaskProxyLess',
+                    'websiteURL' => $pageUrl,
+                    'websiteKey' => $siteKey,
+                ]
+            ]);
+
+            $createJson = $createRes->json() ?: [];
+            $taskId = $createJson['taskId'] ?? null;
+            if (empty($taskId)) {
+                Log::warning("[CapSolver] Task creation failed: " . ($createJson['errorDescription'] ?? $createRes->body()));
+                return null;
+            }
+
+            for ($i = 0; $i < 60; $i++) {
+                usleep(500000); // 500ms
+                $resultRes = Http::timeout(10)->post('https://api.capsolver.com/getTaskResult', [
+                    'clientKey' => $apiKey,
+                    'taskId' => $taskId
+                ]);
+
+                if ($resultRes->json('status') === 'ready') {
+                    return $resultRes->json('solution.gRecaptchaResponse');
+                }
+                if ($resultRes->json('status') === 'failed') {
+                    Log::warning("[CapSolver] Task failed: " . ($resultRes->json('errorDescription') ?? $resultRes->body()));
+                    break;
+                }
+            }
+        } catch (Exception $e) {
+            Log::error("[CapSolver] Exception: " . $e->getMessage());
         }
 
         return null;

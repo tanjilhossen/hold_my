@@ -12,7 +12,7 @@
                 <div class="d-flex align-items-center gap-2">
                     <span class="spinner-grow spinner-grow-sm text-success" role="status"></span>
                     <strong class="text-info">Slot Checker Dedicated Account:</strong>
-                    <span class="badge bg-secondary font-monospace">{{ $poolAccount['email'] ?? 'pool__485381@wafidmaster.com' }}</span>
+                    <span class="badge bg-secondary font-monospace">{{ $poolAccount['email'] ?? 'pool__259939@wafidmaster.com' }}</span>
                     <span class="badge bg-warning text-dark">ONLY FOR SLOT CHECKING</span>
                 </div>
                 <div class="d-flex align-items-center gap-3">
@@ -137,7 +137,7 @@
                 <button class="btn btn-sm btn-outline-light py-0 fs-7" onclick="document.getElementById('console-log').innerHTML='[SYSTEM]: Console cleared.'">Clear</button>
             </div>
             <div id="console-log" class="small">
-                [SYSTEM]: Dedicated Slot Checker Account: pool__485381@wafidmaster.com
+                [SYSTEM]: Dedicated Slot Checker Account: {{ $poolAccount['email'] ?? 'pool__259939@wafidmaster.com' }}
             </div>
         </div>
     </div>
@@ -157,7 +157,7 @@
             </div>
             <div class="modal-body space-y-3">
                 <p class="text-muted small mb-2" id="poolModalSubtitle">
-                    Bearer token expired for <code>pool__485381@wafidmaster.com</code>. Background bot is executing visual login & OTP retrieval...
+                    Bearer token expired for <code>{{ $poolAccount['email'] ?? 'pool__259939@wafidmaster.com' }}</code>. Background bot is executing direct API login & OTP retrieval...
                 </p>
                 
                 <!-- Live Terminal Stream Box -->
@@ -188,6 +188,7 @@
 
 @section('scripts')
 <script>
+    const slotCheckerEmail = @json($poolAccount['email'] ?? 'pool__259939@wafidmaster.com');
     let fetchedCityDatesMap = {};
     let fetchedAllDates = [];
     let poolLoginTimerInterval = null;
@@ -221,7 +222,7 @@
         // AUTO-CHECK ON PAGE LOAD: If token expired, auto-trigger background login immediately
         const initialHasActiveToken = @json($hasActiveToken);
         if (!initialHasActiveToken && !isAutoLoginInProgress) {
-            appendLog('Token expired on load. Auto-launching background login for pool__485381@wafidmaster.com...');
+            appendLog(`Token expired on load. Auto-launching direct login for ${slotCheckerEmail}...`);
             triggerAutoLoginForPool();
         }
 
@@ -251,7 +252,7 @@
             }
 
             spinner.classList.remove('d-none');
-            appendLog(`Fetching available dates via pool__485381@wafidmaster.com (Cat ID: ${categoryId})...`);
+            appendLog(`Fetching available dates via ${slotCheckerEmail} (Cat ID: ${categoryId})...`);
 
             fetch(`{{ route('hold.available_dates') }}?category_id=${categoryId}`)
                 .then(res => res.json())
@@ -264,7 +265,7 @@
                         updateCityDropdown();
                         appendLog(`Found ${data.all_dates.length} available dates across ${Object.keys(fetchedCityDatesMap).length} active cities.`);
                     } else if (data.code === 'TOKEN_EXPIRED') {
-                        appendLog(`Warning: Bearer token expired for pool__485381@wafidmaster.com. Auto-refreshing...`);
+                        appendLog(`Warning: Bearer token expired for ${slotCheckerEmail}. Auto-refreshing...`);
                         if (!isAutoLoginInProgress) {
                             triggerAutoLoginForPool(() => $('#profession_select').trigger('change'));
                         }
@@ -333,6 +334,12 @@
         if (isAutoLoginInProgress) return;
         isAutoLoginInProgress = true;
 
+        if (!bsLoginModal) {
+            const modalEl = document.getElementById('poolLoginModal');
+            if (modalEl && typeof bootstrap !== 'undefined') {
+                bsLoginModal = new bootstrap.Modal(modalEl);
+            }
+        }
         if (bsLoginModal) bsLoginModal.show();
 
         const terminal = document.getElementById('poolLiveTerminalOutput');
@@ -362,7 +369,7 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                appendLog('Background login process started for pool__485381@wafidmaster.com.');
+                appendLog(`Direct login process started for ${slotCheckerEmail}.`);
                 pollLoginLogs(onSuccessCallback);
             } else {
                 isAutoLoginInProgress = false;
@@ -397,8 +404,8 @@
                         if (bar) {
                             if (data.logs.includes('FINAL_TOKEN_RESULT')) bar.style.width = '100%';
                             else if (data.logs.includes('OTP')) bar.style.width = '80%';
-                            else if (data.logs.includes('CapSolver AI')) bar.style.width = '60%';
-                            else if (data.logs.includes('Navigating')) bar.style.width = '40%';
+                            else if (data.logs.includes('Direct Legislator') || data.logs.includes('Logging in')) bar.style.width = '60%';
+                            else if (data.logs.includes('Navigating') || data.logs.includes('Starting')) bar.style.width = '40%';
                         }
                     }
 
@@ -411,7 +418,7 @@
                             const footer = document.getElementById('poolModalFooterStatus');
                             if (footer) footer.innerHTML = `<span class="text-success font-weight-bold"><i class="fa-solid fa-circle-check me-1"></i> Login Successful! Bearer Token Acquired!</span>`;
 
-                            appendLog('Success! Acquired fresh Bearer Token for pool__485381@wafidmaster.com.');
+                            appendLog(`Success! Acquired fresh Bearer Token for ${slotCheckerEmail}.`);
                             
                             setTimeout(() => {
                                 isAutoLoginInProgress = false;
@@ -455,14 +462,14 @@
         const tableBody = document.getElementById('scan-results-table');
         tableBody.innerHTML = `
             <tr>
-                <td colspan="6" class="text-center py-4 text-primary fw-bold">
+                <td colspan="7" class="text-center py-4 text-primary fw-bold">
                     <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                    Querying Taqamul API via pool__485381@wafidmaster.com...
+                    Querying Taqamul API via ${slotCheckerEmail}...
                 </td>
             </tr>
         `;
 
-        appendLog(`Initiating HTTP request to Taqamul server via pool__485381@wafidmaster.com for ${city} (${examDate})...`);
+        appendLog(`Initiating HTTP request to Taqamul server via ${slotCheckerEmail} for ${city} (${examDate})...`);
 
         fetch(`{{ route('hold.scan') }}`, {
             method: 'POST',
@@ -492,33 +499,22 @@
             document.getElementById('btn-stop-scan').disabled = true;
 
             if (data.code === 'TOKEN_EXPIRED') {
-                appendLog(`Token expired during scan. Triggering auto-reauthentication for pool__485381@wafidmaster.com...`);
+                appendLog(`Token expired during scan. Triggering auto-reauthentication for ${slotCheckerEmail}...`);
                 if (!isAutoLoginInProgress) {
                     triggerAutoLoginForPool(() => document.getElementById('btn-start-scan').click());
                 }
                 return;
             }
 
-            if (data.probe_logs && data.probe_logs.length > 0) {
-                data.probe_logs.forEach(log => {
-                    const shortHash = log.hash.substring(0, 16) + '...';
-                    appendLog(`[PROBE REQUEST] -> Probing Mother Hash: ${shortHash}`);
-                    appendLog(`[PROBE RESPONSE] <- Status: 200 | Center Name: ${log.center_name} | Available Seats: ${log.avail_seats} (+1 Added)`);
-                    if (log.res_id) {
-                        appendLog(`[AUTO CANCEL] -> Test reservation ID ${log.res_id} cancelled in background (Seat Freed).`);
-                    }
-                });
-            }
-
             if (data.success && data.centers && data.centers.length > 0) {
                 saveScanResultsToStorage(data);
                 renderScanResults(data, false);
-                appendLog(`Success! Found ${data.count} center session(s) with Mother Hashes.`);
+                appendLog(`Success! Found ${data.count} center session(s). Real-time seats retrieved directly from Taqamul server (No reservations held).`);
             } else {
                 localStorage.removeItem('hold_slot_last_scan_results');
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">
+                        <td colspan="7" class="text-center text-muted py-4">
                             <i class="fa-solid fa-triangle-exclamation fa-2x mb-2 text-warning d-block"></i>
                             No available seats or exam sessions found for <strong>${city}</strong> on <strong>${examDate}</strong>.
                         </td>
@@ -535,7 +531,7 @@
 
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="text-center text-danger py-4">
+                    <td colspan="7" class="text-center text-danger py-4">
                         Failed to connect to Taqamul server: ${err.message}
                     </td>
                 </tr>
@@ -556,16 +552,29 @@
         tableBody.innerHTML = '';
         
         const summaryMsg = isRestored 
-            ? `Found ${data.count} center session(s) in ${city} (Restored from previous scan).`
-            : `Found ${data.count} center session(s) in ${city}.`;
+            ? `Found ${data.count} center session(s) in ${city} (Cached from previous scan - Click Scan Slots for live seats).`
+            : `Found ${data.count} center session(s) in ${city} (Live data from Taqamul server).`;
         
         document.getElementById('scan-summary-text').innerText = summaryMsg;
 
         data.centers.forEach(c => {
             const shortHash = c.mother_hash.substring(0, 16) + '...';
+            
             const seatBadge = c.available_seats > 0 
-                ? `<span class="badge bg-success fs-6">${c.available_seats} / ${c.total_seats} Available</span>` 
-                : `<span class="badge bg-danger fs-6">Full</span>`;
+                ? `<span class="badge bg-success fs-6"><i class="fa-solid fa-chair me-1"></i> ${c.available_seats} / ${c.total_seats} Available</span>` 
+                : `<span class="badge bg-danger fs-6"><i class="fa-solid fa-circle-xmark me-1"></i> 0 / ${c.total_seats} Full</span>`;
+
+            const vaultBadge = (c.is_held_by_us && c.held_count > 0)
+                ? `<div class="mt-1"><span class="badge bg-info text-dark"><i class="fa-solid fa-vault me-1"></i> ${c.held_count} Held in Slot Vault</span></div>`
+                : '';
+
+            const actionBtn = c.available_seats > 0
+                ? `<button class="btn btn-sm btn-warning text-dark fw-bold shadow-sm" onclick="lockAllSlotsForHash('${c.mother_hash}', ${c.available_seats}, '${c.center_name.replace(/'/g, "\\'")}', '${c.city}', '${c.exam_date}', '${c.start_time}', ${c.category_id}, '${(c.category_name || 'Profession').replace(/'/g, "\\'")}', this)">
+                       <i class="fa-solid fa-lock me-1"></i> Lock All Slots (${c.available_seats})
+                   </button>`
+                : `<button class="btn btn-sm btn-secondary text-white" disabled title="No seats currently available to lock">
+                       <i class="fa-solid fa-ban me-1"></i> No Seats Free
+                   </button>`;
 
             tableBody.innerHTML += `
                 <tr>
@@ -587,11 +596,12 @@
                             <i class="fa-solid fa-copy"></i>
                         </button>
                     </td>
-                    <td>${seatBadge}</td>
                     <td>
-                        <button class="btn btn-sm btn-warning text-dark fw-bold shadow-sm" onclick="lockAllSlotsForHash('${c.mother_hash}', ${c.available_seats}, '${c.center_name.replace(/'/g, "\\'")}', '${c.city}', '${c.exam_date}', '${c.start_time}', ${c.category_id}, '${(c.category_name || 'Profession').replace(/'/g, "\\'")}', this)">
-                            <i class="fa-solid fa-lock me-1"></i> Lock All Slots (${c.available_seats})
-                        </button>
+                        ${seatBadge}
+                        ${vaultBadge}
+                    </td>
+                    <td>
+                        ${actionBtn}
                     </td>
                 </tr>
             `;

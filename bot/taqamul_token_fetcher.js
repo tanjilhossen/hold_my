@@ -151,7 +151,6 @@ async function fetchBearerTokenFastHttp(config) {
     );
 
     logStream(`[Token Bot HTTP ⚡] Starting Direct Pure HTTP Login for: ${email}`);
-
     const requestStartTime = Date.now();
 
     // Step 1: Request OTP dispatch via POST /api/v1/sessions/login?locale=en (Direct Captcha-Free)

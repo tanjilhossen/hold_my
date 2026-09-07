@@ -98,6 +98,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('auto_login*') ? 'active' : '' }}" href="{{ route('auto_login') }}">
+                        <i class="fa-solid fa-key text-warning"></i> Auto Login Checker
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('settings') ? 'active' : '' }}" href="{{ route('settings') }}">
                         <i class="fa-solid fa-gear"></i> Settings
                     </a>

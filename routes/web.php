@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HoldSlotController;
 use App\Http\Controllers\SlotVaultController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\AutoLoginCheckerController;
 
 // Authentication Routes (Public)
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -35,6 +36,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/vault/data', [SlotVaultController::class, 'getVaultData'])->name('vault.data');
     Route::post('/vault/release-single', [SlotVaultController::class, 'releaseSingleSlot'])->name('vault.release_single');
     Route::post('/vault/release-group', [SlotVaultController::class, 'releaseGroupSlots'])->name('vault.release_group');
+
+    // Auto Login Checker (Zero Captcha Payload Engine)
+    Route::get('/auto-login', [AutoLoginCheckerController::class, 'index'])->name('auto_login');
+    Route::post('/auto-login/execute', [AutoLoginCheckerController::class, 'executeLogin'])->name('auto_login.execute');
+    Route::post('/auto-login/check-token', [AutoLoginCheckerController::class, 'checkToken'])->name('auto_login.check_token');
+    Route::post('/auto-login/set-primary', [AutoLoginCheckerController::class, 'setPrimary'])->name('auto_login.set_primary');
 
     // Settings Routes
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
