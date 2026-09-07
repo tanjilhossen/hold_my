@@ -152,20 +152,16 @@ async function fetchBearerTokenFastHttp(config) {
 
     logStream(`[Token Bot HTTP ⚡] Starting Direct Pure HTTP Login for: ${email}`);
 
-    // Step 1: Solve reCAPTCHA v2 token via CapSolver AI
-    const recaptchaToken = await solveLoginRecaptcha(capsolverKey);
-    logStream(`[Token Bot HTTP ⚡] Solved reCAPTCHA v2 token successfully!`);
-
     const requestStartTime = Date.now();
 
-    // Step 2: Request OTP dispatch via POST /api/v1/sessions/login?locale=en
+    // Step 1: Request OTP dispatch via POST /api/v1/sessions/login?locale=en (Direct Captcha-Free)
     const loginPayload = {
         user: {
             login: email,
             password: password,
             otp_method: "email",
             fe_app: "legislator",
-            recaptcha_response: recaptchaToken
+            recaptcha_response: ""
         }
     };
 
