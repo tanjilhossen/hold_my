@@ -176,15 +176,31 @@ async function fetchBearerTokenFastHttp(config) {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36'
     });
 
-    logStream(`[Token Bot HTTP ⚡] Step 1 Response: ${JSON.stringify(loginRes)}`);
-
-    if (loginRes?.access_payload?.access) {
-        logStream(`[Token Bot HTTP 🔑] Direct login returned Bearer Token without OTP!`);
-        return loginRes.access_payload.access;
+    let finalLoginRes = loginRes;
+    if (loginRes?.errors?.recaptcha || JSON.stringify(loginRes).toLowerCase().includes('recaptcha')) {
+        logStream(`[Token Bot HTTP 🛡️] Captcha required by Taqamul. Solving via CapSolver AI...`);
+        const recaptchaToken = await solveLoginRecaptcha(capsolverKey);
+        loginPayload.user.recaptcha_response = recaptchaToken;
+        finalLoginRes = await postJsonWithHeaders("https://svp-international-api.pacc.sa/api/v1/sessions/login?locale=en", loginPayload, {
+            'Host': 'svp-international-api.pacc.sa',
+            'X-Tenant-Name': 'svp-international',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json, text/plain, */*',
+            'Origin': 'https://svp-international.pacc.sa',
+            'Referer': 'https://svp-international.pacc.sa/',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36'
+        });
     }
 
-    if (!loginRes || !loginRes.required_2fa) {
-        throw new Error(`Login step 1 failed: ${JSON.stringify(loginRes)}`);
+    logStream(`[Token Bot HTTP ⚡] Step 1 Response: ${JSON.stringify(finalLoginRes)}`);
+
+    if (finalLoginRes?.access_payload?.access) {
+        logStream(`[Token Bot HTTP 🔑] Direct login returned Bearer Token without OTP!`);
+        return finalLoginRes.access_payload.access;
+    }
+
+    if (!finalLoginRes || !finalLoginRes.required_2fa) {
+        throw new Error(`Login step 1 failed: ${JSON.stringify(finalLoginRes)}`);
     }
 
     await delay(1500);
