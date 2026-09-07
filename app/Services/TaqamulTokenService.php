@@ -367,12 +367,20 @@ class TaqamulTokenService
                 $loginRes = Http::timeout(15)->withHeaders([
                     'Host' => 'svp-international-api.pacc.sa',
                     'X-Tenant-Name' => 'svp-international',
-                    'Content-Type' => 'application/json',
+                    'Sec-Ch-Ua-Platform' => '"Windows"',
+                    'Cache-Control' => 'no-cache',
+                    'Accept-Language' => 'en-US,en;q=0.9',
+                    'Pragma' => 'no-cache',
+                    'Sec-Ch-Ua' => '"Not-A.Brand";v="24", "Chromium";v="146"',
+                    'Sec-Ch-Ua-Mobile' => '?0',
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
                     'Accept' => 'application/json, text/plain, */*',
+                    'Content-Type' => 'application/json',
                     'Origin' => 'https://svp-international.pacc.sa',
+                    'Sec-Fetch-Site' => 'same-site',
+                    'Sec-Fetch-Mode' => 'cors',
+                    'Sec-Fetch-Dest' => 'empty',
                     'Referer' => 'https://svp-international.pacc.sa/',
-                    'Connection' => 'close',
-                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36'
                 ])->withOptions([
                     'curl' => [
                         CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
