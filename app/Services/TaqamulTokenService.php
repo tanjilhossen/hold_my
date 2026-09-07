@@ -359,77 +359,11 @@ class TaqamulTokenService
 
         for ($attemptRetry = 1; $attemptRetry <= 2; $attemptRetry++) {
             try {
-                $capsolverKey = Setting::get('capsolver_api_key', env('CAPSOLVER_API_KEY', 'CAP-1C910649B8AEADE973B68571F5449DA4ACE38F5A22ADE82D2596BE826B28C133'));
-                
-                $twoCaptchaKey = Setting::get('twocaptcha_key', env('TWOCAPTCHA_KEY', ''));
-                $recaptchaToken = null;
-
-                // Try 2Captcha first if API key is provided
-                if (!empty($twoCaptchaKey)) {
-                    $logStep("[2Captcha API ⚡] Solving reCAPTCHA via 2Captcha API for {$email}...");
-                    $recaptchaToken = $this->solveRecaptchaTwoCaptcha($twoCaptchaKey);
-                }
-
-                // Fallback to CapSolver AI
-                if (empty($recaptchaToken)) {
-                    $logStep("[CapSolver AI ⚡] Solving reCAPTCHA v2 via CapSolver AI (Attempt {$attemptRetry}/2)...");
-                    $createRes = Http::timeout(15)->withOptions([
-                        'curl' => [
-                            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                            CURLOPT_SSL_VERIFYPEER => false,
-                        ]
-                    ])->post('https://api.capsolver.com/createTask', [
-                        'clientKey' => $capsolverKey,
-                        'task' => [
-                            'type' => 'ReCaptchaV2TaskProxyLess',
-                            'websiteURL' => 'https://svp-international.pacc.sa/auth/login?role=labor',
-                            'websiteKey' => '6Ld_AwktAAAAAKAPK-1BGolix7oeSFA7ibXEhYQy',
-                        ]
-                    ]);
-
-                    $createJson = $createRes->json() ?: [];
-                    $taskId = $createJson['taskId'] ?? null;
-                    $capErr = $createJson['errorDescription'] ?? ($createJson['errorCode'] ?? null);
-
-                    if (!empty($capErr) || !empty($createJson['errorId'])) {
-                        $logStep("[CapSolver AI ❌] CapSolver Error: " . ($capErr ?: 'Insufficient balance ($0.00) or invalid API key.'));
-                    }
-
-                    if (!empty($taskId)) {
-                        for ($i = 0; $i < 60; $i++) {
-                            usleep(400000); // 400ms
-                            $resultRes = Http::timeout(15)->withOptions([
-                                'curl' => [
-                                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                                    CURLOPT_SSL_VERIFYPEER => false,
-                                ]
-                            ])->post('https://api.capsolver.com/getTaskResult', [
-                                'clientKey' => $capsolverKey,
-                                'taskId' => $taskId
-                            ]);
-
-                            if ($resultRes->json('status') === 'ready') {
-                                $recaptchaToken = $resultRes->json('solution.gRecaptchaResponse');
-                                $logStep("[CapSolver AI ✅] reCAPTCHA solved successfully!");
-                                break;
-                            }
-                            if ($resultRes->json('status') === 'failed') {
-                                $logStep("[CapSolver AI ❌] CapSolver Task Failed: " . ($resultRes->json('errorDescription') ?? $resultRes->body()));
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                if (empty($recaptchaToken)) {
-                    $logStep("[Token Bot ❌] reCAPTCHA solving timeout for {$email}");
-                    continue;
-                }
-
                 $requestStartTime = round(microtime(true) * 1000);
+                $recaptchaToken = '';
 
-                // 2. Request OTP dispatch POST /api/v1/sessions/login?locale=en
-                $logStep("[Token Bot 🚀] Dispatching OTP login request to Taqamul API...");
+                // 1. Send Direct Captcha-Free Login request to Taqamul API (recaptcha_response: "")
+                $logStep("[Token Bot 🚀] Dispatching Direct Captcha-Free OTP login request to Taqamul API...");
                 $loginRes = Http::timeout(15)->withHeaders([
                     'Host' => 'svp-international-api.pacc.sa',
                     'X-Tenant-Name' => 'svp-international',
@@ -451,9 +385,88 @@ class TaqamulTokenService
                         'password' => $password,
                         'otp_method' => 'email',
                         'fe_app' => 'legislator',
-                        'recaptcha_response' => $recaptchaToken
+                        'recaptcha_response' => ''
                     ]
                 ]);
+
+                // Fallback to CapSolver/2Captcha only if Taqamul explicitly requires recaptcha_response
+                if (!$loginRes->successful() && str_contains(strtolower($loginRes->body()), 'recaptcha')) {
+                    $logStep("[Token Bot 🛡️] Captcha required by Taqamul. Solving via Captcha API...");
+                    $capsolverKey = Setting::get('capsolver_api_key', env('CAPSOLVER_API_KEY', 'CAP-1C910649B8AEADE973B68571F5449DA4ACE38F5A22ADE82D2596BE826B28C133'));
+                    $twoCaptchaKey = Setting::get('twocaptcha_key', env('TWOCAPTCHA_KEY', ''));
+
+                    if (!empty($twoCaptchaKey)) {
+                        $logStep("[2Captcha API ⚡] Solving reCAPTCHA via 2Captcha API for {$email}...");
+                        $recaptchaToken = $this->solveRecaptchaTwoCaptcha($twoCaptchaKey);
+                    }
+
+                    if (empty($recaptchaToken) && !empty($capsolverKey)) {
+                        $logStep("[CapSolver AI ⚡] Solving reCAPTCHA v2 via CapSolver AI (Attempt {$attemptRetry}/2)...");
+                        $createRes = Http::timeout(15)->withOptions([
+                            'curl' => [
+                                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                                CURLOPT_SSL_VERIFYPEER => false,
+                            ]
+                        ])->post('https://api.capsolver.com/createTask', [
+                            'clientKey' => $capsolverKey,
+                            'task' => [
+                                'type' => 'ReCaptchaV2TaskProxyLess',
+                                'websiteURL' => 'https://svp-international.pacc.sa/auth/login?role=labor',
+                                'websiteKey' => '6Ld_AwktAAAAAKAPK-1BGolix7oeSFA7ibXEhYQy',
+                            ]
+                        ]);
+
+                        $createJson = $createRes->json() ?: [];
+                        $taskId = $createJson['taskId'] ?? null;
+                        if (!empty($taskId)) {
+                            for ($i = 0; $i < 60; $i++) {
+                                usleep(400000);
+                                $resultRes = Http::timeout(15)->withOptions([
+                                    'curl' => [
+                                        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                                        CURLOPT_SSL_VERIFYPEER => false,
+                                    ]
+                                ])->post('https://api.capsolver.com/getTaskResult', [
+                                    'clientKey' => $capsolverKey,
+                                    'taskId' => $taskId
+                                ]);
+
+                                if ($resultRes->json('status') === 'ready') {
+                                    $recaptchaToken = $resultRes->json('solution.gRecaptchaResponse');
+                                    break;
+                                }
+                                if ($resultRes->json('status') === 'failed') break;
+                            }
+                        }
+                    }
+
+                    if (!empty($recaptchaToken)) {
+                        $loginRes = Http::timeout(15)->withHeaders([
+                            'Host' => 'svp-international-api.pacc.sa',
+                            'X-Tenant-Name' => 'svp-international',
+                            'Content-Type' => 'application/json',
+                            'Accept' => 'application/json, text/plain, */*',
+                            'Origin' => 'https://svp-international.pacc.sa',
+                            'Referer' => 'https://svp-international.pacc.sa/',
+                            'Connection' => 'close',
+                            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                        ])->withOptions([
+                            'curl' => [
+                                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                                CURLOPT_SSL_VERIFYPEER => false,
+                                CURLOPT_SSL_VERIFYHOST => 0,
+                            ]
+                        ])->post("{$this->apiBaseUrl}/api/v1/sessions/login?locale=en", [
+                            'user' => [
+                                'login' => $email,
+                                'password' => $password,
+                                'otp_method' => 'email',
+                                'fe_app' => 'legislator',
+                                'recaptcha_response' => $recaptchaToken
+                            ]
+                        ]);
+                    }
+                }
 
                 if (!$loginRes->successful()) {
                     if ($loginRes->status() === 429 || str_contains($loginRes->body(), 'Rate Limit')) {
