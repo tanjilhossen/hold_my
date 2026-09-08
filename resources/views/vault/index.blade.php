@@ -63,7 +63,7 @@
                             <th>#</th>
                             <th>Center Name</th>
                             <th>Profession</th>
-                            <th>Exam Date</th>
+                            <th>Exam Date & Time</th>
                             <th>Mother Hash</th>
                             <th>Locked Slots</th>
                             <th>20-Min Expiry Timer</th>
@@ -201,7 +201,10 @@
                     <td>
                         <span class="badge bg-primary fs-7"><i class="fa-solid fa-briefcase me-1"></i> ${g.category_name || 'Profession'}</span>
                     </td>
-                    <td><i class="fa-solid fa-calendar me-1 text-primary"></i> ${g.exam_date}</td>
+                    <td>
+                        <div><i class="fa-solid fa-calendar me-1 text-primary"></i> ${g.exam_date}</div>
+                        <div class="text-muted small fw-semibold mt-1"><i class="fa-solid fa-clock me-1 text-info"></i> ${g.start_time || '09:30 AM'}</div>
+                    </td>
                     <td>
                         <code class="user-select-all bg-light px-2 py-1 border rounded text-dark">${shortHash}</code>
                         <button class="btn btn-sm btn-link p-0 ms-1 text-decoration-none" onclick="navigator.clipboard.writeText('${g.mother_hash}'); alert('Copied Mother Hash!');">

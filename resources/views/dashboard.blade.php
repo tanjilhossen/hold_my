@@ -104,7 +104,7 @@
                             <th>#</th>
                             <th>Center Name</th>
                             <th>Profession</th>
-                            <th>Exam Date</th>
+                            <th>Exam Date & Time</th>
                             <th>Locked Slots</th>
                         </tr>
                     </thead>
@@ -119,7 +119,10 @@
                             <td>
                                 <span class="badge bg-primary fs-7"><i class="fa-solid fa-briefcase me-1"></i> {{ $group['category_name'] }}</span>
                             </td>
-                            <td><i class="fa-solid fa-calendar me-1 text-primary"></i> {{ $group['exam_date'] }}</td>
+                            <td>
+                                <div><i class="fa-solid fa-calendar me-1 text-primary"></i> {{ $group['exam_date'] }}</div>
+                                <small class="text-muted fw-semibold d-block mt-0.5"><i class="fa-solid fa-clock text-info me-1"></i> {{ $group['start_time'] ?? '09:30 AM' }}</small>
+                            </td>
                             <td>
                                 <span class="badge bg-success fs-6"><i class="fa-solid fa-lock me-1"></i> {{ $group['total_locked'] }} Slots Locked</span>
                             </td>

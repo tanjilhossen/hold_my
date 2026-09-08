@@ -30,12 +30,16 @@ class DashboardController extends Controller
         foreach ($activeHolds as $hold) {
             $hash = $hold->mother_hash;
             if (!isset($groupedVaultHolds[$hash])) {
+                $dbHash = \App\Models\SlotHash::where('mother_hash', $hash)->first();
+                $startTime = $dbHash ? $dbHash->start_time : null;
+
                 $groupedVaultHolds[$hash] = [
                     'mother_hash' => $hash,
                     'center_name' => $hold->center_name ?? 'Test Center',
                     'city' => $hold->city ?? 'N/A',
                     'category_name' => $hold->category_name ?? 'Profession',
                     'exam_date' => $hold->exam_date ? date('Y-m-d', strtotime($hold->exam_date)) : 'N/A',
+                    'start_time' => $startTime ?: '09:30 AM',
                     'total_locked' => 0,
                 ];
             }

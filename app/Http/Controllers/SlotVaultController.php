@@ -58,12 +58,16 @@ class SlotVaultController extends Controller
                 : 0;
 
             if (!isset($grouped[$hash])) {
+                $dbHash = \App\Models\SlotHash::where('mother_hash', $hash)->first();
+                $startTime = $dbHash ? $dbHash->start_time : null;
+
                 $grouped[$hash] = [
                     'mother_hash' => $hash,
                     'center_name' => $hold->center_name,
                     'city' => $hold->city,
                     'category_name' => $hold->category_name,
                     'exam_date' => $hold->exam_date ? $hold->exam_date->format('Y-m-d') : 'N/A',
+                    'start_time' => $startTime ?: '09:30 AM',
                     'total_locked_slots' => 0,
                     'total_assigned_slots' => 0,
                     'is_locking_in_progress' => false,
