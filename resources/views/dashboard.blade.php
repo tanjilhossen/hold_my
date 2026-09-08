@@ -91,34 +91,38 @@
             </div>
         </div>
 
-        <!-- Recent Active Holds Table -->
+        <!-- Recent Active Holds Table (Grouped by Mother Hash) -->
         <div class="card card-custom p-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold m-0"><i class="fa-solid fa-layer-group text-success me-2"></i> Live Active Holds</h5>
-                <a href="{{ route('vault') }}" class="btn btn-sm btn-outline-primary fw-bold">View All Vault Holds <i class="fa-solid fa-arrow-right ms-1"></i></a>
+                <h5 class="fw-bold m-0"><i class="fa-solid fa-layer-group text-success me-2"></i> Vaulted Center Holds</h5>
+                <a href="{{ route('vault') }}" class="btn btn-sm btn-outline-primary fw-bold">View Full Vault Details <i class="fa-solid fa-arrow-right ms-1"></i></a>
             </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle border">
                     <thead class="table-light">
                         <tr>
                             <th>#</th>
-                            <th>Center & City</th>
+                            <th>Center Name</th>
+                            <th>Profession</th>
                             <th>Exam Date</th>
-                            <th>Mother Hash</th>
-                            <th>Held Candidate</th>
+                            <th>Locked Slots</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($recentHolds as $idx => $hold)
+                        @forelse($groupedVaultHolds as $idx => $group)
                         <tr>
                             <td class="fw-bold">{{ $idx + 1 }}</td>
                             <td>
-                                <div><strong class="text-dark">{{ $hold->center_name ?? 'Test Center' }}</strong></div>
-                                <small class="text-muted"><i class="fa-solid fa-location-dot text-danger me-1"></i> {{ $hold->city ?? 'N/A' }}</small>
+                                <div><strong class="text-dark">{{ $group['center_name'] }}</strong></div>
+                                <small class="text-muted"><i class="fa-solid fa-location-dot text-danger me-1"></i> {{ $group['city'] }}</small>
                             </td>
-                            <td><span class="badge bg-light text-dark border"><i class="fa-solid fa-calendar me-1 text-primary"></i> {{ $hold->exam_date }}</span></td>
-                            <td><code class="bg-light px-2 py-1 border rounded text-dark font-monospace">{{ Str::limit($hold->mother_hash, 14) }}</code></td>
-                            <td><code class="text-info fs-7">{{ $hold->held_with_email }}</code></td>
+                            <td>
+                                <span class="badge bg-primary fs-7"><i class="fa-solid fa-briefcase me-1"></i> {{ $group['category_name'] }}</span>
+                            </td>
+                            <td><i class="fa-solid fa-calendar me-1 text-primary"></i> {{ $group['exam_date'] }}</td>
+                            <td>
+                                <span class="badge bg-success fs-6"><i class="fa-solid fa-lock me-1"></i> {{ $group['total_locked'] }} Slots Locked</span>
+                            </td>
                         </tr>
                         @empty
                         <tr>
