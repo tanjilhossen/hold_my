@@ -14,6 +14,15 @@
     <!-- Select2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <script>
+        (function() {
+            if (localStorage.getItem('sidebar_collapsed') === 'true') {
+                document.documentElement.classList.add('sidebar-collapsed', 'no-transition');
+            } else {
+                document.documentElement.classList.add('no-transition');
+            }
+        })();
+    </script>
     <style>
         :root {
             --sidebar-width: 210px;
@@ -25,6 +34,12 @@
             background-color: #f4f6f9;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow-x: hidden;
+        }
+
+        /* Prevent layout flash/animation on initial page load */
+        html.no-transition .sidebar,
+        html.no-transition .main-wrapper {
+            transition: none !important;
         }
 
         /* Fixed Sidebar Navigation */
@@ -100,22 +115,28 @@
         }
 
         /* Collapsed Sidebar Mode */
+        html.sidebar-collapsed .sidebar,
         body.sidebar-collapsed .sidebar {
             width: var(--sidebar-collapsed-width);
         }
 
+        html.sidebar-collapsed .brand-text,
+        html.sidebar-collapsed .sidebar-text,
+        html.sidebar-collapsed .sidebar-status-footer small,
         body.sidebar-collapsed .brand-text,
         body.sidebar-collapsed .sidebar-text,
         body.sidebar-collapsed .sidebar-status-footer small {
             display: none !important;
         }
 
+        html.sidebar-collapsed .sidebar .nav-link,
         body.sidebar-collapsed .sidebar .nav-link {
             justify-content: center;
             padding: 10px 0;
             margin: 4px 6px;
         }
 
+        html.sidebar-collapsed .sidebar .nav-link i,
         body.sidebar-collapsed .sidebar .nav-link i {
             margin: 0;
         }
@@ -129,6 +150,7 @@
             flex-direction: column;
         }
 
+        html.sidebar-collapsed .main-wrapper,
         body.sidebar-collapsed .main-wrapper {
             margin-left: var(--sidebar-collapsed-width);
         }
@@ -288,18 +310,29 @@
 <!-- Select2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    // Restore sidebar state from localStorage
+    // Remove no-transition after DOM load so manual user clicks animate smoothly
+    window.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            document.documentElement.classList.remove('no-transition');
+        }, 100);
+    });
+
     if (localStorage.getItem('sidebar_collapsed') === 'true') {
         document.body.classList.add('sidebar-collapsed');
     }
 
     // Toggle Sidebar Open / Close
     document.getElementById('sidebarToggleBtn').addEventListener('click', function() {
+        document.documentElement.classList.remove('no-transition');
         if (window.innerWidth < 768) {
             document.body.classList.toggle('sidebar-open');
         } else {
-            document.body.classList.toggle('sidebar-collapsed');
-            const isCollapsed = document.body.classList.contains('sidebar-collapsed');
+            const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
+            if (isCollapsed) {
+                document.documentElement.classList.add('sidebar-collapsed');
+            } else {
+                document.documentElement.classList.remove('sidebar-collapsed');
+            }
             localStorage.setItem('sidebar_collapsed', isCollapsed ? 'true' : 'false');
             document.cookie = `sidebar_state=${isCollapsed ? 'collapsed' : 'expanded'}; path=/; max-age=31536000`;
         }
