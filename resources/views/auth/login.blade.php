@@ -50,7 +50,6 @@
                 <span>TAQAMUL BOT ENGINE 2.0</span>
             </div>
             <h1 class="text-2xl font-extrabold text-white tracking-tight">Ultimate Slot Sniper</h1>
-            <p class="text-xs text-slate-400 mt-1">Direct HTTP Automation & Fast Slot Holding Platform</p>
         </div>
 
         <!-- Cyberpunk Login Card -->
@@ -108,17 +107,6 @@
                     <span>Initialize Bot Engine Login</span>
                 </button>
             </form>
-        </div>
-
-        <!-- Telemetry Footer -->
-        <div class="mt-6 flex items-center justify-center gap-4 text-[11px] text-slate-400 font-mono-code">
-            <span class="flex items-center gap-1.5">
-                <i class="fa-solid fa-circle text-[7px] text-emerald-400 animate-pulse"></i> Direct OTP Active
-            </span>
-            <span class="text-slate-700">•</span>
-            <span class="flex items-center gap-1.5">
-                <i class="fa-solid fa-shield-halved text-sky-400"></i> Decodo Proxy IP Fallback
-            </span>
         </div>
     </div>
 
