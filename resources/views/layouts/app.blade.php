@@ -288,7 +288,7 @@
             <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 8px; height: 8px;"></span>
             <i class="fa-solid fa-robot text-info fs-6"></i>
             <span class="fw-bold text-light small text-uppercase">ULTIMATE SLOT SNIPER</span>
-            <span class="badge bg-primary text-white rounded-pill px-2 py-0.5" style="font-size: 0.7rem;">V2.0 AI</span>
+            <span class="badge bg-primary text-white rounded-pill px-2.5 py-0.5" style="font-size: 0.72rem; letter-spacing: 0.5px;">BY RENONX</span>
         </div>
 
         <!-- Right Side: Clock & User Menu -->
