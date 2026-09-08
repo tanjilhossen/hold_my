@@ -141,6 +141,17 @@
             margin: 0;
         }
 
+        html.sidebar-collapsed .brand-logo,
+        body.sidebar-collapsed .brand-logo {
+            justify-content: center;
+            padding: 0;
+        }
+
+        html.sidebar-collapsed .brand-logo img,
+        body.sidebar-collapsed .brand-logo img {
+            margin-right: 0 !important;
+        }
+
         /* Main Wrapper */
         .main-wrapper {
             margin-left: var(--sidebar-width);
@@ -213,7 +224,7 @@
 <!-- Fixed Sidebar Navigation -->
 <div class="sidebar">
     <div class="brand-logo d-flex align-items-center">
-        <i class="fa-solid fa-bolt me-2 text-warning fs-5"></i>
+        <img src="{{ asset('favicon.svg') }}" style="width: 26px; height: 26px; min-width: 26px;" class="me-2" alt="Bot Logo">
         <span class="brand-text">SLOT SNIPER</span>
     </div>
     <ul class="nav flex-column mt-3">
