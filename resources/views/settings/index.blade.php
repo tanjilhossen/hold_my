@@ -36,7 +36,12 @@
                     <input type="email" name="email" class="form-control" placeholder="Candidate Email" required>
                 </div>
                 <div class="col-md-4">
-                    <input type="password" name="password" class="form-control" placeholder="Password" required>
+                    <div class="input-group">
+                        <input type="password" name="password" id="add_candidate_pwd" class="form-control" placeholder="Password" required>
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('add_candidate_pwd', this)" title="Toggle Password">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="col-md-3 d-grid">
                     <button type="submit" class="btn btn-primary fw-bold">
@@ -65,7 +70,12 @@
                                 <small class="text-muted">{{ $account['name'] ?? 'Pool Account' }}</small>
                             </td>
                             <td>
-                                <code class="bg-light px-2 py-1 border rounded text-dark">{{ $account['password'] ?? 'N/A' }}</code>
+                                <div class="d-flex align-items-center gap-1 bg-light px-2 py-1 border rounded" style="max-width: 170px;">
+                                    <input type="password" value="{{ $account['password'] ?? '' }}" readonly class="form-control form-control-sm font-monospace border-0 bg-transparent p-0 text-dark fw-bold" id="pool_pwd_{{ $index }}">
+                                    <button type="button" class="btn btn-sm p-0 border-0 text-secondary" onclick="togglePasswordVisibility('pool_pwd_{{ $index }}', this)" title="Show/Hide Password">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </button>
+                                </div>
                             </td>
                             <td>
                                 @if(!empty($account['token']))
@@ -114,15 +124,30 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold text-danger">Current Password (Required)</label>
-                    <input type="password" name="current_password" class="form-control" placeholder="Enter current password to authorize change" required>
+                    <div class="input-group">
+                        <input type="password" name="current_password" id="admin_curr_pwd" class="form-control" placeholder="Enter current password" required>
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('admin_curr_pwd', this)" title="Toggle Password">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold">New Password</label>
-                    <input type="password" name="new_password" class="form-control" placeholder="Leave blank if not changing password">
+                    <div class="input-group">
+                        <input type="password" name="new_password" id="admin_new_pwd" class="form-control" placeholder="Leave blank if not changing">
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('admin_new_pwd', this)" title="Toggle Password">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold">Confirm New Password</label>
-                    <input type="password" name="new_password_confirmation" class="form-control" placeholder="Confirm new password">
+                    <div class="input-group">
+                        <input type="password" name="new_password_confirmation" id="admin_conf_pwd" class="form-control" placeholder="Confirm new password">
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('admin_conf_pwd', this)" title="Toggle Password">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-danger w-100 fw-bold">
                     <i class="fa-solid fa-key me-1"></i> Update Admin Credentials
@@ -165,4 +190,27 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+    function togglePasswordVisibility(inputId, btn) {
+        const field = document.getElementById(inputId);
+        if (!field) return;
+        const icon = btn.querySelector('i');
+        if (field.type === 'password') {
+            field.type = 'text';
+            if (icon) {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            }
+        } else {
+            field.type = 'password';
+            if (icon) {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+    }
+</script>
 @endsection

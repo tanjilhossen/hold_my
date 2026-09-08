@@ -57,8 +57,11 @@
                             <i class="fa-solid fa-lock"></i>
                         </span>
                         <input type="password" name="password" id="loginPassword" required 
-                            class="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-white text-sm outline-none transition-all placeholder:text-slate-500"
+                            class="w-full pl-10 pr-10 py-3 rounded-xl bg-slate-800/80 border border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-white text-sm outline-none transition-all placeholder:text-slate-500"
                             placeholder="••••••••">
+                        <button type="button" onclick="toggleLoginPassword()" class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-slate-200 text-sm focus:outline-none" title="Toggle Password">
+                            <i class="fa-solid fa-eye" id="toggleLoginPasswordIcon"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -76,5 +79,21 @@
             </form>
         </div>
     </div>
+
+<script>
+    function toggleLoginPassword() {
+        const pwdInput = document.getElementById('loginPassword');
+        const pwdIcon = document.getElementById('toggleLoginPasswordIcon');
+        if (pwdInput.type === 'password') {
+            pwdInput.type = 'text';
+            pwdIcon.classList.remove('fa-eye');
+            pwdIcon.classList.add('fa-eye-slash');
+        } else {
+            pwdInput.type = 'password';
+            pwdIcon.classList.remove('fa-eye-slash');
+            pwdIcon.classList.add('fa-eye');
+        }
+    }
+</script>
 </body>
 </html>
