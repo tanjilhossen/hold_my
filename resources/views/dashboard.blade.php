@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard - Taqamul Engine')
+@section('title', 'Dashboard - Slot Sniper Engine')
 @section('page_title', 'Dashboard Overview')
 
 @section('content')

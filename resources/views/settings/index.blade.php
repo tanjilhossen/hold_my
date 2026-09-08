@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Settings - Taqamul Engine')
+@section('title', 'Settings - Slot Sniper Engine')
 @section('page_title', 'System & Pool Accounts Settings')
 
 @section('content')

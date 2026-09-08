@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Taqamul Slot Holder Engine')</title>
+    <title>@yield('title', 'Slot Sniper Engine')</title>
     <!-- Site Favicon (AI Bot Engine Icon) -->
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <link rel="alternate icon" href="{{ asset('favicon.ico') }}">
@@ -214,7 +214,7 @@
 <div class="sidebar">
     <div class="brand-logo d-flex align-items-center">
         <i class="fa-solid fa-bolt me-2 text-warning fs-5"></i>
-        <span class="brand-text">TAQAMUL ENGINE</span>
+        <span class="brand-text">SLOT SNIPER</span>
     </div>
     <ul class="nav flex-column mt-3">
         <li class="nav-item">

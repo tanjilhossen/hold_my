@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'IP Manager - Taqamul Engine')
+@section('title', 'IP Manager - Slot Sniper Engine')
 @section('page_title', 'IP Manager & Proxy Settings')
 
 @section('content')
