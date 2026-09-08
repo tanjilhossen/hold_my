@@ -16,7 +16,7 @@ class TempMailService
     public function getDomains(): array
     {
         try {
-            $res = Http::timeout(10)->get("{$this->baseUrl}/domains");
+            $res = Http::withoutVerifying()->timeout(10)->get("{$this->baseUrl}/domains");
             if ($res->successful()) {
                 return $res->json()['hydra:member'] ?? [];
             }
@@ -43,7 +43,7 @@ class TempMailService
         $email = $prefix . '@' . $domain;
         $password = $password ?: 'Taqamul@' . rand(1000, 9999) . '!';
 
-        $res = Http::timeout(15)->post("{$this->baseUrl}/accounts", [
+        $res = Http::withoutVerifying()->timeout(15)->post("{$this->baseUrl}/accounts", [
             'address' => $email,
             'password' => $password,
         ]);
@@ -51,7 +51,7 @@ class TempMailService
         if (!$res->successful()) {
             // Retry with randomized username
             $email = 'worker_' . Str::random(10) . '@' . $domain;
-            $res = Http::timeout(15)->post("{$this->baseUrl}/accounts", [
+            $res = Http::withoutVerifying()->timeout(15)->post("{$this->baseUrl}/accounts", [
                 'address' => $email,
                 'password' => $password,
             ]);
@@ -60,7 +60,7 @@ class TempMailService
         $accountData = $res->json();
 
         // Obtain bearer token
-        $tokenRes = Http::timeout(15)->post("{$this->baseUrl}/token", [
+        $tokenRes = Http::withoutVerifying()->timeout(15)->post("{$this->baseUrl}/token", [
             'address' => $email,
             'password' => $password,
         ]);
@@ -82,7 +82,7 @@ class TempMailService
     public function getMessages(string $token): array
     {
         try {
-            $res = Http::withToken($token)->timeout(10)->get("{$this->baseUrl}/messages");
+            $res = Http::withoutVerifying()->withToken($token)->timeout(10)->get("{$this->baseUrl}/messages");
             if ($res->successful()) {
                 return $res->json()['hydra:member'] ?? [];
             }
@@ -98,7 +98,7 @@ class TempMailService
     public function getMessageContent(string $token, string $messageId): ?string
     {
         try {
-            $res = Http::withToken($token)->timeout(10)->get("{$this->baseUrl}/messages/{$messageId}");
+            $res = Http::withoutVerifying()->withToken($token)->timeout(10)->get("{$this->baseUrl}/messages/{$messageId}");
             if ($res->successful()) {
                 $data = $res->json();
                 return $data['text'] ?? $data['html'][0] ?? $data['intro'] ?? '';

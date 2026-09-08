@@ -7,6 +7,7 @@ use App\Http\Controllers\HoldSlotController;
 use App\Http\Controllers\SlotVaultController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\AutoLoginCheckerController;
+use App\Http\Controllers\IpManagerController;
 
 // Authentication Routes (Public)
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -42,6 +43,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/auto-login/execute', [AutoLoginCheckerController::class, 'executeLogin'])->name('auto_login.execute');
     Route::post('/auto-login/check-token', [AutoLoginCheckerController::class, 'checkToken'])->name('auto_login.check_token');
     Route::post('/auto-login/set-primary', [AutoLoginCheckerController::class, 'setPrimary'])->name('auto_login.set_primary');
+    Route::post('/auto-login/update-password', [AutoLoginCheckerController::class, 'updatePassword'])->name('auto_login.update_password');
+
+    // IP Manager Routes (Decodo Residential Proxy Engine)
+    Route::get('/ip-manager', [IpManagerController::class, 'index'])->name('ip_manager');
+    Route::post('/ip-manager/update', [IpManagerController::class, 'update'])->name('ip_manager.update');
+    Route::post('/ip-manager/test', [IpManagerController::class, 'testConnection'])->name('ip_manager.test');
 
     // Settings Routes
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');

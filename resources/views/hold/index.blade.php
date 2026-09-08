@@ -512,15 +512,19 @@
                 appendLog(`Success! Found ${data.count} center session(s). Real-time seats retrieved directly from Taqamul server (No reservations held).`);
             } else {
                 localStorage.removeItem('hold_slot_last_scan_results');
+                const errMsg = data.message || `No available seats or exam sessions found for ${city} on ${examDate}.`;
+                if (!data.success && data.message) {
+                    alert('⚠️ Taqamul Server Notice:\n' + data.message);
+                }
                 tableBody.innerHTML = `
                     <tr>
                         <td colspan="7" class="text-center text-muted py-4">
                             <i class="fa-solid fa-triangle-exclamation fa-2x mb-2 text-warning d-block"></i>
-                            No available seats or exam sessions found for <strong>${city}</strong> on <strong>${examDate}</strong>.
+                            ${errMsg}
                         </td>
                     </tr>
                 `;
-                appendLog(`No exam seats found for ${city} on ${examDate}.`);
+                appendLog(`Scan result for ${city} on ${examDate}: ${errMsg}`);
             }
         })
         .catch(err => {
@@ -528,6 +532,8 @@
             document.getElementById('scan-status-badge').innerText = 'Error';
             document.getElementById('btn-start-scan').disabled = false;
             document.getElementById('btn-stop-scan').disabled = true;
+
+            alert('⚠️ Taqamul Server Connection Error:\n' + err.message);
 
             tableBody.innerHTML = `
                 <tr>

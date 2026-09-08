@@ -54,12 +54,16 @@ class RenewVaultSlotsCommand extends Command
 
             $this->info("[VaultAutoRenew] Renewing slot hold for candidate {$email} (Hash: " . substr($motherHash, 0, 12) . "...)...");
 
-            // Fetch current token for candidate
+            // Fetch current token and password for candidate
             $token = $tokenService->getTokenForAccount($email);
+            $password = $tokenService->getPasswordForAccount($email);
 
             if (empty($token) || !$tokenService->isValidTokenFormat($token)) {
-                $this->warn("[VaultAutoRenew] Token missing/invalid for {$email}. Re-logging candidate in background...");
-                $token = $tokenService->loginAndFetchToken($email, 'Taqamul@2723!');
+                $this->warn("[VaultAutoRenew] Token missing/invalid for {$email}. Re-logging candidate via fast Decodo HTTP...");
+                $token = $tokenService->loginAndFetchTokenHttp($email, $password, null, true);
+                if (empty($token) || !$tokenService->isValidTokenFormat($token)) {
+                    $token = $tokenService->loginAndFetchToken($email, $password);
+                }
             }
 
             if (empty($token)) {
@@ -77,6 +81,17 @@ class RenewVaultSlotsCommand extends Command
                 $langCode = 'TLRBB';
             }
 
+            $proxyCfg = \App\Models\Setting::getProxyConfig();
+            $httpOpts = [
+                'curl' => [
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_SSL_VERIFYHOST => 0,
+                ]
+            ];
+            if (!empty($proxyCfg['proxy'])) {
+                $httpOpts['proxy'] = $proxyCfg['proxy'];
+            }
+
             $headers = [
                 'Accept' => 'application/json',
                 'X-Tenant-Name' => 'svp-international',
@@ -85,7 +100,7 @@ class RenewVaultSlotsCommand extends Command
             ];
 
             // Re-reserve on Taqamul
-            $res = Http::timeout(8)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
+            $res = Http::withoutVerifying()->timeout(10)->withOptions($httpOpts)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
                 'exam_session_id' => $motherHash,
                 'occupation_id' => $occId,
                 'language_code' => $langCode,
@@ -98,11 +113,21 @@ class RenewVaultSlotsCommand extends Command
             // Check if Token Expired ("Signature has expired" / 401)
             if ($status === 401 || str_contains($bodyStr, 'Signature has expired') || str_contains($bodyStr, 'Unauthorized')) {
                 $this->warn("[VaultAutoRenew] Signature has expired for {$email}. Triggering automatic candidate re-login...");
-                $freshToken = $tokenService->loginAndFetchToken($email, 'Taqamul@2723!');
+                $freshToken = $tokenService->loginAndFetchTokenHttp($email, $password, null, true);
+                if (empty($freshToken) || !$tokenService->isValidTokenFormat($freshToken)) {
+                    $freshToken = $tokenService->loginAndFetchToken($email, $password);
+                }
 
                 if (!empty($freshToken) && $tokenService->isValidTokenFormat($freshToken)) {
                     $headers['Authorization'] = str_starts_with($freshToken, 'Bearer ') ? $freshToken : "Bearer {$freshToken}";
-                    $res = Http::timeout(8)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
+                    
+                    $retryProxyCfg = \App\Models\Setting::getProxyConfig();
+                    $retryOpts = ['curl' => [CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0]];
+                    if (!empty($retryProxyCfg['proxy'])) {
+                        $retryOpts['proxy'] = $retryProxyCfg['proxy'];
+                    }
+
+                    $res = Http::withoutVerifying()->timeout(10)->withOptions($retryOpts)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
                         'exam_session_id' => $motherHash,
                         'occupation_id' => $occId,
                         'language_code' => $langCode,
@@ -117,7 +142,14 @@ class RenewVaultSlotsCommand extends Command
             if ($status === 429 || str_contains(strtolower($bodyStr), 'rate limit')) {
                 $this->warn("[RATE_LIMIT]: Rate limit hit for {$email}. Waiting 60s before retry...");
                 sleep(60);
-                $res = Http::timeout(8)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
+                
+                $retryProxyCfg = \App\Models\Setting::getProxyConfig();
+                $retryOpts = ['curl' => [CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0]];
+                if (!empty($retryProxyCfg['proxy'])) {
+                    $retryOpts['proxy'] = $retryProxyCfg['proxy'];
+                }
+
+                $res = Http::withoutVerifying()->timeout(10)->withOptions($retryOpts)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
                     'exam_session_id' => $motherHash,
                     'occupation_id' => $occId,
                     'language_code' => $langCode,

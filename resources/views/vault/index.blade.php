@@ -249,8 +249,6 @@
             `;
         });
 
-        startLiveTimers();
-
         // If modal is currently open for a hash, refresh modal rows live
         if (currentSelectedHash && $('#expandedSlotsModal').hasClass('show')) {
             const group = vaultGroupsData.find(g => g.mother_hash === currentSelectedHash);
@@ -258,10 +256,12 @@
                 renderModalRows(group);
             }
         }
+
+        startLiveTimers();
     }
 
     function formatTimer(sec) {
-        if (sec <= 0) return 'Expired (Renewing...)';
+        if (sec <= 0) return '0m 00s';
         const m = Math.floor(sec / 60);
         const s = sec % 60;
         return `${m}m ${s < 10 ? '0' : ''}${s}s`;
@@ -275,10 +275,8 @@
                 if (sec > 0) {
                     sec--;
                     el.setAttribute('data-seconds', sec);
-                    el.innerHTML = `<i class="fa-solid fa-stopwatch me-1"></i> ${formatTimer(sec)}`;
-                } else {
-                    el.innerHTML = `<span class="badge bg-info text-dark"><i class="fa-solid fa-arrows-rotate fa-spin me-1"></i> Auto-Renewing...</span>`;
                 }
+                el.innerHTML = `<i class="fa-solid fa-stopwatch me-1"></i> ${formatTimer(sec)}`;
             });
         }, 1000);
     }
@@ -306,9 +304,15 @@
 
         group.slots.forEach((s, idx) => {
             const isPending = s.status === 'pending_locking';
+            
+            let seatDisplay = `Seat #${idx + 1}`;
+            if (s.temp_seat_id && !String(s.temp_seat_id).startsWith('VAULT_') && !String(s.temp_seat_id).startsWith('PENDING_') && !String(s.temp_seat_id).startsWith('HOLD_')) {
+                seatDisplay = `Seat #${idx + 1} (ID: ${s.temp_seat_id})`;
+            }
+
             const seatIdBadge = isPending 
                 ? `<span class="badge bg-warning text-dark"><i class="fa-solid fa-spinner fa-spin me-1"></i> Reserving...</span>` 
-                : `<span class="badge bg-secondary font-monospace fs-6 px-2 py-1">${s.temp_seat_id}</span>`;
+                : `<span class="badge bg-success text-white font-monospace fs-6 px-2 py-1"><i class="fa-solid fa-chair me-1"></i> ${seatDisplay}</span>`;
 
             const expiryText = isPending 
                 ? `<span class="badge bg-warning text-dark"><i class="fa-solid fa-hourglass-half fa-spin me-1"></i> Reserving in background...</span>` 

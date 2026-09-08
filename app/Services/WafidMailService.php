@@ -81,7 +81,7 @@ class WafidMailService
             $body = ['name' => $name];
             $bodyStr = json_encode($body, JSON_UNESCAPED_SLASHES);
             $headers = $this->getSignedHeaders('POST', $path, $body);
-            $response = Http::withHeaders($headers)->timeout(15)->withBody($bodyStr, 'application/json')->post("{$this->baseUrl}{$path}");
+            $response = Http::withoutVerifying()->withHeaders($headers)->timeout(15)->withBody($bodyStr, 'application/json')->post("{$this->baseUrl}{$path}");
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -124,7 +124,7 @@ class WafidMailService
 
         try {
             $headers = $this->getSignedHeaders('POST', $path);
-            $response = Http::withHeaders($headers)->timeout(15)->post("{$this->baseUrl}{$path}");
+            $response = Http::withoutVerifying()->withHeaders($headers)->timeout(15)->post("{$this->baseUrl}{$path}");
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -173,7 +173,7 @@ class WafidMailService
         try {
             // 1. Try Public AnonMail Endpoint (Fastest, direct match)
             $publicUrl = "{$baseUrl}/api/public/mailboxes/" . urlencode($fullEmail) . "/messages";
-            $res = Http::timeout(6)->get($publicUrl);
+            $res = Http::withoutVerifying()->timeout(6)->get($publicUrl);
             if ($res->successful() && !empty($res->json('messages'))) {
                 return $res->json('messages');
             }
@@ -181,7 +181,7 @@ class WafidMailService
             // 2. Try clean name public endpoint
             $cleanName = preg_replace('/@.*$/', '', $fullEmail);
             $publicCleanUrl = "{$baseUrl}/api/public/mailboxes/" . urlencode($cleanName) . "/messages";
-            $resClean = Http::timeout(6)->get($publicCleanUrl);
+            $resClean = Http::withoutVerifying()->timeout(6)->get($publicCleanUrl);
             if ($resClean->successful() && !empty($resClean->json('messages'))) {
                 return $resClean->json('messages');
             }
@@ -189,7 +189,7 @@ class WafidMailService
             // 3. Fallback to HMAC signed endpoint
             $path = "/api/v1/mailboxes/{$cleanName}/messages?domain=" . urlencode($domain);
             $headers = $this->getSignedHeaders('GET', $path);
-            $response = Http::withHeaders($headers)->timeout(8)->get("{$baseUrl}{$path}");
+            $response = Http::withoutVerifying()->withHeaders($headers)->timeout(8)->get("{$baseUrl}{$path}");
             if ($response->successful() && !empty($response->json('messages'))) {
                 return $response->json('messages');
             }
@@ -210,7 +210,7 @@ class WafidMailService
         try {
             // 1. Try Public AnonMail message detail endpoint
             $publicUrl = "{$baseUrl}/api/public/messages/" . urlencode($messageId);
-            $res = Http::timeout(6)->get($publicUrl);
+            $res = Http::withoutVerifying()->timeout(6)->get($publicUrl);
             if ($res->successful() && !empty($res->json())) {
                 return $res->json();
             }
@@ -218,7 +218,7 @@ class WafidMailService
             // 2. Fallback to HMAC signed endpoint
             $path = "/api/v1/messages/{$messageId}";
             $headers = $this->getSignedHeaders('GET', $path);
-            $response = Http::withHeaders($headers)->timeout(8)->get("{$baseUrl}{$path}");
+            $response = Http::withoutVerifying()->withHeaders($headers)->timeout(8)->get("{$baseUrl}{$path}");
             if ($response->successful()) {
                 return $response->json();
             }
@@ -232,7 +232,7 @@ class WafidMailService
     /**
      * Poll until latest fresh OTP arrives (skips old messages received before minTimestampMs)
      */
-    public function waitForLatestOtp(string $mailboxName, int $timeoutSec = 45, ?callable $logger = null, int $minTimestampMs = 0): ?string
+    public function waitForLatestOtp(string $mailboxName, int $timeoutSec = 12, ?callable $logger = null, int $minTimestampMs = 0): ?string
     {
         $domain = str_contains($mailboxName, '@') ? strtolower(trim(explode('@', $mailboxName)[1])) : 'wafidmaster.com';
         $cleanName = preg_replace('/@.*$/', '', $mailboxName);
@@ -274,7 +274,7 @@ class WafidMailService
                 }
             }
 
-            sleep(2);
+            sleep(1);
         }
 
         return null;

@@ -439,6 +439,10 @@
                                     <span class="badge bg-warning bg-opacity-20 text-dark border border-warning" title="Taqamul requires reCAPTCHA for this account">
                                         <i class="fa-solid fa-shield-halved me-1"></i> Requires Captcha
                                     </span>
+                                @elseif($cMode === 'invalid_credentials')
+                                    <span class="badge bg-danger bg-opacity-20 text-danger border border-danger" title="Invalid Email or Password returned by Taqamul API">
+                                        <i class="fa-solid fa-key me-1"></i> Invalid Password
+                                    </span>
                                 @elseif($isPool)
                                     <span class="badge bg-light text-muted border">
                                         <i class="fa-solid fa-bolt me-1"></i> Pool (Untested)
@@ -451,7 +455,12 @@
                             </div>
                         </td>
                         <td>
-                            <span class="font-monospace text-muted small">{{ $acc['password'] ?? 'Taqamul@4642!' }}</span>
+                            <div class="d-flex align-items-center gap-1">
+                                <span class="font-monospace text-muted small" id="pwd-text-{{ md5(strtolower($acc['email'])) }}">{{ $acc['password'] ?? 'Taqamul@4642!' }}</span>
+                                <button type="button" class="btn btn-sm btn-link p-0 text-warning text-decoration-none" onclick="openEditPasswordModal('{{ $acc['email'] }}', '{{ $acc['password'] ?? 'Taqamul@4642!' }}')" title="Edit Password">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                            </div>
                         </td>
                         <td>
                             @if($hasToken)
@@ -474,6 +483,12 @@
                                     onclick="quickLoginAccount('{{ $acc['email'] }}', '{{ $acc['password'] ?? 'Taqamul@4642!' }}', {{ $isPool ? 1 : 0 }})"
                                     title="{{ $isPool ? 'Direct Login without Captcha' : 'Passenger Account (Requires reCAPTCHA)' }}">
                                     <i class="fa-solid fa-bolt me-1"></i> Login Now
+                                </button>
+
+                                <button type="button" class="btn btn-sm btn-outline-warning text-dark" 
+                                    onclick="openEditPasswordModal('{{ $acc['email'] }}', '{{ $acc['password'] ?? 'Taqamul@4642!' }}')"
+                                    title="Edit Password">
+                                    <i class="fa-solid fa-pen-to-square"></i> Edit
                                 </button>
 
                                 @if(!$isPrimary)
@@ -742,6 +757,8 @@
                     badgeCell.html('<span class="badge bg-success bg-opacity-10 text-success border border-success"><i class="fa-solid fa-bolt me-1"></i> Zero-Captcha</span>');
                 } else if (mode === 'requires_captcha') {
                     badgeCell.html('<span class="badge bg-warning bg-opacity-20 text-dark border border-warning" title="Taqamul requires reCAPTCHA for this account"><i class="fa-solid fa-shield-halved me-1"></i> Requires Captcha</span>');
+                } else if (mode === 'invalid_credentials') {
+                    badgeCell.html('<span class="badge bg-danger bg-opacity-20 text-danger border border-danger" title="Invalid Password returned by Taqamul API"><i class="fa-solid fa-key me-1"></i> Invalid Password</span>');
                 }
             }
         });
@@ -888,6 +905,10 @@
                         appendTerminalLog('🛡️ ' + acc.email + ': Flagged by Taqamul for reCAPTCHA. Marked as Requires Captcha.', 'text-warning');
                         updateTableRowCaptchaMode(acc.email, 'requires_captcha');
                         acc.captcha_mode = 'requires_captcha';
+                    } else if (data.invalid_credentials) {
+                        appendTerminalLog('🔑 ' + acc.email + ': Invalid Email or Password. Marked as Invalid Password.', 'text-danger fw-bold');
+                        updateTableRowCaptchaMode(acc.email, 'invalid_credentials');
+                        acc.captcha_mode = 'invalid_credentials';
                     } else {
                         appendTerminalLog('⚠️ ' + acc.email + ': ' + (data.message || 'Login failed'), 'text-warning');
                     }
@@ -918,5 +939,83 @@
             alert('Batch Auto-Login process completed for all accounts!');
         }
     }
+
+
+
+    function openEditPasswordModal(email, currentPassword) {
+        $('#edit-email-input').val(email);
+        $('#edit-password-input').val(currentPassword || '');
+        const modal = new bootstrap.Modal(document.getElementById('editPasswordModal'));
+        modal.show();
+    }
+
+    function submitPasswordUpdate() {
+        const email = $('#edit-email-input').val();
+        const newPassword = $('#edit-password-input').val();
+
+        if (!email || !newPassword) {
+            alert('Please enter a valid password.');
+            return;
+        }
+
+        fetch('{{ route('auto_login.update_password') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ email: email, password: newPassword })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert('Password updated successfully for ' + email + '!');
+                const modalEl = document.getElementById('editPasswordModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+                location.reload();
+            } else {
+                alert('Failed to update password: ' + (data.message || 'Error'));
+            }
+        })
+        .catch(err => {
+            alert('Server error updating password: ' + err.message);
+        });
+    }
 </script>
+
+<!-- Edit Password Modal -->
+<div class="modal fade" id="editPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content shadow-lg border">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title font-weight-bold text-warning">
+                    <i class="fa-solid fa-key me-2"></i> Edit Candidate Password
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-edit-password" onsubmit="event.preventDefault(); submitPasswordUpdate();">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Candidate Email</label>
+                        <input type="email" id="edit-email-input" class="form-control font-monospace bg-light" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">New Taqamul Password</label>
+                        <input type="text" id="edit-password-input" class="form-control font-monospace" placeholder="e.g. Taqamul@2723!" required>
+                        <div class="form-text text-muted">
+                            Update the password here after resetting it on Taqamul portal.
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning btn-sm fw-bold text-dark" onclick="submitPasswordUpdate()">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Save New Password
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection

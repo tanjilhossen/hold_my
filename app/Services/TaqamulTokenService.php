@@ -130,6 +130,32 @@ class TaqamulTokenService
     }
 
     /**
+     * Get account password for a specific candidate account email
+     */
+    public function getPasswordForAccount(string $email): ?string
+    {
+        $email = strtolower(trim($email));
+        $accounts = $this->getPoolAccounts();
+        foreach ($accounts as $acc) {
+            if (strtolower(trim($acc['email'] ?? '')) === $email) {
+                if (!empty($acc['password'])) {
+                    return $acc['password'];
+                }
+            }
+        }
+
+        try {
+            $passenger = Passenger::whereRaw('LOWER(email) = ?', [$email])->first();
+            if ($passenger && !empty($passenger->password)) {
+                return $passenger->password;
+            }
+        } catch (Exception $e) {}
+
+        return 'Taqamul@2723!';
+    }
+
+
+    /**
      * Validate token string format to prevent invalid JSON strings
      */
     public function isValidTokenFormat(?string $token): bool
@@ -317,6 +343,7 @@ class TaqamulTokenService
             if (strtolower(trim($acc['email'] ?? '')) === $targetEmail) {
                 $acc['token'] = $token;
                 $acc['status'] = 'active';
+                $acc['last_verified_at'] = date('Y-m-d H:i:s');
                 $updated = true;
             }
         }
@@ -348,7 +375,18 @@ class TaqamulTokenService
             $existingToken = $this->getTokenForAccount($email);
             if (!empty($existingToken) && $this->isValidTokenFormat($existingToken)) {
                 try {
-                    $probeRes = Http::timeout(4)->withHeaders([
+                    $proxyCfg = Setting::getProxyConfig();
+                    $opts = [
+                        'curl' => [
+                            CURLOPT_SSL_VERIFYPEER => false,
+                            CURLOPT_SSL_VERIFYHOST => 0,
+                        ]
+                    ];
+                    if (!empty($proxyCfg['proxy'])) {
+                        $opts['proxy'] = $proxyCfg['proxy'];
+                    }
+
+                    $probeRes = Http::withoutVerifying()->timeout(5)->withOptions($opts)->withHeaders([
                         'Accept' => 'application/json',
                         'X-Tenant-Name' => 'svp-international',
                         'Authorization' => str_starts_with($existingToken, 'Bearer ') ? $existingToken : "Bearer {$existingToken}",
@@ -369,9 +407,22 @@ class TaqamulTokenService
                 $requestStartTime = round(microtime(true) * 1000);
                 $recaptchaToken = '';
 
+                $proxyCfg = Setting::getProxyConfig();
+                $opts = [
+                    'curl' => [
+                        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                        CURLOPT_SSL_VERIFYPEER => false,
+                        CURLOPT_SSL_VERIFYHOST => 0,
+                    ]
+                ];
+                $directOpts = $opts;
+                if (!empty($proxyCfg['proxy']) && $attemptRetry === 1) {
+                    $opts['proxy'] = $proxyCfg['proxy'];
+                }
+
                 // 1. Send Direct Captcha-Free Login request to Taqamul API (recaptcha_response: "")
                 $logStep("[Token Bot 🚀] Dispatching Direct Captcha-Free OTP login request to Taqamul API...");
-                $loginRes = Http::timeout(15)->withHeaders([
+                $loginHeaders = [
                     'Host' => 'svp-international-api.pacc.sa',
                     'X-Tenant-Name' => 'svp-international',
                     'Sec-Ch-Ua-Platform' => '"Windows"',
@@ -388,13 +439,8 @@ class TaqamulTokenService
                     'Sec-Fetch-Mode' => 'cors',
                     'Sec-Fetch-Dest' => 'empty',
                     'Referer' => 'https://svp-international.pacc.sa/'
-                ])->withOptions([
-                    'curl' => [
-                        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                        CURLOPT_SSL_VERIFYPEER => false,
-                        CURLOPT_SSL_VERIFYHOST => 0,
-                    ]
-                ])->post("{$this->apiBaseUrl}/api/v1/sessions/login?locale=en", [
+                ];
+                $loginPayload = [
                     'user' => [
                         'login' => $email,
                         'password' => $password,
@@ -402,7 +448,24 @@ class TaqamulTokenService
                         'fe_app' => 'legislator',
                         'recaptcha_response' => ''
                     ]
-                ]);
+                ];
+
+                $loginRes = null;
+                try {
+                    $loginRes = Http::withoutVerifying()->timeout(15)->withHeaders($loginHeaders)->withOptions($opts)->post("{$this->apiBaseUrl}/api/v1/sessions/login?locale=en", $loginPayload);
+                } catch (\Exception $e) {
+                    if (isset($opts['proxy'])) {
+                        $logStep("[Token Bot ⚠️] Proxy login failed (" . $e->getMessage() . "). Retrying login directly without proxy...");
+                        $loginRes = Http::withoutVerifying()->timeout(15)->withHeaders($loginHeaders)->withOptions($directOpts)->post("{$this->apiBaseUrl}/api/v1/sessions/login?locale=en", $loginPayload);
+                    } else {
+                        throw $e;
+                    }
+                }
+
+                if ($loginRes && isset($opts['proxy']) && $loginRes->status() >= 500) {
+                    $logStep("[Token Bot ⚠️] Proxy login returned HTTP {$loginRes->status()}. Retrying login directly without proxy...");
+                    $loginRes = Http::withoutVerifying()->timeout(15)->withHeaders($loginHeaders)->withOptions($directOpts)->post("{$this->apiBaseUrl}/api/v1/sessions/login?locale=en", $loginPayload);
+                }
 
                 // Fallback to CapSolver/2Captcha only if Taqamul explicitly requires recaptcha_response
                 if (!$loginRes->successful() && str_contains(strtolower($loginRes->body()), 'recaptcha')) {
@@ -580,7 +643,7 @@ class TaqamulTokenService
                 $logStep("[WafidMail API 📩] Found OTP code: {$otpCode}! Submitting to Taqamul API...");
 
                 // 4. Submit OTP POST /api/v1/sessions/otp?locale=en
-                $otpRes = Http::timeout(15)->withHeaders([
+                $otpRes = Http::withoutVerifying()->timeout(15)->withHeaders([
                     'Host' => 'svp-international-api.pacc.sa',
                     'X-Tenant-Name' => 'svp-international',
                     'Content-Type' => 'application/json',
@@ -589,13 +652,7 @@ class TaqamulTokenService
                     'Referer' => 'https://svp-international.pacc.sa/',
                     'Connection' => 'close',
                     'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36'
-                ])->withOptions([
-                    'curl' => [
-                        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                        CURLOPT_SSL_VERIFYPEER => false,
-                        CURLOPT_SSL_VERIFYHOST => 0,
-                    ]
-                ])->post("{$this->apiBaseUrl}/api/v1/sessions/otp?locale=en", [
+                ])->withOptions($opts)->post("{$this->apiBaseUrl}/api/v1/sessions/otp?locale=en", [
                     'user' => [
                         'login' => $email,
                         'password' => $password,
@@ -723,10 +780,10 @@ class TaqamulTokenService
         $escPass = base64_encode($password);
 
         if (PHP_OS_FAMILY === 'Windows') {
-            $cmd = "start \"\" /B \"{$phpPath}\" \"{$artisanPath}\" taqamul:fast-login {$escEmail} {$escPass}";
+            $cmd = "start \"\" /B \"{$phpPath}\" -d extension=pdo_sqlite \"{$artisanPath}\" taqamul:fast-login {$escEmail} {$escPass}";
             pclose(popen($cmd, "r"));
         } else {
-            exec("{$phpPath} {$artisanPath} taqamul:fast-login {$escEmail} {$escPass} > /dev/null 2>&1 &");
+            exec("{$phpPath} -d extension=pdo_sqlite {$artisanPath} taqamul:fast-login {$escEmail} {$escPass} > /dev/null 2>&1 &");
         }
 
         return true;

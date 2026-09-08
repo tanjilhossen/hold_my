@@ -103,6 +103,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('ip_manager*') ? 'active' : '' }}" href="{{ route('ip_manager') }}">
+                        <i class="fa-solid fa-network-wired text-info"></i> IP Manager
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('settings') ? 'active' : '' }}" href="{{ route('settings') }}">
                         <i class="fa-solid fa-gear"></i> Settings
                     </a>

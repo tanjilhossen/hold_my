@@ -161,22 +161,26 @@ class AutoLoginCheckerController extends Controller
 
             $failMsg = "Authentication failed.";
             $isRecaptcha = false;
+            $isInvalidCreds = false;
             $logStr = implode(" ", $logs);
             if (str_contains($logStr, 'Rate Limit') || str_contains($logStr, '429')) {
                 $failMsg = "Taqamul Rate Limit (429) active on this IP. Please wait 4-5 minutes before retrying.";
+            } elseif (str_contains(strtolower($logStr), 'invalid email or password') || str_contains(strtolower($logStr), 'invalid login or password') || str_contains(strtolower($logStr), 'invalid credentials') || str_contains(strtolower($logStr), 'user not found') || str_contains(strtolower($logStr), 'incorrect')) {
+                $isInvalidCreds = true;
+                $this->updateAccountTag($email, 'invalid_credentials');
+                $failMsg = "Invalid Email or Password for '{$email}'. Please edit password.";
             } elseif (str_contains($logStr, 'reCAPTCHA') || str_contains($logStr, 'recaptcha')) {
                 $isRecaptcha = true;
                 $this->updateAccountTag($email, 'requires_captcha');
-                $failMsg = "Taqamul API returned: 'Recaptcha is not solved' for {$email}. Taqamul requires reCAPTCHA for this specific account. (CapSolver key has $0.00 balance). Marked as 'Requires Captcha'.";
-            } elseif (str_contains($logStr, 'Invalid Email or Password')) {
-                $failMsg = "Invalid Email or Password for '{$email}'.";
+                $failMsg = "Taqamul API returned: 'Recaptcha is not solved' for {$email}. Marked as 'Requires Captcha'.";
             }
 
             return response()->json([
                 'success' => false,
                 'email' => $email,
                 'requires_captcha' => $isRecaptcha,
-                'captcha_mode' => $isRecaptcha ? 'requires_captcha' : 'unknown',
+                'invalid_credentials' => $isInvalidCreds,
+                'captcha_mode' => $isInvalidCreds ? 'invalid_credentials' : ($isRecaptcha ? 'requires_captcha' : 'unknown'),
                 'logs' => $logs,
                 'message' => $failMsg
             ], 422);
@@ -190,6 +194,50 @@ class AutoLoginCheckerController extends Controller
                 'message' => "Exception during authentication: " . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Update candidate account password
+     */
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|string',
+            'password' => 'required|string',
+        ]);
+
+        $email = strtolower(trim($request->input('email')));
+        $newPassword = trim($request->input('password'));
+
+        $accounts = $this->tokenService->getPoolAccounts();
+        $updated = false;
+
+        foreach ($accounts as &$acc) {
+            if (strtolower(trim($acc['email'] ?? '')) === $email) {
+                $acc['password'] = $newPassword;
+                $acc['captcha_mode'] = 'untested';
+                $acc['token'] = null;
+                $acc['status'] = 'expired';
+                $updated = true;
+                break;
+            }
+        }
+        unset($acc);
+
+        if ($updated) {
+            $this->tokenService->savePoolAccounts($accounts);
+        }
+
+        try {
+            \App\Models\Passenger::where('email', $email)->update(['password' => $newPassword]);
+        } catch (Exception $e) {}
+
+        return response()->json([
+            'success' => true,
+            'email' => $email,
+            'password' => $newPassword,
+            'message' => "Password updated successfully for {$email}!"
+        ]);
     }
 
     /**

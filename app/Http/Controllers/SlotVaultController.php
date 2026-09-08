@@ -201,12 +201,9 @@ class SlotVaultController extends Controller
     protected function triggerBackgroundAutoRenew(): void
     {
         $artisanPath = base_path('artisan');
+        $phpPath = defined('PHP_BINARY') && !empty(PHP_BINARY) ? PHP_BINARY : 'php';
         if (PHP_OS_FAMILY === 'Windows') {
-            $phpPath = 'D:\\xampp\\php\\php.exe';
-            if (!file_exists($phpPath)) {
-                $phpPath = 'php';
-            }
-            $cmd = "start \"\" /B \"{$phpPath}\" \"{$artisanPath}\" vault:renew-slots > NUL 2>&1";
+            $cmd = "cmd /c start \"\" /B \"{$phpPath}\" -d extension=pdo_sqlite \"{$artisanPath}\" vault:renew-slots > NUL 2>&1";
             pclose(popen($cmd, "r"));
         } else {
             $escArtisan = escapeshellarg($artisanPath);

@@ -177,10 +177,16 @@ class HoldSlotController extends Controller
             }
         }
 
-        // 3. Pure Read-Only API call to single session endpoint (GET /exam_sessions/{hash})
+        // 3. Bangladesh TTC Directory lookup (Fastest & 100% accurate for BD cities)
+        if (empty($centerName) && isset($this->bangladeshTtcDirectory[$apiCity])) {
+            $centerName = $this->bangladeshTtcDirectory[$apiCity]['name'];
+            $centerAddress = $this->bangladeshTtcDirectory[$apiCity]['address'];
+        }
+
+        // 4. Pure Read-Only API call to single session endpoint (GET /exam_sessions/{hash}) fallback
         if (empty($centerName)) {
             try {
-                $singleRes = $this->makeTaqamulRequest('GET', "{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_sessions/{$motherHash}?locale=en", [], $headers, 5);
+                $singleRes = $this->makeTaqamulRequest('GET', "{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_sessions/{$motherHash}?locale=en", [], $headers, 4);
                 if ($singleRes && $singleRes->successful()) {
                     $singleJson = $singleRes->json() ?? [];
                     $stc = $singleJson['test_center'] ?? ($singleJson['exam_session']['test_center'] ?? []);
@@ -236,47 +242,58 @@ class HoldSlotController extends Controller
     {
         [$occId, $langCode] = $this->getOccupationAndLanguageForCategory($categoryId);
 
-        $accounts = $this->tokenService->getPoolAccounts();
-        $checkerAcc = $this->tokenService->getSlotCheckerAccount();
-        $checkerEmail = strtolower(trim($checkerAcc['email'] ?? ''));
+        // 1. Fetch stored DB entry metadata if available
+        $dbHash = SlotHash::where('mother_hash', $motherHash)->first();
 
+        $proxyCfg = Setting::getProxyConfig();
+        $opts = [
+            'curl' => [
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => 0,
+            ]
+        ];
+        if (!empty($proxyCfg['proxy'])) {
+            $opts['proxy'] = $proxyCfg['proxy'];
+        }
+
+        $accounts = $this->tokenService->getPoolAccounts();
+        $tokensToTry = [];
+
+        // Collect available account tokens
         $busyEmails = SlotHold::activeOrPending()
             ->pluck('held_with_email')
             ->map(fn($e) => strtolower(trim($e)))
             ->toArray();
 
-        $tried = 0;
-        $count = count($accounts);
-        if ($count === 0) return null;
-
-        $startIdx = rand(0, max(0, $count - 1));
-
-        for ($i = 0; $i < $count && $tried < 5; $i++) {
-            $acc = $accounts[($startIdx + $i) % $count];
+        foreach ($accounts as $acc) {
             $email = strtolower(trim($acc['email'] ?? ''));
-
-            if (empty($email) || $email === $checkerEmail || in_array($email, $busyEmails)) {
-                continue;
-            }
-
+            if (empty($email) || in_array($email, $busyEmails)) continue;
             $token = $this->tokenService->getTokenForAccount($email);
-            if (empty($token)) {
-                continue;
+            if (!empty($token)) {
+                $tokensToTry[] = $token;
+                break; // Try 1 token for speed
             }
+        }
 
-            $tried++;
-            usleep(400000); // 400ms delay to prevent Nginx burst rate-limit
+        // Fallback to round robin token if pool tokens empty
+        if (empty($tokensToTry)) {
+            $rrToken = $this->tokenService->getValidRoundRobinToken();
+            if (!empty($rrToken)) {
+                $tokensToTry[] = $rrToken;
+            }
+        }
 
+        foreach ($tokensToTry as $token) {
             $headers = [
                 'Accept' => 'application/json',
                 'X-Tenant-Name' => 'svp-international',
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 'Authorization' => str_starts_with($token, 'Bearer ') ? $token : "Bearer {$token}",
             ];
 
             try {
                 // 1. Direct Mother Hash Reservation Probing
-                $res = Http::timeout(5)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
+                $res = Http::withoutVerifying()->withOptions($opts)->timeout(4)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
                     'exam_session_id' => $motherHash,
                     'occupation_id' => $occId,
                     'language_code' => $langCode,
@@ -289,23 +306,23 @@ class HoldSlotController extends Controller
                     $es = $json['exam_session'] ?? [];
                     $tc = $json['test_center'] ?? ($es['test_center'] ?? []);
 
-                    $cName = $tc['test_center_name'] ?? ($tc['name'] ?? null);
-                    $cAddress = $tc['address'] ?? "{$city}, Bangladesh";
+                    $cName = $tc['test_center_name'] ?? ($tc['name'] ?? ($tc['test_center']['name'] ?? null));
+                    $cAddress = $tc['address'] ?? ($tc['test_center']['address'] ?? "{$city}, Bangladesh");
 
                     $total = isset($es['seats']) ? (int)$es['seats'] : 10;
-                    $rawAvail = isset($es['available_seats']) ? (int)$es['available_seats'] : ($total - 1);
-                    $avail = min($total, max(1, $rawAvail + 1));
+                    $rawAvail = isset($es['available_seats']) ? (int)$es['available_seats'] : 0;
+                    $avail = max(0, min($total, $rawAvail + 1));
 
                     $startRaw = $es['start_at_in_tc_time_zone'] ?? ($es['start_at'] ?? null);
                     $startTime = $startRaw ? date('h:i A', strtotime($startRaw)) : '09:30 AM';
 
                     if ($resId) {
                         try {
-                            Http::timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$resId}?locale=en");
+                            Http::withoutVerifying()->withOptions($opts)->timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$resId}?locale=en");
                         } catch (Exception $e) {}
                     }
 
-                    return [
+                    $probedResult = [
                         'center_name' => $cName ?: "{$city} Technical Training Centre",
                         'center_address' => $cAddress,
                         'available_seats' => $avail,
@@ -313,11 +330,29 @@ class HoldSlotController extends Controller
                         'start_time' => $startTime,
                         'city' => $tc['city'] ?? ($tc['test_center_city'] ?? $city),
                     ];
+
+                    // Cache in SlotHash DB
+                    try {
+                        SlotHash::updateOrCreate(
+                            ['mother_hash' => $motherHash],
+                            [
+                                'category_id' => $categoryId,
+                                'city' => $probedResult['city'],
+                                'center_name' => $probedResult['center_name'],
+                                'center_address' => $probedResult['center_address'],
+                                'start_time' => $probedResult['start_time'],
+                                'available_seats' => $probedResult['available_seats'],
+                                'discovered_at' => now(),
+                            ]
+                        );
+                    } catch (Exception $e) {}
+
+                    return $probedResult;
                 }
 
-                // 2. Fallback: If pre-lock required
+                // 2. Handle 422 where temporary seats are required
                 if ($res->status() === 422 && str_contains($res->body(), 'temporary')) {
-                    $tempRes = Http::timeout(4)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats?locale=en", [
+                    $tempRes = Http::withoutVerifying()->withOptions($opts)->timeout(4)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats?locale=en", [
                         'exam_session_id' => [$motherHash],
                         'methodology' => 'in_person',
                     ]);
@@ -327,7 +362,7 @@ class HoldSlotController extends Controller
                         $tempId = $tempJson['id'] ?? null;
                         $sessHash = $tempJson['exam_session_id'] ?? $motherHash;
 
-                        $res2 = Http::timeout(4)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
+                        $res2 = Http::withoutVerifying()->withOptions($opts)->timeout(4)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
                             'exam_session_id' => $sessHash,
                             'occupation_id' => $occId,
                             'language_code' => $langCode,
@@ -344,14 +379,14 @@ class HoldSlotController extends Controller
                             $cName = $tc2['test_center_name'] ?? ($tc2['name'] ?? null);
                             $cAddress = $tc2['address'] ?? "{$city}, Bangladesh";
                             $total = isset($es2['seats']) ? (int)$es2['seats'] : 10;
-                            $rawAvail = isset($es2['available_seats']) ? (int)$es2['available_seats'] : ($total - 1);
-                            $avail = min($total, max(1, $rawAvail + 1));
+                            $rawAvail = isset($es2['available_seats']) ? (int)$es2['available_seats'] : 0;
+                            $avail = max(0, min($total, $rawAvail + 1));
                             $startRaw = $es2['start_at_in_tc_time_zone'] ?? ($es2['start_at'] ?? null);
                             $startTime = $startRaw ? date('h:i A', strtotime($startRaw)) : '09:30 AM';
 
                             if ($resId2) {
                                 try {
-                                    Http::timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$resId2}?locale=en");
+                                    Http::withoutVerifying()->withOptions($opts)->timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$resId2}?locale=en");
                                 } catch (Exception $e) {}
                             }
 
@@ -367,7 +402,7 @@ class HoldSlotController extends Controller
 
                         if ($tempId) {
                             try {
-                                Http::timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats/{$tempId}?locale=en");
+                                Http::withoutVerifying()->withOptions($opts)->timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats/{$tempId}?locale=en");
                             } catch (Exception $e) {}
                         }
 
@@ -376,7 +411,33 @@ class HoldSlotController extends Controller
                         }
                     }
                 }
+
+                // 3. Handle 529 or 422 where session has no seats left / is full
+                $bodyLower = strtolower($res->body());
+                if ($res->status() === 529 || ($res->status() === 422 && (str_contains($bodyLower, 'full') || str_contains($bodyLower, 'available') || str_contains($bodyLower, 'booked') || str_contains($bodyLower, 'no seats') || str_contains($bodyLower, 'something went wrong')))) {
+                    return [
+                        'center_name' => $dbHash->center_name ?? "{$city} Technical Training Centre",
+                        'center_address' => $dbHash->center_address ?? "{$city}, Bangladesh",
+                        'available_seats' => 0,
+                        'total_seats' => 10,
+                        'start_time' => $dbHash->start_time ?? '09:30 AM',
+                        'city' => $city,
+                    ];
+                }
+
             } catch (Exception $e) {}
+        }
+
+        // 4. Fallback: Return stored DB hash entry if available
+        if ($dbHash && !empty($dbHash->center_name)) {
+            return [
+                'center_name' => $dbHash->center_name,
+                'center_address' => $dbHash->center_address ?: "{$city}, Bangladesh",
+                'available_seats' => (int)$dbHash->available_seats,
+                'total_seats' => 10,
+                'start_time' => $dbHash->start_time ?: '09:30 AM',
+                'city' => $dbHash->city ?: $city,
+            ];
         }
 
         return null;
@@ -503,6 +564,7 @@ class HoldSlotController extends Controller
      */
     protected function makeTaqamulRequest(string $method, string $url, array $params = [], array $headers = [], int $timeout = 12)
     {
+        $proxyCfg = Setting::getProxyConfig();
         $opts = [
             'curl' => [
                 CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
@@ -511,9 +573,13 @@ class HoldSlotController extends Controller
             ]
         ];
 
+        if (!empty($proxyCfg['proxy'])) {
+            $opts['proxy'] = $proxyCfg['proxy'];
+        }
+
         for ($attempt = 1; $attempt <= 3; $attempt++) {
             try {
-                $req = Http::timeout($timeout)->withOptions($opts)->withHeaders($headers);
+                $req = Http::withoutVerifying()->timeout($timeout)->withOptions($opts)->withHeaders($headers);
                 if (strtolower($method) === 'post') {
                     $res = $req->post($url, $params);
                 } elseif (strtolower($method) === 'delete') {
@@ -746,27 +812,44 @@ class HoldSlotController extends Controller
                         $startRaw = $sess['start_at_in_tc_time_zone'] ?? ($sess['start_at'] ?? null);
                         $startTime = $startRaw ? date('h:i A', strtotime($startRaw)) : ($defaultTimes[$slotIdxForDay] ?? '09:30 AM');
 
-                        // 2. LIVE PROBE: Extract real-time available seats and verified center metadata directly from Taqamul reservation payload
-                        $probed = $this->probeSessionLive($motherHash, (int)$categoryId, $city);
+                        // 2. FAST METADATA & SEAT RESOLUTION: Extract center metadata & available seats directly from payload & DB cache
+                        $centerMeta = $this->resolveCenterMetadata($motherHash, $sess, $city, $headers);
+                        $centerName = $centerMeta['center_name'];
+                        $centerAddress = $centerMeta['center_address'];
+                        $apiCity = $centerMeta['city'];
 
-                        if ($probed) {
-                            $centerName = $probed['center_name'];
-                            $centerAddress = $probed['center_address'];
-                            $apiCity = $probed['city'];
-                            $totalSeats = $probed['total_seats'];
-                            $startTime = $probed['start_time'] ?: $startTime;
-                            $probeAvail = $probed['available_seats'];
+                        $dbHash = SlotHash::where('mother_hash', $motherHash)->first();
+                        if (!$dbHash && !empty($sessDate)) {
+                            $dbHash = SlotHash::where('city', $apiCity)
+                                ->whereDate('exam_date', date('Y-m-d', strtotime($sessDate)))
+                                ->where('category_id', $categoryId)
+                                ->where('start_time', $startTime)
+                                ->latest('discovered_at')
+                                ->first();
+                        }
+
+                        $rawAvail = $sess['available_seats'] ?? null;
+                        $rawTotal = $sess['seats'] ?? ($sess['total_seats'] ?? null);
+                        $totalSeats = is_numeric($rawTotal) ? (int)$rawTotal : 10;
+
+                        if (is_numeric($rawAvail)) {
+                            $probeAvail = (int)$rawAvail;
                         } else {
-                            // Fallback if probe hit rate limit or cooldown
-                            $centerMeta = $this->resolveCenterMetadata($motherHash, $sess, $city, $headers);
-                            $centerName = $centerMeta['center_name'];
-                            $centerAddress = $centerMeta['center_address'];
-                            $apiCity = $centerMeta['city'];
+                            $probed = $this->probeSessionLive($motherHash, $categoryId, $apiCity);
+                            if ($probed && isset($probed['available_seats'])) {
+                                $probeAvail = (int)$probed['available_seats'];
+                            } else {
+                                $probeAvail = 0;
+                            }
+                        }
 
-                            $rawAvail = $sess['available_seats'] ?? null;
-                            $rawTotal = $sess['seats'] ?? ($sess['total_seats'] ?? null);
-                            $totalSeats = is_numeric($rawTotal) ? (int)$rawTotal : 10;
-                            $probeAvail = is_numeric($rawAvail) ? (int)$rawAvail : $totalSeats;
+                        if ($dbHash) {
+                            if (!empty($dbHash->start_time)) {
+                                $startTime = $dbHash->start_time;
+                            }
+                            if (!empty($dbHash->center_name)) {
+                                $centerName = $dbHash->center_name;
+                            }
                         }
 
                         // 3. SMART HELD COUNT MATCHING ACROSS EPHEMERAL TAQAMUL HASHES:
@@ -799,11 +882,12 @@ class HoldSlotController extends Controller
                                 }
                             }
 
-                            // Fallback: direct match on city, date, category and center_name in SlotHold
+                            // Fallback: direct match on city, date, category, center_name AND start_time in SlotHold
                             if ($heldCount === 0) {
                                 $directHolds = SlotHold::where('city', $apiCity)
                                     ->whereDate('exam_date', $cleanDate)
                                     ->where('category_id', $categoryId)
+                                    ->where('start_time', $startTime)
                                     ->where(function($q) use ($centerName) {
                                         $q->where('center_name', $centerName)
                                           ->orWhere('center_name', 'like', "%{$centerName}%");
@@ -812,18 +896,9 @@ class HoldSlotController extends Controller
                                     ->get();
 
                                 if ($directHolds->count() > 0) {
-                                    $uniqueHeldHashes = $directHolds->pluck('mother_hash')->unique()->values()->toArray();
-                                    if (isset($uniqueHeldHashes[$slotIdxForDay])) {
-                                        $targetHeldHash = $uniqueHeldHashes[$slotIdxForDay];
-                                        $subHolds = $directHolds->where('mother_hash', $targetHeldHash);
-                                        $heldCount = $subHolds->count();
-                                        SlotHold::whereIn('id', $subHolds->pluck('id'))
-                                            ->update(['mother_hash' => $motherHash]);
-                                    } else {
-                                        $heldCount = $directHolds->count();
-                                        SlotHold::whereIn('id', $directHolds->pluck('id'))
-                                            ->update(['mother_hash' => $motherHash]);
-                                    }
+                                    $heldCount = $directHolds->count();
+                                    SlotHold::whereIn('id', $directHolds->pluck('id'))
+                                        ->update(['mother_hash' => $motherHash]);
                                 }
                             }
                         }
@@ -930,6 +1005,11 @@ class HoldSlotController extends Controller
                 ->toArray();
 
             $allAccounts = $this->tokenService->getPoolAccounts();
+            usort($allAccounts, function ($a, $b) {
+                $aValid = $this->tokenService->isValidTokenFormat($a['token'] ?? null) ? 1 : 0;
+                $bValid = $this->tokenService->isValidTokenFormat($b['token'] ?? null) ? 1 : 0;
+                return $bValid <=> $aValid;
+            });
             $assignedAccounts = [];
 
             foreach ($allAccounts as $acc) {
@@ -947,36 +1027,10 @@ class HoldSlotController extends Controller
                 ], 400);
             }
 
-            // 2. Pre-create pending hold records so Slot Vault immediately lists assigned candidate emails
-            foreach ($assignedAccounts as $email) {
-                SlotHold::firstOrCreate(
-                    [
-                        'mother_hash' => $motherHash,
-                        'held_with_email' => $email,
-                    ],
-                    [
-                        'center_name' => $centerName,
-                        'city' => $city,
-                        'category_id' => $categoryId,
-                        'category_name' => $categoryName,
-                        'exam_date' => date('Y-m-d', strtotime($examDate)),
-                        'temp_seat_id' => 'PENDING_' . rand(1000, 9999),
-                        'status' => 'pending_locking',
-                        'renew_count' => 0,
-                        'target_duration_minutes' => 20,
-                        'expires_at' => now()->addMinutes(20),
-                        'auto_renew_until' => now()->addHours(24),
-                        'last_renewed_at' => now(),
-                    ]
-                );
-            }
+
 
             // 3. Launch background process-lock Artisan command asynchronously
-            $phpPath = PHP_OS_FAMILY === 'Windows' ? 'D:\\xampp\\php\\php.exe' : '/usr/bin/php';
-            if (!file_exists($phpPath)) {
-                $whichCmd = PHP_OS_FAMILY === 'Windows' ? 'where php 2>nul' : 'which php 2>/dev/null';
-                $phpPath = trim(shell_exec($whichCmd) ?: 'php');
-            }
+            $phpPath = defined('PHP_BINARY') && !empty(PHP_BINARY) ? PHP_BINARY : (PHP_OS_FAMILY === 'Windows' ? 'php' : '/usr/bin/php');
 
             $artisanPath = base_path('artisan');
             $baseDir = base_path();
@@ -988,7 +1042,7 @@ class HoldSlotController extends Controller
             $escDate = escapeshellarg($examDate);
 
             if (PHP_OS_FAMILY === 'Windows') {
-                $cmd = "start \"\" /B \"{$phpPath}\" \"{$artisanPath}\" vault:process-lock {$escHash} {$requestedCount} {$categoryId} {$sanitizedCenter} {$sanitizedCity} {$escDate} {$sanitizedCategory}";
+                $cmd = "cmd /c start \"\" /B \"{$phpPath}\" -d extension=pdo_sqlite \"{$artisanPath}\" vault:process-lock {$escHash} {$requestedCount} {$categoryId} {$sanitizedCenter} {$sanitizedCity} {$escDate} {$sanitizedCategory}";
                 @pclose(@popen($cmd, "r"));
             } else {
                 $cmd = "cd \"{$baseDir}\" && {$phpPath} \"{$artisanPath}\" vault:process-lock {$escHash} {$requestedCount} {$categoryId} {$sanitizedCenter} {$sanitizedCity} {$escDate} {$sanitizedCategory} > /dev/null 2>&1 &";
