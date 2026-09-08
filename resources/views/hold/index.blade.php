@@ -31,66 +31,62 @@
         </div>
     </div>
 
-    <!-- Scanner Controls Card -->
-    <div class="col-lg-4">
-        <div class="card card-custom p-4">
-            <h5 class="fw-bold mb-3"><i class="fa-solid fa-sliders text-primary me-2"></i> Scan & Hold Config</h5>
+    <!-- Horizontal Scanner Controls Card -->
+    <div class="col-12">
+        <div class="card card-custom p-3 shadow-sm border-0">
             <form id="hold-config-form">
                 @csrf
-                
-                <!-- 1. Select Profession (Searchable Dropdown) -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold"><i class="fa-solid fa-briefcase text-info me-1"></i> Select Profession</label>
-                    <select class="form-select searchable-select" id="profession_select" name="category_id" data-placeholder="Search or select profession...">
-                        <option value=""></option>
-                        @foreach($formattedOccupations as $occ)
-                            <option value="{{ $occ['category_id'] }}">{{ $occ['full_label'] }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                <div class="row g-3 align-items-end">
+                    <!-- 1. Select Profession -->
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label fw-bold small text-dark mb-1">
+                            <i class="fa-solid fa-briefcase text-info me-1"></i> Select Profession
+                        </label>
+                        <select class="form-select searchable-select" id="profession_select" name="category_id" data-placeholder="Search profession...">
+                            <option value=""></option>
+                            @foreach($formattedOccupations as $occ)
+                                <option value="{{ $occ['category_id'] }}">{{ $occ['full_label'] }}</option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                <!-- 2. Select City (Filtered by available dates with count) -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold"><i class="fa-solid fa-location-dot text-danger me-1"></i> Select City</label>
-                    <select class="form-select searchable-select" id="city_select" name="city" data-placeholder="Select profession to load active cities...">
-                        <option value="">-- Select Profession First --</option>
-                    </select>
-                </div>
+                    <!-- 2. Select City -->
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label fw-bold small text-dark mb-1">
+                            <i class="fa-solid fa-location-dot text-danger me-1"></i> Select City
+                        </label>
+                        <select class="form-select searchable-select" id="city_select" name="city" data-placeholder="Select city...">
+                            <option value="">-- Select Profession First --</option>
+                        </select>
+                    </div>
 
-                <!-- 3. Target Date (Fetched dynamically from Taqamul API) -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">
-                        <i class="fa-solid fa-calendar-days text-success me-1"></i> Exam Date
-                        <span id="date-spinner" class="spinner-border spinner-border-sm text-primary d-none ms-1" role="status"></span>
-                    </label>
-                    <select class="form-select searchable-select" id="date_select" name="exam_date">
-                        <option value="ALL">-- Select City First --</option>
-                    </select>
-                </div>
+                    <!-- 3. Target Date -->
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label fw-bold small text-dark mb-1">
+                            <i class="fa-solid fa-calendar-days text-success me-1"></i> Exam Date
+                            <span id="date-spinner" class="spinner-border spinner-border-sm text-primary d-none ms-1" role="status"></span>
+                        </label>
+                        <select class="form-select searchable-select" id="date_select" name="exam_date">
+                            <option value="ALL">-- Select City First --</option>
+                        </select>
+                    </div>
 
-                <!-- 4. Hold Strategy -->
-                <div class="mb-4">
-                    <label class="form-label fw-bold"><i class="fa-solid fa-shield-halved text-warning me-1"></i> Hold Strategy</label>
-                    <select class="form-select" id="hold_strategy">
-                        <option value="staggered">Staggered Hold (Auto-Renew)</option>
-                        <option value="single">Single Account Fast Lock</option>
-                    </select>
-                </div>
-
-                <div class="d-grid gap-2">
-                    <button type="button" class="btn btn-primary btn-lg fw-bold" id="btn-start-scan">
-                        <i class="fa-solid fa-magnifying-glass me-2"></i> Scan Slots & Fetch Hashes
-                    </button>
-                    <button type="button" class="btn btn-outline-danger" id="btn-stop-scan" disabled>
-                        <i class="fa-solid fa-square me-2"></i> Stop Scanner
-                    </button>
+                    <!-- 4. Action Buttons -->
+                    <div class="col-lg-3 col-md-6 d-flex gap-2">
+                        <button type="button" class="btn btn-primary fw-bold flex-grow-1" id="btn-start-scan" style="height: 42px;">
+                            <i class="fa-solid fa-magnifying-glass me-1"></i> Scan Slots
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" id="btn-stop-scan" disabled style="height: 42px;">
+                            <i class="fa-solid fa-square me-1"></i> Stop
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Active Scanner Console & Results Table -->
-    <div class="col-lg-8">
+    <!-- Active Scanner Console & Results Table (Full Width) -->
+    <div class="col-12">
         <div class="card card-custom p-4 mb-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
@@ -131,7 +127,7 @@
         </div>
 
         <!-- Live Log Output Box -->
-        <div class="card card-custom p-4 bg-dark text-white font-monospace" style="min-height: 180px; max-height: 250px; overflow-y: auto;">
+        <div class="card card-custom p-3 bg-dark text-white font-monospace" style="min-height: 160px; max-height: 220px; overflow-y: auto;">
             <div class="d-flex justify-content-between align-items-center mb-2 border-bottom border-secondary pb-2">
                 <small class="text-info"><i class="fa-solid fa-terminal me-1"></i> Live Stream Console</small>
                 <button class="btn btn-sm btn-outline-light py-0 fs-7" onclick="document.getElementById('console-log').innerHTML='[SYSTEM]: Console cleared.'">Clear</button>

@@ -101,4 +101,34 @@ class SettingsController extends Controller
 
         return redirect()->back()->with('success', 'Settings updated successfully.');
     }
+
+    /**
+     * Update Software Admin Login Credentials (Email & Password)
+     */
+    public function updateAdminCredentials(Request $request)
+    {
+        $user = auth()->user();
+
+        $request->validate([
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'current_password' => 'required|string',
+            'new_password' => 'nullable|string|min:6|confirmed',
+        ]);
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->input('current_password'), $user->password)) {
+            return redirect()->back()->with('error', 'Current password is incorrect.');
+        }
+
+        $user->email = trim($request->input('email'));
+        if ($request->filled('name')) {
+            $user->name = trim($request->input('name'));
+        }
+        if ($request->filled('new_password')) {
+            $user->password = \Illuminate\Support\Facades\Hash::make($request->input('new_password'));
+        }
+
+        $user->save();
+
+        return redirect()->back()->with('success', 'Software login credentials updated successfully.');
+    }
 }

@@ -5,32 +5,6 @@
 
 @section('content')
 <div class="row g-4">
-    <!-- Header Metrics Banner -->
-    <div class="col-12">
-        <div class="card card-custom p-3 bg-dark text-white border-start border-4 border-warning">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="p-3 bg-warning text-dark rounded-circle me-1">
-                        <i class="fa-solid fa-vault fa-xl"></i>
-                    </div>
-                    <div>
-                        <h5 class="fw-bold m-0 text-warning">Slot Vault Control Center</h5>
-                        <small class="text-muted">Live 20-Minute Auto-Renewing Candidate Pool Holds</small>
-                    </div>
-                </div>
-                <div class="d-flex align-items-center gap-3">
-                    <span class="badge bg-success fs-6"><i class="fa-solid fa-rotate me-1"></i> 20-Min Auto-Renew Active</span>
-                    <button class="btn btn-outline-info btn-sm fw-bold" onclick="loadVaultData()">
-                        <i class="fa-solid fa-arrows-rotate me-1" id="vault-refresh-icon"></i> Refresh Vault
-                    </button>
-                    <a href="{{ route('hold') }}" class="btn btn-primary btn-sm fw-bold">
-                        <i class="fa-solid fa-plus me-1"></i> Hold More Slots
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Summary Metrics Cards -->
     <div class="col-md-4">
         <div class="card card-custom p-3 border-start border-4 border-primary">
@@ -71,7 +45,15 @@
         <div class="card card-custom p-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="fw-bold m-0"><i class="fa-solid fa-layer-group text-primary me-2"></i> Vaulted Mother Hashes</h5>
-                <span class="badge bg-secondary" id="vault-status-badge">Idle</span>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-outline-info btn-sm fw-bold" onclick="loadVaultData()">
+                        <i class="fa-solid fa-arrows-rotate me-1" id="vault-refresh-icon"></i> Refresh Vault
+                    </button>
+                    <a href="{{ route('hold') }}" class="btn btn-primary btn-sm fw-bold">
+                        <i class="fa-solid fa-plus me-1"></i> Hold More Slots
+                    </a>
+                    <span class="badge bg-secondary fs-6" id="vault-status-badge">Idle</span>
+                </div>
             </div>
 
             <div class="table-responsive">

@@ -9,9 +9,9 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\AutoLoginCheckerController;
 use App\Http\Controllers\IpManagerController;
 
-// Authentication Routes (Public)
+// Authentication Routes (Public with Brute-Force Rate Limiting)
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('login.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Application Protected Routes (Auth Required)
@@ -55,4 +55,5 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/settings/pool/add', [SettingsController::class, 'addPoolAccount'])->name('settings.pool.add');
     Route::post('/settings/pool/remove', [SettingsController::class, 'removePoolAccount'])->name('settings.pool.remove');
     Route::post('/settings/update', [SettingsController::class, 'updateSettings'])->name('settings.update');
+    Route::post('/settings/admin-credentials', [SettingsController::class, 'updateAdminCredentials'])->name('settings.admin_credentials');
 });

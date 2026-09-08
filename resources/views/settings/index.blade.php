@@ -98,8 +98,39 @@
         </div>
     </div>
 
-    <!-- Section 2: Telegram & Automation Default Configurations -->
+    <!-- Section 2: Software Admin Login Credentials & Automation Settings -->
     <div class="col-lg-5">
+        <div class="card card-custom p-4 mb-4">
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-user-shield text-danger me-2"></i> Software Admin Login Credentials</h5>
+            <form action="{{ route('settings.admin_credentials') }}" method="POST">
+                @csrf
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Admin Name</label>
+                    <input type="text" name="name" class="form-control" value="{{ Auth::user()->name ?? 'Super Admin' }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Login Email / Username</label>
+                    <input type="email" name="email" class="form-control font-monospace" value="{{ Auth::user()->email ?? 'admin@taqamul.com' }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-danger">Current Password (Required)</label>
+                    <input type="password" name="current_password" class="form-control" placeholder="Enter current password to authorize change" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">New Password</label>
+                    <input type="password" name="new_password" class="form-control" placeholder="Leave blank if not changing password">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Confirm New Password</label>
+                    <input type="password" name="new_password_confirmation" class="form-control" placeholder="Confirm new password">
+                </div>
+                <button type="submit" class="btn btn-danger w-100 fw-bold">
+                    <i class="fa-solid fa-key me-1"></i> Update Admin Credentials
+                </button>
+            </form>
+        </div>
+
+        <!-- Section 3: Telegram & Automation Default Configurations -->
         <div class="card card-custom p-4 mb-4">
             <h5 class="fw-bold mb-3"><i class="fa-paper-plane text-info me-2"></i> Telegram Notifications</h5>
             <form action="{{ route('settings.update') }}" method="POST">
