@@ -291,6 +291,9 @@ class HoldSlotController extends Controller
                 'Authorization' => str_starts_with($token, 'Bearer ') ? $token : "Bearer {$token}",
             ];
 
+            $resIdToRelease = null;
+            $tempIdToRelease = null;
+
             try {
                 // 1. Direct Mother Hash Reservation Probing
                 $res = Http::withoutVerifying()->withOptions($opts)->timeout(4)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
@@ -302,7 +305,7 @@ class HoldSlotController extends Controller
 
                 if ($res->successful()) {
                     $json = $res->json();
-                    $resId = $json['id'] ?? null;
+                    $resIdToRelease = $json['id'] ?? ($json['data']['id'] ?? ($json['exam_reservation_id'] ?? null));
                     $es = $json['exam_session'] ?? [];
                     $tc = $json['test_center'] ?? ($es['test_center'] ?? []);
 
@@ -315,12 +318,6 @@ class HoldSlotController extends Controller
 
                     $startRaw = $es['start_at_in_tc_time_zone'] ?? ($es['start_at'] ?? null);
                     $startTime = $startRaw ? date('h:i A', strtotime($startRaw)) : '09:30 AM';
-
-                    if ($resId) {
-                        try {
-                            Http::withoutVerifying()->withOptions($opts)->timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$resId}?locale=en");
-                        } catch (Exception $e) {}
-                    }
 
                     $probedResult = [
                         'center_name' => $cName ?: "{$city} Technical Training Centre",
@@ -359,7 +356,7 @@ class HoldSlotController extends Controller
 
                     if ($tempRes->successful()) {
                         $tempJson = $tempRes->json();
-                        $tempId = $tempJson['id'] ?? null;
+                        $tempIdToRelease = $tempJson['id'] ?? ($tempJson['data']['id'] ?? null);
                         $sessHash = $tempJson['exam_session_id'] ?? $motherHash;
 
                         $res2 = Http::withoutVerifying()->withOptions($opts)->timeout(4)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
@@ -369,10 +366,9 @@ class HoldSlotController extends Controller
                             'methodology' => 'in_person',
                         ]);
 
-                        $probedData = null;
                         if ($res2->successful()) {
                             $json2 = $res2->json();
-                            $resId2 = $json2['id'] ?? null;
+                            $resIdToRelease = $json2['id'] ?? ($json2['data']['id'] ?? ($json2['exam_reservation_id'] ?? null));
                             $es2 = $json2['exam_session'] ?? [];
                             $tc2 = $json2['test_center'] ?? ($es2['test_center'] ?? []);
 
@@ -384,13 +380,7 @@ class HoldSlotController extends Controller
                             $startRaw = $es2['start_at_in_tc_time_zone'] ?? ($es2['start_at'] ?? null);
                             $startTime = $startRaw ? date('h:i A', strtotime($startRaw)) : '09:30 AM';
 
-                            if ($resId2) {
-                                try {
-                                    Http::withoutVerifying()->withOptions($opts)->timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$resId2}?locale=en");
-                                } catch (Exception $e) {}
-                            }
-
-                            $probedData = [
+                            return [
                                 'center_name' => $cName ?: "{$city} Technical Training Centre",
                                 'center_address' => $cAddress,
                                 'available_seats' => $avail,
@@ -398,16 +388,6 @@ class HoldSlotController extends Controller
                                 'start_time' => $startTime,
                                 'city' => $tc2['city'] ?? ($tc2['test_center_city'] ?? $city),
                             ];
-                        }
-
-                        if ($tempId) {
-                            try {
-                                Http::withoutVerifying()->withOptions($opts)->timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats/{$tempId}?locale=en");
-                            } catch (Exception $e) {}
-                        }
-
-                        if ($probedData) {
-                            return $probedData;
                         }
                     }
                 }
@@ -425,7 +405,21 @@ class HoldSlotController extends Controller
                     ];
                 }
 
-            } catch (Exception $e) {}
+            } catch (Exception $e) {
+                Log::warning("[ProbeSessionLive] Exception during probe: " . $e->getMessage());
+            } finally {
+                // ALWAYS GUARANTEE IMMEDIATE RELEASE OF PROBE RESERVATION & TEMPORARY SEAT
+                if ($resIdToRelease) {
+                    try {
+                        Http::withoutVerifying()->withOptions($opts)->timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$resIdToRelease}?locale=en");
+                    } catch (Exception $e) {}
+                }
+                if ($tempIdToRelease) {
+                    try {
+                        Http::withoutVerifying()->withOptions($opts)->timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats/{$tempIdToRelease}?locale=en");
+                    } catch (Exception $e) {}
+                }
+            }
         }
 
         // 4. Fallback: Return stored DB hash entry if available
