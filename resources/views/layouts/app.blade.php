@@ -263,13 +263,24 @@
 <!-- Main Content Area -->
 <div class="main-wrapper">
     <!-- Top Header Navigation -->
-    <div class="top-navbar d-flex justify-content-between align-items-center">
+    <div class="top-navbar d-flex justify-content-between align-items-center position-relative">
+        <!-- Left Side: Toggle & Page Title -->
         <div class="d-flex align-items-center gap-2">
             <button type="button" class="btn btn-sm btn-light border shadow-sm px-2.5 py-1" id="sidebarToggleBtn" title="Toggle Sidebar">
                 <i class="fa-solid fa-bars fs-6 text-secondary"></i>
             </button>
             <h5 class="m-0 font-weight-bold text-dark">@yield('page_title', 'Dashboard')</h5>
         </div>
+
+        <!-- Center: Ultimate Slot Sniper Bot Badge -->
+        <div class="d-none d-md-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-dark text-white shadow-sm border border-secondary font-monospace" style="letter-spacing: 0.5px;">
+            <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 8px; height: 8px;"></span>
+            <i class="fa-solid fa-robot text-info fs-6"></i>
+            <span class="fw-bold text-light small text-uppercase">ULTIMATE SLOT SNIPER</span>
+            <span class="badge bg-primary text-white rounded-pill px-2 py-0.5" style="font-size: 0.7rem;">V2.0 AI</span>
+        </div>
+
+        <!-- Right Side: Clock & User Menu -->
         <div class="d-flex align-items-center gap-3">
             <span class="badge bg-light text-dark border">
                 <i class="fa-solid fa-clock text-primary me-1"></i> <span id="live-time"></span>
