@@ -58,22 +58,28 @@ fi
 # Ensure SQLite Database config in .env
 sudo sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/' $APP_DIR/.env
 sudo sed -i 's|^DB_DATABASE=.*|DB_DATABASE=/var/www/hold_my/database/database.sqlite|' $APP_DIR/.env
+sudo sed -i 's|^APP_URL=.*|APP_URL=http://200.234.41.119:9000|' $APP_DIR/.env
 
 # Create SQLite database file
 sudo touch $APP_DIR/database/database.sqlite
 sudo chmod 777 $APP_DIR/database/database.sqlite
-
-# Generate APP_KEY if missing
-sudo php artisan key:generate --force
 
 # Copy Taqamul Professions & Metadata to Storage
 echo "📋 Syncing Taqamul Professions & Metadata..."
 sudo mkdir -p $APP_DIR/storage/app
 sudo cp $APP_DIR/database/data/*.json $APP_DIR/storage/app/ 2>/dev/null || true
 
-# Install PHP Dependencies & Run Migrations
-echo "📦 Running composer install & artisan migrate..."
+# Install PHP Dependencies
+echo "📦 Running composer install..."
+cd $APP_DIR
 sudo composer install --no-dev --optimize-autoloader
+
+# Generate APP_KEY
+echo "🔑 Generating Application Key..."
+sudo php artisan key:generate --force
+
+# Run Migrations & Seed
+echo "🗄️ Running migrations & database seed..."
 sudo php artisan migrate --force
 sudo php artisan db:seed --force
 sudo php artisan config:clear
