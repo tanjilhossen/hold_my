@@ -96,13 +96,12 @@
                             <th>Exam Date & Time</th>
                             <th>Mother Hash</th>
                             <th>Locked Slots</th>
-                            <th>20-Min Expiry Timer</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="vault-grouped-table-body">
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-5">
+                            <td colspan="7" class="text-center text-muted py-5">
                                 <span class="spinner-border spinner-border-sm text-primary me-2" role="status"></span>
                                 Loading active holds from Slot Vault...
                             </td>
@@ -401,7 +400,7 @@
         if (vaultGroupsData.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="text-center text-muted py-5">
+                    <td colspan="7" class="text-center text-muted py-5">
                         <i class="fa-solid fa-box-archive fa-3x mb-3 text-secondary d-block"></i>
                         <h6>No active held slots in vault right now</h6>
                         <p class="small">Slots locked using <strong>Lock All Slots</strong> on the Hold Slot page will show up here.</p>
@@ -417,7 +416,7 @@
         if (data.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="text-center text-muted py-5">
+                    <td colspan="7" class="text-center text-muted py-5">
                         <i class="fa-solid fa-filter-circle-xmark fa-3x mb-3 text-secondary d-block"></i>
                         <h6>No locked slots match the selected filters</h6>
                         <p class="small">Try resetting your filters or select "All" from the dropdowns above.</p>
@@ -459,11 +458,6 @@
                             ? `<span class="badge bg-warning text-dark fs-6"><span class="spinner-border spinner-border-sm me-1" role="status"></span> Locking ${g.total_locked_slots > 0 ? g.total_locked_slots + ' Slots Locked' : 'In Progress...'}</span>`
                             : `<span class="badge bg-success fs-6"><i class="fa-solid fa-lock me-1"></i> ${g.total_locked_slots} Slots Locked</span>`
                         }
-                    </td>
-                    <td>
-                        <span class="font-monospace fw-bold text-warning timer-badge" data-seconds="${g.remaining_seconds}">
-                            <i class="fa-solid fa-stopwatch me-1"></i> ${formatTimer(g.remaining_seconds)}
-                        </span>
                     </td>
                     <td class="text-end">
                         <button class="btn btn-sm btn-info text-dark fw-bold me-1" onclick="openExpandedModal('${g.mother_hash}')">
