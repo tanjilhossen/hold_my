@@ -33,9 +33,9 @@ class SlotVaultController extends Controller
      */
     public function getVaultData()
     {
-        // Non-blocking background auto-renew trigger if any active hold is nearing expiry (<= 1 min remaining)
+        // Non-blocking background auto-renew trigger if any active hold has completed 20 minutes (expires_at <= now())
         $hasExpiring = SlotHold::where('status', 'active')
-            ->where('expires_at', '<=', now()->addMinutes(1))
+            ->where('expires_at', '<=', now())
             ->exists();
 
         if ($hasExpiring) {
@@ -114,6 +114,7 @@ class SlotVaultController extends Controller
                 'temp_seat_id' => $hold->status === 'pending_locking' ? 'Processing...' : $hold->temp_seat_id,
                 'status' => $hold->status,
                 'expires_at' => ($hold->status === 'active' && $hold->expires_at) ? $hold->expires_at->format('h:i:s A') : 'Queued',
+                'expires_at_iso' => ($hold->status === 'active' && $hold->expires_at) ? $hold->expires_at->toIso8601String() : null,
                 'remaining_seconds' => $slotRemaining,
                 'renew_count' => $hold->renew_count,
                 'seat_history' => $historyList,

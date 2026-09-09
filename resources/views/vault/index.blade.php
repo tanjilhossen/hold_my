@@ -493,12 +493,22 @@
         if (vaultTimerInterval) clearInterval(vaultTimerInterval);
         vaultTimerInterval = setInterval(() => {
             document.querySelectorAll('.timer-badge').forEach(el => {
-                let sec = parseInt(el.getAttribute('data-seconds') || '0');
-                if (sec > 0) {
-                    sec--;
-                    el.setAttribute('data-seconds', sec);
+                const iso = el.getAttribute('data-expires');
+                let sec = 0;
+                if (iso && iso !== 'null' && iso !== '') {
+                    const targetMs = new Date(iso).getTime();
+                    const nowMs = Date.now();
+                    sec = Math.max(0, Math.floor((targetMs - nowMs) / 1000));
+                } else {
+                    sec = parseInt(el.getAttribute('data-seconds') || '0');
+                    if (sec > 0) sec--;
                 }
-                el.innerHTML = `<i class="fa-solid fa-stopwatch me-1"></i> ${formatTimer(sec)}`;
+                el.setAttribute('data-seconds', sec);
+                if (sec <= 0) {
+                    el.innerHTML = `<i class="fa-solid fa-stopwatch me-1 text-danger"></i> <span class="text-danger">0m 00s</span>`;
+                } else {
+                    el.innerHTML = `<i class="fa-solid fa-stopwatch me-1"></i> ${formatTimer(sec)}`;
+                }
             });
         }, 1000);
     }
@@ -536,9 +546,11 @@
                 ? `<span class="badge bg-warning text-dark"><i class="fa-solid fa-spinner fa-spin me-1"></i> Reserving...</span>` 
                 : `<span class="badge bg-success text-white font-monospace fs-6 px-2 py-1"><i class="fa-solid fa-chair me-1"></i> ${seatDisplay}</span>`;
 
+            const expiresIso = s.expires_at_iso || '';
+
             const expiryText = isPending 
                 ? `<span class="badge bg-warning text-dark"><i class="fa-solid fa-hourglass-half fa-spin me-1"></i> Reserving in background...</span>` 
-                : `<span class="font-monospace fw-bold text-warning timer-badge" data-seconds="${s.remaining_seconds}">
+                : `<span class="font-monospace fw-bold text-warning timer-badge" data-expires="${expiresIso}" data-seconds="${s.remaining_seconds}">
                       <i class="fa-solid fa-stopwatch me-1"></i> ${formatTimer(s.remaining_seconds)}
                    </span>
                    <div class="text-muted small">(${s.expires_at})</div>`;
