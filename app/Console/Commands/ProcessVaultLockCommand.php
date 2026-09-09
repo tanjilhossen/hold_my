@@ -335,15 +335,54 @@ class ProcessVaultLockCommand extends Command
                     $totalCapacity = isset($sessionData['seats']) ? (int)$sessionData['seats'] : 10;
                     $actualAvailableAtStart = max(1, min($totalCapacity, $remSeats + $lockedCount));
 
-                    if ($actualAvailableAtStart < $requestedCount) {
+                    if ($actualAvailableAtStart != $requestedCount) {
                         $this->info("[VaultLockWorker] Live Seat Calibration: Taqamul payload reveals total actual available seats = {$actualAvailableAtStart} (Original requested: {$requestedCount}). Adjusting target count to {$actualAvailableAtStart}.");
                         $requestedCount = $actualAvailableAtStart;
 
-                        // Immediately delete excess pending_locking records beyond actualAvailableAtStart
+                        // Adjust pending_locking records to match actualAvailableAtStart
                         $neededPending = max(0, $requestedCount - $lockedCount);
                         $pendingHolds = SlotHold::where('mother_hash', $motherHash)->where('status', 'pending_locking')->get();
+
                         if ($pendingHolds->count() > $neededPending) {
                             $pendingHolds->slice($neededPending)->each->delete();
+                        } elseif ($neededPending > $pendingHolds->count()) {
+                            $extraNeeded = $neededPending - $pendingHolds->count();
+                            $checkerAcc = $tokenService->getSlotCheckerAccount();
+                            $checkerEmail = strtolower(trim($checkerAcc['email'] ?? 'pool__259939@wafidmaster.com'));
+
+                            $busyEmails = SlotHold::activeOrPending()
+                                ->pluck('held_with_email')
+                                ->map(fn($e) => strtolower(trim($e)))
+                                ->unique()
+                                ->toArray();
+
+                            $candidateAccounts = $tokenService->getPoolAccounts();
+                            foreach ($candidateAccounts as $acc) {
+                                if ($extraNeeded <= 0) break;
+                                $pEmail = strtolower(trim($acc['email'] ?? ''));
+                                if (empty($pEmail) || $pEmail === $checkerEmail || in_array($pEmail, $busyEmails) || in_array($pEmail, $processedEmails)) continue;
+
+                                SlotHold::updateOrCreate(
+                                    [
+                                        'mother_hash' => $motherHash,
+                                        'held_with_email' => $pEmail,
+                                    ],
+                                    [
+                                        'center_name' => $centerName,
+                                        'city' => $city,
+                                        'category_id' => $categoryId,
+                                        'category_name' => $categoryName,
+                                        'exam_date' => date('Y-m-d', strtotime($examDate)),
+                                        'temp_seat_id' => 'Locking...',
+                                        'status' => 'pending_locking',
+                                        'target_duration_minutes' => 20,
+                                        'expires_at' => now()->addMinutes(20),
+                                        'auto_renew_until' => now()->addHours(24),
+                                        'last_renewed_at' => now(),
+                                    ]
+                                );
+                                $extraNeeded--;
+                            }
                         }
                     }
                 }
