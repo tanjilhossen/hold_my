@@ -64,7 +64,7 @@
                         <option value="ALL">All Professions (All)</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small fw-bold text-dark mb-1"><i class="fa-solid fa-location-dot text-danger me-1"></i> City</label>
                     <select class="form-select form-select-sm border-secondary shadow-sm" id="vault-filter-city" onchange="applyVaultFilters()">
                         <option value="ALL">All Cities (All)</option>
@@ -76,9 +76,12 @@
                         <option value="ALL">All Exam Dates (All)</option>
                     </select>
                 </div>
-                <div class="col-md-3 d-flex align-items-end">
-                    <button class="btn btn-outline-secondary btn-sm w-100 fw-bold shadow-sm" onclick="resetVaultFilters()" title="Reset all active filters">
+                <div class="col-md-4 d-flex align-items-end gap-2">
+                    <button class="btn btn-outline-secondary btn-sm fw-bold shadow-sm flex-fill" onclick="resetVaultFilters()" title="Reset all active filters">
                         <i class="fa-solid fa-filter-circle-xmark me-1"></i> Reset Filters
+                    </button>
+                    <button class="btn btn-success btn-sm fw-bold shadow-sm flex-fill text-white" onclick="copySlotsSummary()" title="Copy slots summary text to clipboard">
+                        <i class="fa-solid fa-copy me-1"></i> Copy Slots
                     </button>
                 </div>
             </div>
@@ -307,6 +310,82 @@
         if (document.getElementById('vault-filter-city')) document.getElementById('vault-filter-city').value = 'ALL';
         if (document.getElementById('vault-filter-date')) document.getElementById('vault-filter-date').value = 'ALL';
         applyVaultFilters();
+    }
+
+    function copySlotsSummary() {
+        const filteredData = getFilteredVaultData();
+
+        if (!filteredData || filteredData.length === 0) {
+            alert('No active locked slots available to copy.');
+            return;
+        }
+
+        // Group by Center Name + City and Exam Date (summing across Exam Times)
+        const centerMap = {};
+        let totalSlotsOverall = 0;
+        const selectedProf = document.getElementById('vault-filter-profession')?.value;
+        const selectedCity = document.getElementById('vault-filter-city')?.value;
+
+        filteredData.forEach(g => {
+            const centerKey = `${g.center_name} (${g.city})`;
+            const dateStr = g.exam_date || 'N/A';
+            const count = g.total_locked_slots || 0;
+
+            totalSlotsOverall += count;
+
+            if (!centerMap[centerKey]) {
+                centerMap[centerKey] = {
+                    profession: g.category_name || 'Profession',
+                    dates: {}
+                };
+            }
+
+            if (!centerMap[centerKey].dates[dateStr]) {
+                centerMap[centerKey].dates[dateStr] = 0;
+            }
+
+            centerMap[centerKey].dates[dateStr] += count;
+        });
+
+        let msg = `📋 SLOT SNIPER - HELD SLOTS SUMMARY\n`;
+        msg += `====================================\n`;
+        if (selectedProf && selectedProf !== 'ALL') {
+            msg += `Profession: ${selectedProf}\n`;
+        }
+        if (selectedCity && selectedCity !== 'ALL') {
+            msg += `City: ${selectedCity}\n`;
+        }
+
+        Object.keys(centerMap).forEach(center => {
+            msg += `\n📍 ${center}\n`;
+            const datesObj = centerMap[center].dates;
+            Object.keys(datesObj).sort().forEach(d => {
+                msg += `  • Date: ${d} -> ${datesObj[d]} Slots\n`;
+            });
+        });
+
+        msg += `\n====================================\n`;
+        msg += `Total Held Slots: ${totalSlotsOverall} Slots`;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(msg).then(() => {
+                alert('Copied Slots Summary to Clipboard!\n\n' + msg);
+            }).catch(() => {
+                fallbackCopyText(msg);
+            });
+        } else {
+            fallbackCopyText(msg);
+        }
+    }
+
+    function fallbackCopyText(text) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        alert('Copied Slots Summary to Clipboard!\n\n' + text);
     }
 
     function updateMetrics(data) {
