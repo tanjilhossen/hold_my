@@ -34,17 +34,17 @@ class RenewVaultSlotsCommand extends Command
     {
         @set_time_limit(300);
 
-        // Find active holds expiring within the next 1 minute (19 minutes held uninterrupted)
+        // Find active holds where 20 minutes are fully completed (expires_at <= now())
         $expiringHolds = SlotHold::where('status', 'active')
-            ->where('expires_at', '<=', now()->addMinutes(1))
+            ->where('expires_at', '<=', now())
             ->get();
 
         if ($expiringHolds->isEmpty()) {
-            $this->info("[VaultAutoRenew] No active slot holds near 20-min expiry right now.");
+            $this->info("[VaultAutoRenew] No active slot holds at 20-min expiry right now.");
             return 0;
         }
 
-        $this->info("[VaultAutoRenew] Found " . $expiringHolds->count() . " active slot hold(s) nearing expiry. Initiating auto-renewal...");
+        $this->info("[VaultAutoRenew] Found " . $expiringHolds->count() . " active slot hold(s) at 20-min expiry. Re-locking fresh seats...");
 
         $renewedCount = 0;
         foreach ($expiringHolds as $hold) {
@@ -52,7 +52,7 @@ class RenewVaultSlotsCommand extends Command
             $motherHash = $hold->mother_hash;
             $categoryId = $hold->category_id ?: 159;
 
-            $this->info("[VaultAutoRenew] Renewing slot hold for candidate {$email} (Hash: " . substr($motherHash, 0, 12) . "...)...");
+            $this->info("[VaultAutoRenew] Re-locking fresh slot for candidate {$email} (Hash: " . substr($motherHash, 0, 12) . "...)...");
 
             // Fetch current token and password for candidate
             $token = $tokenService->getTokenForAccount($email);
@@ -81,17 +81,6 @@ class RenewVaultSlotsCommand extends Command
                 $langCode = 'TLRBB';
             }
 
-            $proxyCfg = \App\Models\Setting::getProxyConfig();
-            $httpOpts = [
-                'curl' => [
-                    CURLOPT_SSL_VERIFYPEER => false,
-                    CURLOPT_SSL_VERIFYHOST => 0,
-                ]
-            ];
-            if (!empty($proxyCfg['proxy'])) {
-                $httpOpts['proxy'] = $proxyCfg['proxy'];
-            }
-
             $headers = [
                 'Accept' => 'application/json',
                 'X-Tenant-Name' => 'svp-international',
@@ -116,7 +105,6 @@ class RenewVaultSlotsCommand extends Command
                 return Http::withoutVerifying()->timeout(10)->withOptions($baseOpts)->withHeaders($hdrs)->post($url, $payload);
             };
 
-            $oldSeatId = $hold->temp_seat_id;
             $resPayload = [
                 'exam_session_id' => $motherHash,
                 'occupation_id' => $occId,
@@ -125,7 +113,7 @@ class RenewVaultSlotsCommand extends Command
             ];
             $resUrl = "{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en";
 
-            // STEP 1: Attempt new reservation FIRST without releasing old seat to keep slot 100% held on Taqamul
+            // STEP 1: Directly lock fresh seat upon 20-min expiration (NO DELETE CALL)
             $res = $dispatchReservation($resUrl, $resPayload, $headers);
             $bodyStr = $res ? $res->body() : '';
             $status = $res ? $res->status() : 0;
@@ -147,22 +135,7 @@ class RenewVaultSlotsCommand extends Command
                 }
             }
 
-            // STEP 3: If Taqamul requires releasing old seat first (422), release old seat & re-reserve immediately
-            if (!$res || !$res->successful()) {
-                if (!empty($oldSeatId) && is_numeric($oldSeatId)) {
-                    try {
-                        $delOpts = ['curl' => [CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0]];
-                        Http::withoutVerifying()->timeout(4)->withOptions($delOpts)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$oldSeatId}?locale=en");
-                        Http::withoutVerifying()->timeout(3)->withOptions($delOpts)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats/{$oldSeatId}?locale=en");
-                    } catch (Exception $e) {}
-                }
-
-                $res = $dispatchReservation($resUrl, $resPayload, $headers);
-                $bodyStr = $res ? $res->body() : '';
-                $status = $res ? $res->status() : 0;
-            }
-
-            // STEP 4: Check Rate Limit (429)
+            // STEP 3: Check Rate Limit (429) -> Wait 60s & retry
             if ($status === 429 || str_contains(strtolower($bodyStr), 'rate limit')) {
                 $this->warn("[RATE_LIMIT]: Rate limit hit for {$email}. Waiting 60s before retry...");
                 sleep(60);
@@ -209,14 +182,6 @@ class RenewVaultSlotsCommand extends Command
             }
 
             $hold->update($updateFields);
-
-            // Clean up old seat ID ONLY AFTER new seat ID is saved in DB
-            if ($isSuccess && !empty($oldSeatId) && is_numeric($oldSeatId) && (string)$oldSeatId !== (string)$newResId) {
-                try {
-                    $delOpts = ['curl' => [CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0]];
-                    Http::withoutVerifying()->timeout(3)->withOptions($delOpts)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$oldSeatId}?locale=en");
-                } catch (Exception $e) {}
-            }
 
             if (!empty($newResId)) {
                 $hold->fresh()->recordSeatHistory((string)$newResId, (int)$updateFields['renew_count'], 'Auto-Renewed');
