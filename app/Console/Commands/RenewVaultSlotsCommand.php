@@ -34,9 +34,9 @@ class RenewVaultSlotsCommand extends Command
     {
         @set_time_limit(300);
 
-        // Find active holds expiring within the next 3 minutes
+        // Find active holds expiring within the next 1 minute (19 minutes held uninterrupted)
         $expiringHolds = SlotHold::where('status', 'active')
-            ->where('expires_at', '<=', now()->addMinutes(3))
+            ->where('expires_at', '<=', now()->addMinutes(1))
             ->get();
 
         if ($expiringHolds->isEmpty()) {
