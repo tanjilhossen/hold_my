@@ -826,12 +826,21 @@ class HoldSlotController extends Controller
                         $rawTotal = $sess['seats'] ?? ($sess['total_seats'] ?? null);
                         $totalSeats = is_numeric($rawTotal) ? (int)$rawTotal : 10;
 
-                        if (is_numeric($rawAvail)) {
+                        if (is_numeric($rawAvail) && (int)$rawAvail > 0) {
                             $probeAvail = (int)$rawAvail;
                         } else {
                             $probed = $this->probeSessionLive($motherHash, $categoryId, $apiCity);
                             if ($probed && isset($probed['available_seats'])) {
                                 $probeAvail = (int)$probed['available_seats'];
+                                if (!empty($probed['center_name'])) {
+                                    $centerName = $probed['center_name'];
+                                }
+                                if (!empty($probed['center_address'])) {
+                                    $centerAddress = $probed['center_address'];
+                                }
+                                if (!empty($probed['start_time'])) {
+                                    $startTime = $probed['start_time'];
+                                }
                             } else {
                                 $probeAvail = 0;
                             }
