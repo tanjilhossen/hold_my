@@ -56,6 +56,33 @@
                 </div>
             </div>
 
+            <!-- Dynamic Interactive Filter Controls Bar -->
+            <div class="row g-2 mb-3 p-3 bg-light rounded-3 border">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-dark mb-1"><i class="fa-solid fa-briefcase text-primary me-1"></i> Profession</label>
+                    <select class="form-select form-select-sm border-secondary shadow-sm" id="vault-filter-profession" onchange="applyVaultFilters()">
+                        <option value="ALL">All Professions (All)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-dark mb-1"><i class="fa-solid fa-location-dot text-danger me-1"></i> City</label>
+                    <select class="form-select form-select-sm border-secondary shadow-sm" id="vault-filter-city" onchange="applyVaultFilters()">
+                        <option value="ALL">All Cities (All)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-dark mb-1"><i class="fa-solid fa-calendar text-info me-1"></i> Exam Date</label>
+                    <select class="form-select form-select-sm border-secondary shadow-sm" id="vault-filter-date" onchange="applyVaultFilters()">
+                        <option value="ALL">All Exam Dates (All)</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-outline-secondary btn-sm w-100 fw-bold shadow-sm" onclick="resetVaultFilters()" title="Reset all active filters">
+                        <i class="fa-solid fa-filter-circle-xmark me-1"></i> Reset Filters
+                    </button>
+                </div>
+            </div>
+
             <div class="table-responsive">
                 <table class="table table-hover align-middle border">
                     <thead class="table-light">
@@ -196,6 +223,7 @@
                 if (icon) icon.classList.remove('fa-spin');
                 if (data.success) {
                     vaultGroupsData = data.groups || [];
+                    updateDynamicFilterOptions();
                     renderVaultTable();
                     updateMetrics(data);
                 }
@@ -205,14 +233,92 @@
             });
     }
 
+    function updateDynamicFilterOptions() {
+        const profSelect = document.getElementById('vault-filter-profession');
+        const citySelect = document.getElementById('vault-filter-city');
+        const dateSelect = document.getElementById('vault-filter-date');
+
+        if (!profSelect || !citySelect || !dateSelect) return;
+
+        const currentProf = profSelect.value || 'ALL';
+        const currentCity = citySelect.value || 'ALL';
+        const currentDate = dateSelect.value || 'ALL';
+
+        const professions = new Set();
+        const cities = new Set();
+        const dates = new Set();
+
+        vaultGroupsData.forEach(g => {
+            if (g.category_name) professions.add(g.category_name);
+            if (g.city) cities.add(g.city);
+            if (g.exam_date) dates.add(g.exam_date);
+        });
+
+        // 1. Profession options
+        let profHtml = '<option value="ALL">All Professions (All)</option>';
+        Array.from(professions).sort().forEach(p => {
+            const sel = p === currentProf ? 'selected' : '';
+            profHtml += `<option value="${p}" ${sel}>${p}</option>`;
+        });
+        profSelect.innerHTML = profHtml;
+
+        // 2. City options
+        let cityHtml = '<option value="ALL">All Cities (All)</option>';
+        Array.from(cities).sort().forEach(c => {
+            const sel = c === currentCity ? 'selected' : '';
+            cityHtml += `<option value="${c}" ${sel}>${c}</option>`;
+        });
+        citySelect.innerHTML = cityHtml;
+
+        // 3. Exam Date options
+        let dateHtml = '<option value="ALL">All Exam Dates (All)</option>';
+        Array.from(dates).sort().forEach(d => {
+            const sel = d === currentDate ? 'selected' : '';
+            dateHtml += `<option value="${d}" ${sel}>${d}</option>`;
+        });
+        dateSelect.innerHTML = dateHtml;
+    }
+
+    function getFilteredVaultData() {
+        const profSelect = document.getElementById('vault-filter-profession');
+        const citySelect = document.getElementById('vault-filter-city');
+        const dateSelect = document.getElementById('vault-filter-date');
+
+        if (!profSelect || !citySelect || !dateSelect) return vaultGroupsData;
+
+        const selectedProf = profSelect.value;
+        const selectedCity = citySelect.value;
+        const selectedDate = dateSelect.value;
+
+        return vaultGroupsData.filter(g => {
+            const matchProf = (selectedProf === 'ALL' || (g.category_name || '') === selectedProf);
+            const matchCity = (selectedCity === 'ALL' || (g.city || '') === selectedCity);
+            const matchDate = (selectedDate === 'ALL' || (g.exam_date || '') === selectedDate);
+            return matchProf && matchCity && matchDate;
+        });
+    }
+
+    function applyVaultFilters() {
+        renderVaultTable();
+    }
+
+    function resetVaultFilters() {
+        if (document.getElementById('vault-filter-profession')) document.getElementById('vault-filter-profession').value = 'ALL';
+        if (document.getElementById('vault-filter-city')) document.getElementById('vault-filter-city').value = 'ALL';
+        if (document.getElementById('vault-filter-date')) document.getElementById('vault-filter-date').value = 'ALL';
+        applyVaultFilters();
+    }
+
     function updateMetrics(data) {
         document.getElementById('stat-active-hashes').innerText = data.count || 0;
         document.getElementById('stat-total-slots').innerText = data.total_active_holds || 0;
         document.getElementById('stat-active-accounts').innerText = data.total_active_holds || 0;
     }
 
-    function renderVaultTable() {
+    function renderVaultTable(dataToRender = null) {
+        const data = dataToRender !== null ? dataToRender : getFilteredVaultData();
         const tbody = document.getElementById('vault-grouped-table-body');
+
         if (vaultGroupsData.length === 0) {
             tbody.innerHTML = `
                 <tr>
@@ -229,8 +335,24 @@
             return;
         }
 
+        if (data.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-5">
+                        <i class="fa-solid fa-filter-circle-xmark fa-3x mb-3 text-secondary d-block"></i>
+                        <h6>No locked slots match the selected filters</h6>
+                        <p class="small">Try resetting your filters or select "All" from the dropdowns above.</p>
+                        <button onclick="resetVaultFilters()" class="btn btn-outline-primary btn-sm mt-1 fw-bold">
+                            <i class="fa-solid fa-rotate-left me-1"></i> Reset Filters
+                        </button>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
         tbody.innerHTML = '';
-        vaultGroupsData.forEach((g, idx) => {
+        data.forEach((g, idx) => {
             const shortHash = g.mother_hash.substring(0, 16) + '...';
             
             tbody.innerHTML += `
