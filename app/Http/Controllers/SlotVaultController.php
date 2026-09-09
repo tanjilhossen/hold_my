@@ -46,6 +46,11 @@ class SlotVaultController extends Controller
             }
         }
 
+        // Auto-clean stale pending_locking records older than 2 minutes
+        SlotHold::where('status', 'pending_locking')
+            ->where('created_at', '<=', now()->subMinutes(2))
+            ->delete();
+
         $allHolds = SlotHold::activeOrPending()->orderBy('created_at', 'desc')->get();
 
         $grouped = [];

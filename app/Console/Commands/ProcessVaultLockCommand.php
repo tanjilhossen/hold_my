@@ -281,17 +281,12 @@ class ProcessVaultLockCommand extends Command
                     break;
                 }
 
-                if ($status === 529 || str_contains(strtolower($bodyStr), 'something went wrong')) {
-                    $consecutive529Count++;
-                    if ($consecutive529Count >= 3) {
-                        $this->error("[VaultLockWorker] Session hash {$motherHash} is FULL or EXPIRED on Taqamul API (529 returned). Stopping locking and cleaning up pending records.");
-                        SlotHold::where('mother_hash', $motherHash)
-                            ->where('status', 'pending_locking')
-                            ->delete();
-                        break;
-                    }
-                } else {
-                    $consecutive529Count = 0;
+                if ($status === 529 || str_contains(strtolower($bodyStr), 'something went wrong') || str_contains(strtolower($bodyStr), 'full') || str_contains(strtolower($bodyStr), 'no seats')) {
+                    $this->error("[VaultLockWorker] Session hash {$motherHash} is FULL or EXPIRED on Taqamul API. Stopping locking and cleaning up pending records.");
+                    SlotHold::where('mother_hash', $motherHash)
+                        ->where('status', 'pending_locking')
+                        ->delete();
+                    break;
                 }
 
                 $this->warn("[VaultLockWorker] Failed to reserve seat for candidate {$email}. Cleaning up pending record & switching to next candidate account...");
