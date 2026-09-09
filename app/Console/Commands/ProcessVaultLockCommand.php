@@ -305,7 +305,7 @@ class ProcessVaultLockCommand extends Command
             $consecutive529Count = 0;
 
             // STEP 6: Save or Update Active Hold in Slot Vault DB with 20-minute expiry
-            SlotHold::updateOrCreate(
+            $activeHold = SlotHold::updateOrCreate(
                 [
                     'mother_hash' => $motherHash,
                     'held_with_email' => $email,
@@ -324,6 +324,10 @@ class ProcessVaultLockCommand extends Command
                     'last_renewed_at' => now(),
                 ]
             );
+
+            if ($activeHold) {
+                $activeHold->recordSeatHistory((string)$resId, max(1, $activeHold->renew_count), 'Initial Hold');
+            }
 
             $lockedCount++;
             $this->info("[VaultLockWorker] Successfully locked slot #" . $lockedCount . " / {$requestedCount} for candidate {$email} (Reservation ID: {$resId}).");

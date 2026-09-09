@@ -91,6 +91,18 @@ class SlotVaultController extends Controller
                 $grouped[$hash]['total_locked_slots']++;
             }
 
+            $historyList = $hold->seat_history ?: [];
+            if (empty($historyList) && !empty($hold->temp_seat_id)) {
+                $historyList = [
+                    [
+                        'renew_count' => max(1, $hold->renew_count),
+                        'seat_id' => (string)$hold->temp_seat_id,
+                        'timestamp' => $hold->created_at ? $hold->created_at->format('Y-m-d h:i:s A') : now()->format('Y-m-d h:i:s A'),
+                        'type' => 'Initial Hold'
+                    ]
+                ];
+            }
+
             $grouped[$hash]['slots'][] = [
                 'id' => $hold->id,
                 'email' => $hold->held_with_email,
@@ -99,6 +111,7 @@ class SlotVaultController extends Controller
                 'expires_at' => ($hold->status === 'active' && $hold->expires_at) ? $hold->expires_at->format('h:i:s A') : 'Queued',
                 'remaining_seconds' => $slotRemaining,
                 'renew_count' => $hold->renew_count,
+                'seat_history' => $historyList,
             ];
         }
 

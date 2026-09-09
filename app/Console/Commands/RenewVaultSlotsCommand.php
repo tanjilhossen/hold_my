@@ -197,6 +197,10 @@ class RenewVaultSlotsCommand extends Command
 
             $hold->update($updateFields);
 
+            if ($isSuccess && !empty($newResId)) {
+                $hold->fresh()->recordSeatHistory((string)$newResId, (int)$updateFields['renew_count'], 'Auto-Renewed');
+            }
+
             $renewedCount++;
             $this->info("[VaultAutoRenew] Validated & renewed slot for {$email} (Seat ID: {$newResId}, Center: " . ($newCenterName ?: $hold->center_name) . ", Renew Count: {$hold->renew_count}, Expires: " . $updateFields['expires_at']->format('h:i:s A') . ").");
         }

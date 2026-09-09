@@ -129,6 +129,48 @@
         </div>
     </div>
 </div>
+
+<!-- ========================================================================= -->
+<!-- 🕒 SEAT RENEWAL HISTORY TIMELINE MODAL -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="seatHistoryModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark text-white border border-info shadow-lg">
+            <div class="modal-header border-secondary">
+                <div>
+                    <h5 class="modal-title font-weight-bold text-info" id="historyModalCandidateTitle">
+                        <i class="fa-solid fa-clock-rotate-left me-2"></i> Seat ID Renewal History
+                    </h5>
+                    <small class="text-muted" id="historyModalCandidateEmail">Candidate: ---</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle border border-secondary mb-0">
+                        <thead class="table-secondary text-dark">
+                            <tr>
+                                <th># Cycle</th>
+                                <th>Reservation / Seat ID</th>
+                                <th>Event Type</th>
+                                <th>Timestamp</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-modal-table-body">
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">No history records available</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('scripts')
@@ -310,17 +352,76 @@
                 ? `<span class="badge bg-dark border border-secondary text-warning"><i class="fa-solid fa-spinner fa-spin me-1"></i> Reserving Seat...</span>`
                 : `<button class="btn btn-sm btn-outline-danger" onclick="releaseSingleSlot(${s.id})"><i class="fa-solid fa-xmark me-1"></i> Release Slot</button>`;
 
+            const historyData = s.seat_history || [];
+            const historyJsonStr = JSON.stringify(historyData).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+            const renewBadge = `<button type="button" class="btn btn-sm btn-outline-info rounded-pill px-2.5 py-0.5 fw-bold shadow-sm" onclick="showSeatHistory('${s.email}', ${historyJsonStr}, '${s.temp_seat_id}')" title="Click to view Seat ID renewal history"><i class="fa-solid fa-clock-rotate-left me-1"></i> ${s.renew_count} renewals</button>`;
+
             tbody.innerHTML += `
                 <tr>
                     <td class="fw-bold">${idx + 1}</td>
                     <td><code class="fs-6 text-info">${s.email}</code></td>
                     <td>${seatIdBadge}</td>
                     <td>${expiryText}</td>
-                    <td><span class="badge bg-info fs-7"><i class="fa-solid fa-rotate me-1"></i> ${s.renew_count} renewals</span></td>
+                    <td>${renewBadge}</td>
                     <td class="text-end">${actionBtn}</td>
                 </tr>
             `;
         });
+    }
+
+    function showSeatHistory(email, history, currentSeatId) {
+        document.getElementById('historyModalCandidateEmail').innerText = `Candidate Account: ${email}`;
+        const tbody = document.getElementById('history-modal-table-body');
+        tbody.innerHTML = '';
+
+        if (!history || history.length === 0) {
+            if (currentSeatId && !currentSeatId.startsWith('VAULT_') && !currentSeatId.startsWith('PENDING_')) {
+                history = [{
+                    renew_count: 1,
+                    seat_id: currentSeatId,
+                    timestamp: 'Initial Lock',
+                    type: 'Initial Hold'
+                }];
+            } else {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">No renewal history entries recorded yet</td></tr>`;
+                const hModal = new bootstrap.Modal(document.getElementById('seatHistoryModal'));
+                hModal.show();
+                return;
+            }
+        }
+
+        history.forEach((item, idx) => {
+            const isLatest = idx === history.length - 1;
+            const cycleNum = item.renew_count || (idx + 1);
+            const typeBadge = item.type === 'Initial Hold' 
+                ? `<span class="badge bg-primary text-white"><i class="fa-solid fa-play me-1"></i> Initial Hold</span>` 
+                : `<span class="badge bg-success text-white"><i class="fa-solid fa-rotate me-1"></i> Auto-Renewed</span>`;
+
+            const seatBadge = isLatest
+                ? `<span class="badge bg-success font-monospace fs-6 px-2 py-1"><i class="fa-solid fa-chair me-1"></i> ID: ${item.seat_id} (Current)</span>`
+                : `<code class="bg-secondary text-white font-monospace px-2 py-1 rounded fs-6">ID: ${item.seat_id}</code>`;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td class="fw-bold text-warning">Cycle #${cycleNum}</td>
+                    <td>${seatBadge}</td>
+                    <td>${typeBadge}</td>
+                    <td class="small text-muted"><i class="fa-solid fa-clock me-1 text-info"></i> ${item.timestamp || 'N/A'}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-light py-0.5 px-2" onclick="navigator.clipboard.writeText('${item.seat_id}'); alert('Copied Seat ID: ${item.seat_id}');">
+                            <i class="fa-solid fa-copy me-1"></i> Copy ID
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        const hModalEl = document.getElementById('seatHistoryModal');
+        let hModal = bootstrap.Modal.getInstance(hModalEl);
+        if (!hModal) {
+            hModal = new bootstrap.Modal(hModalEl);
+        }
+        hModal.show();
     }
 
     function openExpandedModal(hash) {
