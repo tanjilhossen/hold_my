@@ -566,10 +566,6 @@
                 ? `<span class="badge bg-success fs-6"><i class="fa-solid fa-chair me-1"></i> ${c.available_seats} / ${c.total_seats} Available</span>` 
                 : `<span class="badge bg-danger fs-6"><i class="fa-solid fa-circle-xmark me-1"></i> 0 / ${c.total_seats} Full</span>`;
 
-            const vaultBadge = (c.is_held_by_us && c.held_count > 0)
-                ? `<div class="mt-1"><span class="badge bg-info text-dark"><i class="fa-solid fa-vault me-1"></i> ${c.held_count} Held in Slot Vault</span></div>`
-                : '';
-
             const actionBtn = c.available_seats > 0
                 ? `<button class="btn btn-sm btn-warning text-dark fw-bold shadow-sm" onclick="lockAllSlotsForHash('${c.mother_hash}', ${c.available_seats}, '${c.center_name.replace(/'/g, "\\'")}', '${c.city}', '${c.exam_date}', '${c.start_time}', ${c.category_id}, '${(c.category_name || 'Profession').replace(/'/g, "\\'")}', this)">
                        <i class="fa-solid fa-lock me-1"></i> Lock All Slots (${c.available_seats})
@@ -600,7 +596,6 @@
                     </td>
                     <td>
                         ${seatBadge}
-                        ${vaultBadge}
                     </td>
                     <td>
                         ${actionBtn}

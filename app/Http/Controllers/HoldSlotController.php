@@ -898,7 +898,7 @@ class HoldSlotController extends Controller
                         }
 
                         $isHeldByUs = $heldCount > 0;
-                        $availSeats = max(0, $probeAvail - $heldCount);
+                        $availSeats = $probeAvail;
 
                         // 5. Update SlotHash Vault DB with fresh live count & center metadata
                         try {
