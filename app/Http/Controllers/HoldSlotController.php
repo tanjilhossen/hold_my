@@ -238,7 +238,7 @@ class HoldSlotController extends Controller
      * Probe a single session live via candidate pool account to extract EXACT available seats & center metadata.
      * Reservation is immediately released after capturing payload.
      */
-    protected function probeSessionLive(string $motherHash, int $categoryId, string $city): ?array
+    protected function probeSessionLive(string $motherHash, int $categoryId, string $city, ?string $scanToken = null): ?array
     {
         [$occId, $langCode] = $this->getOccupationAndLanguageForCategory($categoryId);
 
@@ -256,10 +256,12 @@ class HoldSlotController extends Controller
             $opts['proxy'] = $proxyCfg['proxy'];
         }
 
-        $accounts = $this->tokenService->getPoolAccounts();
         $tokensToTry = [];
+        if (!empty($scanToken)) {
+            $tokensToTry[] = $scanToken;
+        }
 
-        // Collect available account tokens
+        $accounts = $this->tokenService->getPoolAccounts();
         $busyEmails = SlotHold::activeOrPending()
             ->pluck('held_with_email')
             ->map(fn($e) => strtolower(trim($e)))
@@ -269,16 +271,15 @@ class HoldSlotController extends Controller
             $email = strtolower(trim($acc['email'] ?? ''));
             if (empty($email) || in_array($email, $busyEmails)) continue;
             $token = $this->tokenService->getTokenForAccount($email);
-            if (!empty($token)) {
+            if (!empty($token) && !in_array($token, $tokensToTry)) {
                 $tokensToTry[] = $token;
-                break; // Try 1 token for speed
             }
         }
 
         // Fallback to round robin token if pool tokens empty
         if (empty($tokensToTry)) {
             $rrToken = $this->tokenService->getValidRoundRobinToken();
-            if (!empty($rrToken)) {
+            if (!empty($rrToken) && !in_array($rrToken, $tokensToTry)) {
                 $tokensToTry[] = $rrToken;
             }
         }
@@ -302,6 +303,13 @@ class HoldSlotController extends Controller
                     'language_code' => $langCode,
                     'methodology' => 'in_person',
                 ]);
+
+                if ($res->status() === 401) {
+                    if (!empty($token)) {
+                        $this->tokenService->markTokenExpired($token);
+                    }
+                    continue;
+                }
 
                 if ($res->successful()) {
                     $json = $res->json();
@@ -829,7 +837,7 @@ class HoldSlotController extends Controller
                         if (is_numeric($rawAvail) && (int)$rawAvail > 0) {
                             $probeAvail = (int)$rawAvail;
                         } else {
-                            $probed = $this->probeSessionLive($motherHash, $categoryId, $apiCity);
+                            $probed = $this->probeSessionLive($motherHash, $categoryId, $apiCity, $token);
                             if ($probed && isset($probed['available_seats'])) {
                                 $probeAvail = (int)$probed['available_seats'];
                                 if (!empty($probed['center_name'])) {
@@ -847,10 +855,10 @@ class HoldSlotController extends Controller
                         }
 
                         if ($dbHash) {
-                            if (!empty($dbHash->start_time)) {
+                            if (empty($startTime) && !empty($dbHash->start_time)) {
                                 $startTime = $dbHash->start_time;
                             }
-                            if (!empty($dbHash->center_name)) {
+                            if (empty($centerName) && !empty($dbHash->center_name)) {
                                 $centerName = $dbHash->center_name;
                             }
                         }
