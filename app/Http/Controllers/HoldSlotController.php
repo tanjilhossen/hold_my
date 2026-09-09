@@ -578,13 +578,25 @@ class HoldSlotController extends Controller
                 } else {
                     $res = $req->get($url, $params);
                 }
+
+                if ($res && in_array($res->status(), [502, 503, 504]) && !empty($opts['proxy'])) {
+                    Log::warning("[TaqamulRequest] Proxy returned HTTP {$res->status()} on attempt {$attempt}. Retrying directly without proxy...");
+                    unset($opts['proxy']);
+                    continue;
+                }
+
                 return $res;
             } catch (Exception $e) {
+                if (!empty($opts['proxy'])) {
+                    Log::warning("[TaqamulRequest] Proxy error ({$e->getMessage()}) on attempt {$attempt}. Retrying directly without proxy...");
+                    unset($opts['proxy']);
+                    continue;
+                }
                 if ($attempt >= 3) {
                     Log::warning("[TaqamulRequest] Failed after 3 attempts ({$url}): " . $e->getMessage());
                     throw $e;
                 }
-                usleep(300000); // 300ms delay before retry
+                usleep(200000); // 200ms delay before retry
             }
         }
         return null;
