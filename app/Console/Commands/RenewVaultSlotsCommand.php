@@ -131,10 +131,15 @@ class RenewVaultSlotsCommand extends Command
                         $proxyOpts = array_merge($baseOpts, ['proxy' => $proxyCfg['proxy']]);
                         try {
                             $res = Http::withoutVerifying()->timeout(10)->withOptions($proxyOpts)->withHeaders($hdrs)->post($url, $payload);
-                            if ($res->status() < 500) {
-                                return $res;
+                            if ($res) {
+                                \App\Models\Setting::checkAndHandleProxyFailure($res->status(), $res->body());
+                                if ($res->status() < 500) {
+                                    return $res;
+                                }
                             }
-                        } catch (Exception $e) {}
+                        } catch (Exception $e) {
+                            \App\Models\Setting::checkAndHandleProxyFailure(0, '', $e->getMessage());
+                        }
                     }
 
                     return Http::withoutVerifying()->timeout(10)->withOptions($baseOpts)->withHeaders($hdrs)->post($url, $payload);

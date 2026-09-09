@@ -453,7 +453,11 @@ class TaqamulTokenService
                 $loginRes = null;
                 try {
                     $loginRes = Http::withoutVerifying()->timeout(15)->withHeaders($loginHeaders)->withOptions($opts)->post("{$this->apiBaseUrl}/api/v1/sessions/login?locale=en", $loginPayload);
+                    if ($loginRes) {
+                        Setting::checkAndHandleProxyFailure($loginRes->status(), $loginRes->body());
+                    }
                 } catch (\Exception $e) {
+                    Setting::checkAndHandleProxyFailure(0, '', $e->getMessage());
                     if (isset($opts['proxy'])) {
                         $logStep("[Token Bot ⚠️] Proxy login failed (" . $e->getMessage() . "). Retrying login directly without proxy...");
                         $loginRes = Http::withoutVerifying()->timeout(15)->withHeaders($loginHeaders)->withOptions($directOpts)->post("{$this->apiBaseUrl}/api/v1/sessions/login?locale=en", $loginPayload);

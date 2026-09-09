@@ -278,10 +278,15 @@ class HoldSlotController extends Controller
             if (!empty($opts['proxy'])) {
                 try {
                     $res = Http::withoutVerifying()->withOptions($opts)->timeout(3)->withHeaders($hdrs)->post($url, $payload);
-                    if ($res && $res->status() < 500) {
-                        return $res;
+                    if ($res) {
+                        Setting::checkAndHandleProxyFailure($res->status(), $res->body());
+                        if ($res->status() < 500) {
+                            return $res;
+                        }
                     }
-                } catch (Exception $e) {}
+                } catch (Exception $e) {
+                    Setting::checkAndHandleProxyFailure(0, '', $e->getMessage());
+                }
             }
             $baseOpts = ['curl' => [CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0]];
             return Http::withoutVerifying()->withOptions($baseOpts)->timeout(3)->withHeaders($hdrs)->post($url, $payload);
@@ -605,14 +610,17 @@ class HoldSlotController extends Controller
                     $res = $req->get($url, $params);
                 }
 
-                if ($res && in_array($res->status(), [502, 503, 504]) && !empty($opts['proxy'])) {
-                    Log::warning("[TaqamulRequest] Proxy returned HTTP {$res->status()} on attempt {$attempt}. Retrying directly without proxy...");
-                    unset($opts['proxy']);
-                    continue;
+                if ($res) {
+                    Setting::checkAndHandleProxyFailure($res->status(), $res->body());
+                    if (in_array($res->status(), [407, 502, 503, 504]) && !empty($opts['proxy'])) {
+                        Log::warning("[TaqamulRequest] Proxy returned HTTP {$res->status()} on attempt {$attempt}. Retrying directly without proxy...");
+                        unset($opts['proxy']);
+                        continue;
+                    }
+                    return $res;
                 }
-
-                return $res;
             } catch (Exception $e) {
+                Setting::checkAndHandleProxyFailure(0, '', $e->getMessage());
                 if (!empty($opts['proxy'])) {
                     Log::warning("[TaqamulRequest] Proxy error ({$e->getMessage()}) on attempt {$attempt}. Retrying directly without proxy...");
                     unset($opts['proxy']);

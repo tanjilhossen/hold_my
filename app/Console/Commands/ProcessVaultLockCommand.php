@@ -149,11 +149,15 @@ class ProcessVaultLockCommand extends Command
                     $proxyOpts = array_merge($baseOpts, ['proxy' => $proxyCfg['proxy']]);
                     try {
                         $res = Http::withoutVerifying()->timeout(10)->withOptions($proxyOpts)->withHeaders($hdrs)->post($url, $payload);
-                        if ($res->status() < 500) {
-                            return $res;
+                        if ($res) {
+                            Setting::checkAndHandleProxyFailure($res->status(), $res->body());
+                            if ($res->status() < 500) {
+                                return $res;
+                            }
                         }
                         $this->warn("[VaultLockWorker] Proxy request returned HTTP {$res->status()}. Falling back to direct HTTP connection without proxy...");
                     } catch (\Exception $e) {
+                        Setting::checkAndHandleProxyFailure(0, '', $e->getMessage());
                         $this->warn("[VaultLockWorker] Proxy request failed (" . $e->getMessage() . "). Falling back to direct HTTP connection without proxy...");
                     }
                 }

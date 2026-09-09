@@ -14,11 +14,14 @@ class IpManagerController extends Controller
     public function index()
     {
         $proxyEnabled = Setting::get('proxy_enabled', '1');
-        $proxyHost = Setting::get('proxy_host', 'bd.decodo.com');
-        $proxyPort = Setting::get('proxy_port', '41001');
-        $proxyUsername = Setting::get('proxy_username', 'spua00a572');
-        $proxyPassword = Setting::get('proxy_password', 'o3PbblJqa5C6~vzo9M');
         $proxyTestUrl = Setting::get('proxy_test_url', 'ip.decodo.com/json');
+        $proxyAccounts = Setting::getProxyAccounts();
+
+        $activeAccount = Setting::getActiveProxyAccount();
+        $proxyHost = $activeAccount['host'] ?? Setting::get('proxy_host', 'bd.decodo.com');
+        $proxyPort = $activeAccount['port'] ?? Setting::get('proxy_port', '41001');
+        $proxyUsername = $activeAccount['username'] ?? Setting::get('proxy_username', 'spua00a572');
+        $proxyPassword = $activeAccount['password'] ?? Setting::get('proxy_password', 'o3PbblJqa5C6~vzo9M');
 
         return view('ip_manager.index', compact(
             'proxyEnabled',
@@ -26,37 +29,173 @@ class IpManagerController extends Controller
             'proxyPort',
             'proxyUsername',
             'proxyPassword',
-            'proxyTestUrl'
+            'proxyTestUrl',
+            'proxyAccounts'
         ));
     }
 
     /**
-     * Update Proxy Configurations
+     * Update Global Proxy Settings
      */
     public function update(Request $request)
     {
-        $request->validate([
-            'proxy_host' => 'required|string',
-            'proxy_port' => 'required|string',
-            'proxy_username' => 'nullable|string',
-            'proxy_password' => 'nullable|string',
-            'proxy_test_url' => 'nullable|string',
-        ]);
-
         Setting::set('proxy_enabled', $request->has('proxy_enabled') ? '1' : '0');
-        Setting::set('proxy_host', trim($request->input('proxy_host')));
-        Setting::set('proxy_port', trim($request->input('proxy_port')));
-        Setting::set('proxy_username', trim($request->input('proxy_username')));
-        Setting::set('proxy_password', trim($request->input('proxy_password')));
-        Setting::set('proxy_test_url', trim($request->input('proxy_test_url', 'ip.decodo.com/json')));
+        if ($request->has('proxy_test_url')) {
+            Setting::set('proxy_test_url', trim($request->input('proxy_test_url', 'ip.decodo.com/json')));
+        }
 
-        return redirect()->back()->with('success', 'Proxy configurations updated successfully.');
+        return redirect()->back()->with('success', 'Proxy global settings updated successfully.');
     }
 
     /**
-     * Test Proxy Connection via cURL to target endpoint (e.g. ip.decodo.com/json)
+     * Store new Decodo Proxy Account
      */
-    public function testConnection(Request $request)
+    public function storeAccount(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:100',
+            'host' => 'required|string',
+            'port' => 'required|string',
+            'username' => 'required|string',
+            'password' => 'required|string',
+            'status' => 'nullable|string|in:active,idle',
+        ]);
+
+        $accounts = Setting::getProxyAccounts();
+        $newId = 'decodo_' . uniqid();
+        $desiredStatus = $request->input('status', 'idle');
+
+        if ($desiredStatus === 'active') {
+            foreach ($accounts as &$acc) {
+                if (($acc['status'] ?? '') === 'active') {
+                    $acc['status'] = 'idle';
+                }
+            }
+            unset($acc);
+        }
+
+        $newAccount = [
+            'id' => $newId,
+            'name' => trim($request->input('name')),
+            'host' => trim($request->input('host')),
+            'port' => trim($request->input('port')),
+            'username' => trim($request->input('username')),
+            'password' => trim($request->input('password')),
+            'status' => $desiredStatus,
+            'exhausted_at' => null,
+            'exhausted_reason' => null,
+            'notes' => trim($request->input('notes', '')),
+        ];
+
+        $accounts[] = $newAccount;
+        Setting::saveProxyAccounts($accounts);
+
+        if ($desiredStatus === 'active') {
+            Setting::activateProxyAccount($newId);
+        }
+
+        return redirect()->back()->with('success', "Decodo proxy account '{$newAccount['name']}' added successfully!");
+    }
+
+    /**
+     * Update existing Decodo Proxy Account
+     */
+    public function updateAccount(Request $request, string $id)
+    {
+        $request->validate([
+            'name' => 'required|string|max:100',
+            'host' => 'required|string',
+            'port' => 'required|string',
+            'username' => 'required|string',
+            'password' => 'required|string',
+            'status' => 'required|string|in:active,idle,exhausted',
+        ]);
+
+        $accounts = Setting::getProxyAccounts();
+        $updatedAccount = null;
+        $newStatus = $request->input('status');
+
+        foreach ($accounts as &$acc) {
+            if ($acc['id'] === $id) {
+                $acc['name'] = trim($request->input('name'));
+                $acc['host'] = trim($request->input('host'));
+                $acc['port'] = trim($request->input('port'));
+                $acc['username'] = trim($request->input('username'));
+                $acc['password'] = trim($request->input('password'));
+                $acc['notes'] = trim($request->input('notes', ''));
+
+                if ($newStatus !== 'exhausted') {
+                    $acc['exhausted_at'] = null;
+                    $acc['exhausted_reason'] = null;
+                }
+
+                $acc['status'] = $newStatus;
+                $updatedAccount = $acc;
+                break;
+            }
+        }
+        unset($acc);
+
+        if (!$updatedAccount) {
+            return redirect()->back()->with('error', 'Proxy account not found.');
+        }
+
+        Setting::saveProxyAccounts($accounts);
+
+        if ($newStatus === 'active') {
+            Setting::activateProxyAccount($id);
+        }
+
+        return redirect()->back()->with('success', "Decodo proxy account '{$updatedAccount['name']}' updated successfully!");
+    }
+
+    /**
+     * Delete Decodo Proxy Account
+     */
+    public function deleteAccount(string $id)
+    {
+        $accounts = Setting::getProxyAccounts();
+        $filtered = array_values(array_filter($accounts, fn($acc) => $acc['id'] !== $id));
+
+        if (count($filtered) === count($accounts)) {
+            return redirect()->back()->with('error', 'Account not found.');
+        }
+
+        Setting::saveProxyAccounts($filtered);
+
+        // If active account was deleted, auto activate first available idle account
+        $activeExists = false;
+        foreach ($filtered as $acc) {
+            if (($acc['status'] ?? '') === 'active') {
+                $activeExists = true;
+                break;
+            }
+        }
+
+        if (!$activeExists && !empty($filtered)) {
+            Setting::getActiveProxyAccount();
+        }
+
+        return redirect()->back()->with('success', 'Proxy account deleted successfully.');
+    }
+
+    /**
+     * Set a Proxy Account as Active
+     */
+    public function activateAccount(string $id)
+    {
+        $account = Setting::activateProxyAccount($id);
+        if ($account) {
+            return redirect()->back()->with('success', "Proxy account '{$account['name']}' activated successfully!");
+        }
+
+        return redirect()->back()->with('error', 'Failed to activate proxy account.');
+    }
+
+    /**
+     * Test Single Proxy Connection via cURL to target endpoint (e.g. ip.decodo.com/json)
+     */
+    public function testSingleAccount(Request $request)
     {
         $host = trim($request->input('proxy_host') ?: Setting::get('proxy_host', 'bd.decodo.com'));
         $port = trim($request->input('proxy_port') ?: Setting::get('proxy_port', '41001'));
@@ -98,6 +237,12 @@ class IpManagerController extends Controller
                     'proxy_endpoint' => "{$host}:{$port}",
                     'raw_response' => $result,
                 ]);
+            }
+
+            // Check if response indicates proxy data exhaustion / auth error
+            if ($httpCode === 407 || str_contains($error, '56') || str_contains(strtolower($result), 'quota exceeded')) {
+                $accountId = $request->input('account_id');
+                Setting::markProxyExhausted($accountId ?: $user, "HTTP {$httpCode} - Test failed: " . ($error ?: 'Proxy Auth/MB Exhausted'));
             }
 
             return response()->json([

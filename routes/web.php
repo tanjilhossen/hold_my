@@ -48,7 +48,11 @@ Route::middleware(['auth'])->group(function () {
     // IP Manager Routes (Decodo Residential Proxy Engine)
     Route::get('/ip-manager', [IpManagerController::class, 'index'])->name('ip_manager');
     Route::post('/ip-manager/update', [IpManagerController::class, 'update'])->name('ip_manager.update');
-    Route::post('/ip-manager/test', [IpManagerController::class, 'testConnection'])->name('ip_manager.test');
+    Route::post('/ip-manager/test', [IpManagerController::class, 'testSingleAccount'])->name('ip_manager.test');
+    Route::post('/ip-manager/account/store', [IpManagerController::class, 'storeAccount'])->name('ip_manager.account.store');
+    Route::post('/ip-manager/account/update/{id}', [IpManagerController::class, 'updateAccount'])->name('ip_manager.account.update');
+    Route::post('/ip-manager/account/delete/{id}', [IpManagerController::class, 'deleteAccount'])->name('ip_manager.account.delete');
+    Route::post('/ip-manager/account/activate/{id}', [IpManagerController::class, 'activateAccount'])->name('ip_manager.account.activate');
 
     // Settings Routes
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
