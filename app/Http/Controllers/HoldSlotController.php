@@ -154,9 +154,6 @@ class HoldSlotController extends Controller
      */
     protected function normalizeCenterName(?string $cName, string $city): string
     {
-        if (isset($this->bangladeshTtcDirectory[$city])) {
-            return $this->bangladeshTtcDirectory[$city]['name'];
-        }
         $name = trim($cName ?? '');
         if (empty($name) || preg_match('/^Test Center\s*#?\d*$/i', $name) || preg_match('/^Center\s*#?\d*$/i', $name)) {
             return "{$city} Technical Training Centre";
@@ -192,13 +189,7 @@ class HoldSlotController extends Controller
             }
         }
 
-        // 3. Bangladesh TTC Directory lookup (Fastest & 100% accurate for BD cities)
-        if (empty($centerName) && isset($this->bangladeshTtcDirectory[$apiCity])) {
-            $centerName = $this->bangladeshTtcDirectory[$apiCity]['name'];
-            $centerAddress = $this->bangladeshTtcDirectory[$apiCity]['address'];
-        }
-
-        // 4. Pure Read-Only API call to single session endpoint (GET /exam_sessions/{hash}) fallback
+        // 3. Pure Read-Only API call to single session endpoint (GET /exam_sessions/{hash}) fallback
         if (empty($centerName)) {
             try {
                 $singleRes = $this->makeTaqamulRequest('GET', "{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_sessions/{$motherHash}?locale=en", [], $headers, 4);
@@ -214,26 +205,9 @@ class HoldSlotController extends Controller
             } catch (Exception $e) {}
         }
 
-        // 4. City-level verified DB lookup from prior resolved sessions in the same city
+        // 4. Fallback to raw payload name or generic city name
         if (empty($centerName)) {
-            $cityDbHash = SlotHash::where('city', $apiCity)
-                ->whereNotNull('center_name')
-                ->where('center_name', 'not like', 'Test Center%')
-                ->where('center_name', 'not like', 'Center #%')
-                ->latest('discovered_at')
-                ->first();
-            if ($cityDbHash) {
-                $centerName = $cityDbHash->center_name;
-                $centerAddress = $cityDbHash->center_address ?: "{$apiCity}, Bangladesh";
-            }
-        }
-
-        // 5. Bangladesh TTC Directory lookup
-        if (empty($centerName)) {
-            if (isset($this->bangladeshTtcDirectory[$apiCity])) {
-                $centerName = $this->bangladeshTtcDirectory[$apiCity]['name'];
-                $centerAddress = $this->bangladeshTtcDirectory[$apiCity]['address'];
-            } elseif (!empty($rawCenterName)) {
+            if (!empty($rawCenterName)) {
                 $centerName = $rawCenterName;
                 $centerAddress = $rawAddress ?: "{$apiCity}, Bangladesh";
             } else {
