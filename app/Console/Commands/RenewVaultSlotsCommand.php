@@ -34,7 +34,30 @@ class RenewVaultSlotsCommand extends Command
     {
         @set_time_limit(300);
 
-        // Find active holds where 20 minutes are fully completed (expires_at <= now())
+        // STEP 1: PRE-WARM CANDIDATE BEARER TOKENS 3 MINUTES BEFORE 20-MIN EXPIRY
+        // For any active hold where remaining time is <= 3 minutes (expires_at <= now() + 3 min),
+        // proactively login via fast Decodo HTTP and refresh token in memory/cache so it's 100% warm!
+        $nearingHolds = SlotHold::where('status', 'active')
+            ->where('expires_at', '<=', now()->addMinutes(3))
+            ->get();
+
+        if ($nearingHolds->isNotEmpty()) {
+            foreach ($nearingHolds as $nearHold) {
+                $email = $nearHold->held_with_email;
+                $password = $tokenService->getPasswordForAccount($email);
+                $token = $tokenService->getTokenForAccount($email);
+
+                if (empty($token) || !$tokenService->isValidTokenFormat($token)) {
+                    $this->info("[VaultAutoRenew] Pre-warming fresh Bearer token for candidate {$email} (3-min pre-expiry window)...");
+                    $freshToken = $tokenService->loginAndFetchTokenHttp($email, $password, null, true);
+                    if (!empty($freshToken) && $tokenService->isValidTokenFormat($freshToken)) {
+                        $tokenService->updateAccountToken($email, $freshToken);
+                    }
+                }
+            }
+        }
+
+        // STEP 2: FIND ACTIVE HOLDS AT 20-MIN EXPIRY (expires_at <= now())
         $expiringHolds = SlotHold::where('status', 'active')
             ->where('expires_at', '<=', now())
             ->get();
@@ -44,7 +67,7 @@ class RenewVaultSlotsCommand extends Command
             return 0;
         }
 
-        $this->info("[VaultAutoRenew] Found " . $expiringHolds->count() . " active slot hold(s) at 20-min expiry. Re-locking fresh seats...");
+        $this->info("[VaultAutoRenew] Found " . $expiringHolds->count() . " active slot hold(s) at 20-min expiry. Re-locking fresh seats in seconds...");
 
         $expiringHoldsGrouped = $expiringHolds->groupBy('mother_hash');
 
@@ -55,13 +78,18 @@ class RenewVaultSlotsCommand extends Command
             $lastResData = null;
             $sampleHold = $holds->first();
 
+            // Check if this mother_hash set is undergoing its first renewal (any active hold has renew_count == 0)
+            $allHoldsForHash = SlotHold::where('mother_hash', $motherHash)->where('status', 'active')->get();
+            $minRenewCount = $allHoldsForHash->min('renew_count');
+            $hasFirstRenewCycle = ($minRenewCount === 0 || $minRenewCount === null);
+
             foreach ($holds as $hold) {
                 $email = $hold->held_with_email;
                 $categoryId = $hold->category_id ?: 159;
 
                 $this->info("[VaultAutoRenew] Re-locking fresh slot for candidate {$email} (Hash: " . substr($motherHash, 0, 12) . "...)...");
 
-                // Fetch current token and password for candidate
+                // Fetch current token and password for candidate (pre-warmed token)
                 $token = $tokenService->getTokenForAccount($email);
                 $password = $tokenService->getPasswordForAccount($email);
 
@@ -120,7 +148,7 @@ class RenewVaultSlotsCommand extends Command
                 ];
                 $resUrl = "{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en";
 
-                // STEP 1: Directly lock fresh seat upon 20-min expiration (NO DELETE CALL)
+                // STEP 1: Directly lock fresh seat upon 20-min expiration
                 $res = $dispatchReservation($resUrl, $resPayload, $headers);
                 $bodyStr = $res ? $res->body() : '';
                 $status = $res ? $res->status() : 0;
@@ -254,127 +282,132 @@ class RenewVaultSlotsCommand extends Command
                 }
             }
 
-            // AUTO-EXPANSION: Lock +1 additional seat during renewal cycle if idle candidate account & seats available
-            try {
-                $poolAccounts = $tokenService->getPoolAccounts();
-                $checkerAcc = $tokenService->getSlotCheckerAccount();
-                $checkerEmail = strtolower(trim($checkerAcc['email'] ?? 'pool__136281@wafidmaster.com'));
+            // FIRST-RENEWAL AUTO-EXPANSION: Lock +1 additional seat into table during FIRST renewal cycle for this mother hash set
+            if ($hasFirstRenewCycle) {
+                try {
+                    $poolAccounts = $tokenService->getPoolAccounts();
+                    $checkerAcc = $tokenService->getSlotCheckerAccount();
+                    $checkerEmail = strtolower(trim($checkerAcc['email'] ?? 'pool__136281@wafidmaster.com'));
 
-                $busyEmails = SlotHold::activeOrPending()
-                    ->pluck('held_with_email')
-                    ->map(fn($e) => strtolower(trim($e)))
-                    ->unique()
-                    ->toArray();
+                    $busyEmails = SlotHold::activeOrPending()
+                        ->pluck('held_with_email')
+                        ->map(fn($e) => strtolower(trim($e)))
+                        ->unique()
+                        ->toArray();
 
-                $idleCandidate = null;
-                foreach ($poolAccounts as $pAcc) {
-                    $pEmail = strtolower(trim($pAcc['email'] ?? ''));
-                    if (empty($pEmail)) continue;
-                    if ($pEmail === $checkerEmail) continue;
-                    if (in_array($pEmail, $busyEmails)) continue;
+                    $idleCandidate = null;
+                    foreach ($poolAccounts as $pAcc) {
+                        $pEmail = strtolower(trim($pAcc['email'] ?? ''));
+                        if (empty($pEmail)) continue;
+                        if ($pEmail === $checkerEmail) continue;
+                        if (in_array($pEmail, $busyEmails)) continue;
 
-                    $idleCandidate = [
-                        'email' => $pEmail,
-                        'password' => $pAcc['password'] ?? 'Taqamul@2723!',
-                        'token' => $pAcc['token'] ?? null,
-                    ];
-                    break;
-                }
-
-                if ($idleCandidate && $sampleHold) {
-                    $idleEmail = $idleCandidate['email'];
-                    $idlePassword = $idleCandidate['password'];
-                    $idleToken = $idleCandidate['token'];
-
-                    $this->info("[VaultAutoRenew] Attempting +1 seat expansion for mother hash {$motherHash} using idle candidate {$idleEmail}...");
-
-                    if (empty($idleToken) || !$tokenService->isValidTokenFormat($idleToken)) {
-                        $idleToken = $tokenService->loginAndFetchTokenHttp($idleEmail, $idlePassword, null, true);
-                        if (empty($idleToken) || !$tokenService->isValidTokenFormat($idleToken)) {
-                            $idleToken = $tokenService->loginAndFetchToken($idleEmail, $idlePassword);
-                        }
+                        $idleCandidate = [
+                            'email' => $pEmail,
+                            'password' => $pAcc['password'] ?? 'Taqamul@2723!',
+                            'token' => $pAcc['token'] ?? null,
+                        ];
+                        break;
                     }
 
-                    if (!empty($idleToken) && $tokenService->isValidTokenFormat($idleToken)) {
-                        $occId = 2061;
-                        $langCode = 'LOABB';
-                        $catId = $sampleHold->category_id ?: 159;
-                        if ($catId == 160) {
-                            $occId = 2062;
-                            $langCode = 'ar';
-                        } elseif ($catId == 59) {
-                            $occId = 2018;
-                            $langCode = 'TLRBB';
+                    if ($idleCandidate && $sampleHold) {
+                        $idleEmail = $idleCandidate['email'];
+                        $idlePassword = $idleCandidate['password'];
+                        $idleToken = $idleCandidate['token'];
+
+                        $currentTableCount = SlotHold::where('mother_hash', $motherHash)->where('status', 'active')->count();
+                        $targetNewCount = $currentTableCount + 1;
+
+                        $this->info("[VaultAutoRenew] First Renewal Expansion: Attempting to lock seat #{$targetNewCount} for mother hash {$motherHash} using idle candidate {$idleEmail}...");
+
+                        if (empty($idleToken) || !$tokenService->isValidTokenFormat($idleToken)) {
+                            $idleToken = $tokenService->loginAndFetchTokenHttp($idleEmail, $idlePassword, null, true);
+                            if (empty($idleToken) || !$tokenService->isValidTokenFormat($idleToken)) {
+                                $idleToken = $tokenService->loginAndFetchToken($idleEmail, $idlePassword);
+                            }
                         }
 
-                        $expHeaders = [
-                            'Accept' => 'application/json',
-                            'X-Tenant-Name' => 'svp-international',
-                            'Authorization' => str_starts_with($idleToken, 'Bearer ') ? $idleToken : "Bearer {$idleToken}",
-                            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                        ];
+                        if (!empty($idleToken) && $tokenService->isValidTokenFormat($idleToken)) {
+                            $occId = 2061;
+                            $langCode = 'LOABB';
+                            $catId = $sampleHold->category_id ?: 159;
+                            if ($catId == 160) {
+                                $occId = 2062;
+                                $langCode = 'ar';
+                            } elseif ($catId == 59) {
+                                $occId = 2018;
+                                $langCode = 'TLRBB';
+                            }
 
-                        $expPayload = [
-                            'exam_session_id' => $motherHash,
-                            'occupation_id' => $occId,
-                            'language_code' => $langCode,
-                            'methodology' => 'in_person',
-                        ];
-                        $expUrl = "{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en";
+                            $expHeaders = [
+                                'Accept' => 'application/json',
+                                'X-Tenant-Name' => 'svp-international',
+                                'Authorization' => str_starts_with($idleToken, 'Bearer ') ? $idleToken : "Bearer {$idleToken}",
+                                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                            ];
 
-                        $expRes = $dispatchReservation($expUrl, $expPayload, $expHeaders);
-                        
-                        if (!$expRes || !$expRes->successful()) {
-                            try {
-                                $tempExp = $dispatchReservation("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats?locale=en", [
-                                    'exam_session_id' => [$motherHash],
-                                    'methodology' => 'in_person',
-                                ], $expHeaders);
-                                if ($tempExp && $tempExp->successful()) {
-                                    $tempExpData = $tempExp->json();
-                                    $sessHash = $tempExpData['exam_session_id'] ?? $motherHash;
-                                    $expRes = $dispatchReservation($expUrl, [
-                                        'exam_session_id' => $sessHash,
-                                        'occupation_id' => $occId,
-                                        'language_code' => $langCode,
+                            $expPayload = [
+                                'exam_session_id' => $motherHash,
+                                'occupation_id' => $occId,
+                                'language_code' => $langCode,
+                                'methodology' => 'in_person',
+                            ];
+                            $expUrl = "{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en";
+
+                            $expRes = $dispatchReservation($expUrl, $expPayload, $expHeaders);
+                            
+                            if (!$expRes || !$expRes->successful()) {
+                                try {
+                                    $tempExp = $dispatchReservation("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats?locale=en", [
+                                        'exam_session_id' => [$motherHash],
                                         'methodology' => 'in_person',
                                     ], $expHeaders);
-                                }
-                            } catch (Exception $e) {}
-                        }
-
-                        if ($expRes && $expRes->successful()) {
-                            $expData = $expRes->json();
-                            $expResId = $expData['id'] ?? ($expData['data']['id'] ?? ($expData['reservation']['id'] ?? null));
-
-                            if (!empty($expResId)) {
-                                $newHold = SlotHold::create([
-                                    'mother_hash' => $motherHash,
-                                    'held_with_email' => $idleEmail,
-                                    'center_name' => $sampleHold->center_name,
-                                    'city' => $sampleHold->city,
-                                    'category_id' => $sampleHold->category_id,
-                                    'category_name' => $sampleHold->category_name,
-                                    'exam_date' => $sampleHold->exam_date,
-                                    'temp_seat_id' => (string)$expResId,
-                                    'status' => 'active',
-                                    'target_duration_minutes' => 20,
-                                    'expires_at' => now()->addMinutes(20),
-                                    'auto_renew_until' => now()->addHours(24),
-                                    'last_renewed_at' => now(),
-                                    'renew_count' => 1,
-                                ]);
-                                $newHold->recordSeatHistory((string)$expResId, 1, 'Auto-Expanded (+1 Seat)');
-                                $expandedCount++;
-                                $this->info("[VaultAutoRenew] Successfully expanded +1 extra seat for mother hash {$motherHash} using candidate {$idleEmail} (Reservation ID: {$expResId}).");
+                                    if ($tempExp && $tempExp->successful()) {
+                                        $tempExpData = $tempExp->json();
+                                        $sessHash = $tempExpData['exam_session_id'] ?? $motherHash;
+                                        $expRes = $dispatchReservation($expUrl, [
+                                            'exam_session_id' => $sessHash,
+                                            'occupation_id' => $occId,
+                                            'language_code' => $langCode,
+                                            'methodology' => 'in_person',
+                                        ], $expHeaders);
+                                    }
+                                } catch (Exception $e) {}
                             }
-                        } else {
-                            $this->info("[VaultAutoRenew] Could not expand +1 seat for mother hash {$motherHash} (Taqamul HTTP " . ($expRes ? $expRes->status() : 0) . " or full).");
+
+                            if ($expRes && $expRes->successful()) {
+                                $expData = $expRes->json();
+                                $expResId = $expData['id'] ?? ($expData['data']['id'] ?? ($expData['reservation']['id'] ?? null));
+
+                                if (!empty($expResId)) {
+                                    $newHold = SlotHold::create([
+                                        'mother_hash' => $motherHash,
+                                        'held_with_email' => $idleEmail,
+                                        'center_name' => $sampleHold->center_name,
+                                        'city' => $sampleHold->city,
+                                        'category_id' => $sampleHold->category_id,
+                                        'category_name' => $sampleHold->category_name,
+                                        'exam_date' => $sampleHold->exam_date,
+                                        'temp_seat_id' => (string)$expResId,
+                                        'status' => 'active',
+                                        'target_duration_minutes' => 20,
+                                        'expires_at' => now()->addMinutes(20),
+                                        'auto_renew_until' => now()->addHours(24),
+                                        'last_renewed_at' => now(),
+                                        'renew_count' => 1,
+                                    ]);
+                                    $newHold->recordSeatHistory((string)$expResId, 1, 'First Renewal Expansion (+1 Seat)');
+                                    $expandedCount++;
+                                    $this->info("[VaultAutoRenew] First Renewal Expansion: Successfully locked +1 new seat #{$targetNewCount} for mother hash {$motherHash} using candidate {$idleEmail} (Reservation ID: {$expResId}).");
+                                }
+                            } else {
+                                $this->info("[VaultAutoRenew] First Renewal Expansion: Could not expand +1 seat for mother hash {$motherHash} (Taqamul HTTP " . ($expRes ? $expRes->status() : 0) . " or full).");
+                            }
                         }
                     }
+                } catch (Exception $e) {
+                    $this->warn("[VaultAutoRenew] First Renewal Expansion exception: " . $e->getMessage());
                 }
-            } catch (Exception $e) {
-                $this->warn("[VaultAutoRenew] Auto-expansion exception: " . $e->getMessage());
             }
         }
 
