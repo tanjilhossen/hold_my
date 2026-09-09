@@ -17,9 +17,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // Application Protected Routes (Auth Required)
 Route::middleware(['auth'])->group(function () {
     
-    Route::get('/', function () {
-        return redirect()->route('dashboard');
-    });
+    Route::redirect('/', '/dashboard');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
