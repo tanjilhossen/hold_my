@@ -150,6 +150,21 @@ class HoldSlotController extends Controller
     ];
 
     /**
+     * Standardize center names across all sessions to prevent inconsistent naming
+     */
+    protected function normalizeCenterName(?string $cName, string $city): string
+    {
+        if (isset($this->bangladeshTtcDirectory[$city])) {
+            return $this->bangladeshTtcDirectory[$city]['name'];
+        }
+        $name = trim($cName ?? '');
+        if (empty($name) || preg_match('/^Test Center\s*#?\d*$/i', $name) || preg_match('/^Center\s*#?\d*$/i', $name)) {
+            return "{$city} Technical Training Centre";
+        }
+        return $name;
+    }
+
+    /**
      * Resolve Center Name & Address 100% READ-ONLY (NEVER BOOKS/RESERVES SEATS DURING CHECK)
      */
     protected function resolveCenterMetadata(string $motherHash, array $sess, string $city, array $headers): array
@@ -228,7 +243,7 @@ class HoldSlotController extends Controller
         }
 
         return [
-            'center_name' => $centerName,
+            'center_name' => $this->normalizeCenterName($centerName, $apiCity),
             'center_address' => $centerAddress ?: "{$apiCity}, Bangladesh",
             'city' => $apiCity,
         ];
@@ -328,7 +343,7 @@ class HoldSlotController extends Controller
                     $startTime = $startRaw ? date('h:i A', strtotime($startRaw)) : '09:30 AM';
 
                     $probedResult = [
-                        'center_name' => $cName ?: "{$city} Technical Training Centre",
+                        'center_name' => $this->normalizeCenterName($cName, $city),
                         'center_address' => $cAddress,
                         'available_seats' => $avail,
                         'total_seats' => $total,
@@ -389,7 +404,7 @@ class HoldSlotController extends Controller
                             $startTime = $startRaw ? date('h:i A', strtotime($startRaw)) : '09:30 AM';
 
                             return [
-                                'center_name' => $cName ?: "{$city} Technical Training Centre",
+                                'center_name' => $this->normalizeCenterName($cName, $city),
                                 'center_address' => $cAddress,
                                 'available_seats' => $avail,
                                 'total_seats' => $total,
