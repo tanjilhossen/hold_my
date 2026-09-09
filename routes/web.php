@@ -53,6 +53,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/ip-manager/account/update/{id}', [IpManagerController::class, 'updateAccount'])->name('ip_manager.account.update');
     Route::post('/ip-manager/account/delete/{id}', [IpManagerController::class, 'deleteAccount'])->name('ip_manager.account.delete');
     Route::post('/ip-manager/account/activate/{id}', [IpManagerController::class, 'activateAccount'])->name('ip_manager.account.activate');
+    Route::post('/ip-manager/account/check-bandwidth/{id}', [IpManagerController::class, 'checkAccountBandwidth'])->name('ip_manager.account.check_bandwidth');
+    Route::post('/ip-manager/account/set-bandwidth/{id}', [IpManagerController::class, 'setAccountBandwidth'])->name('ip_manager.account.set_bandwidth');
+    Route::post('/ip-manager/sync-bandwidth', [IpManagerController::class, 'syncBandwidth'])->name('ip_manager.sync_bandwidth');
+    Route::post('/ip-manager/reactivate-all', [IpManagerController::class, 'reactivateAll'])->name('ip_manager.reactivate_all');
 
     // Settings Routes
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');

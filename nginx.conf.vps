@@ -1,8 +1,8 @@
 server {
-    listen 7777;
+    listen 9000;
     server_name 200.234.41.119 srv1923284.hstgr.cloud _;
 
-    root /var/www/taqamul/public;
+    root /var/www/hold_my/public;
     index index.php index.html index.htm;
 
     client_max_body_size 64M;

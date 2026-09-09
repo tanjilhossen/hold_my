@@ -146,7 +146,8 @@ class ProcessVaultLockCommand extends Command
                 ];
 
                 if (!empty($proxyCfg['proxy'])) {
-                    $proxyOpts = array_merge($baseOpts, ['proxy' => $proxyCfg['proxy']]);
+                    $proxyOpts = $baseOpts;
+                    \App\Services\ProxyService::applyProxyToOptions($proxyOpts);
                     try {
                         $res = Http::withoutVerifying()->timeout(10)->withOptions($proxyOpts)->withHeaders($hdrs)->post($url, $payload);
                         if ($res) {

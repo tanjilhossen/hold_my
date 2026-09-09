@@ -32,46 +32,9 @@ class Setting extends Model
             return [];
         }
 
-        $activeAccount = static::getActiveProxyAccount();
-        if ($activeAccount) {
-            $host = $activeAccount['host'] ?? 'bd.decodo.com';
-            $rawPort = trim($activeAccount['port'] ?? '41001');
-            $user = $activeAccount['username'] ?? '';
-            $pass = $activeAccount['password'] ?? '';
-        } else {
-            $host = static::get('proxy_host', 'bd.decodo.com');
-            $rawPort = trim(static::get('proxy_port', '41001'));
-            $user = static::get('proxy_username', 'spua00a572');
-            $pass = static::get('proxy_password', 'o3PbblJqa5C6~vzo9M');
-        }
-
-        if (empty($host) || empty($rawPort)) {
-            return [];
-        }
-
-        // Support single port (41001), port range (41001-41010), or comma list (41004,41005,41006)
-        if (str_contains($rawPort, '-')) {
-            $parts = explode('-', $rawPort);
-            $port = rand((int)trim($parts[0]), (int)trim($parts[1]));
-        } elseif (str_contains($rawPort, ',')) {
-            $ports = array_map('trim', explode(',', $rawPort));
-            $port = $ports[array_rand($ports)];
-        } else {
-            $pNum = (int)$rawPort;
-            if ($pNum >= 41001 && $pNum <= 41050) {
-                $port = (string)rand(41001, 41020);
-            } else {
-                $port = (string)$rawPort;
-            }
-        }
-
-        $auth = (!empty($user) && !empty($pass)) ? "{$user}:{$pass}@" : '';
-        $proxyUrl = "http://{$auth}{$host}:{$port}";
-
-        return [
-            'proxy' => $proxyUrl,
-        ];
+        return \App\Services\ProxyService::getGuzzleOptions();
     }
+
 
     /**
      * Get all proxy accounts pool
@@ -208,26 +171,12 @@ class Setting extends Model
             return null;
         }
 
-        // Find next idle account to auto-activate
-        $nextActive = null;
-        foreach ($accounts as &$acc) {
-            if (($acc['status'] ?? '') === 'idle') {
-                $acc['status'] = 'active';
-                $acc['exhausted_at'] = null;
-                $acc['exhausted_reason'] = null;
-                $nextActive = $acc;
-                break;
-            }
-        }
-        unset($acc);
-
         static::saveProxyAccounts($accounts);
 
+        // Auto-activate next available proxy from pool
+        $nextActive = static::activateNextAvailableProxy();
+
         if ($nextActive) {
-            static::set('proxy_host', $nextActive['host']);
-            static::set('proxy_port', $nextActive['port']);
-            static::set('proxy_username', $nextActive['username']);
-            static::set('proxy_password', $nextActive['password']);
             \Illuminate\Support\Facades\Log::warning("[ProxyManager] Proxy account '{$exhaustedAccountName}' marked EXHAUSTED ({$reason}). Auto-switched to active account '{$nextActive['name']}' ({$nextActive['username']}).");
         } else {
             \Illuminate\Support\Facades\Log::error("[ProxyManager] Proxy account '{$exhaustedAccountName}' marked EXHAUSTED ({$reason}). ALERT: All proxy accounts are now EXHAUSTED in pool!");
@@ -237,27 +186,161 @@ class Setting extends Model
     }
 
     /**
-     * Inspect HTTP response status/body/error and trigger auto proxy failover if data/auth exhausted
+     * Mark a proxy account as temporarily cooling down after transient network drops
+     * (Does NOT permanently disable the proxy!)
+     */
+    public static function markProxyCooling(?string $usernameOrId = null, int $seconds = 30): void
+    {
+        $accounts = static::getProxyAccounts();
+        $coolingUntil = time() + $seconds;
+
+        foreach ($accounts as &$acc) {
+            $match = false;
+            if ($usernameOrId !== null) {
+                if (($acc['id'] ?? '') === $usernameOrId || ($acc['username'] ?? '') === $usernameOrId) {
+                    $match = true;
+                }
+            } else {
+                if (($acc['status'] ?? '') === 'active') {
+                    $match = true;
+                }
+            }
+
+            if ($match && ($acc['status'] ?? '') !== 'exhausted') {
+                $acc['status'] = 'cooling';
+                $acc['cooling_until'] = $coolingUntil;
+                break;
+            }
+        }
+        unset($acc);
+
+        static::saveProxyAccounts($accounts);
+    }
+
+    /**
+     * Activate next available proxy in pool (supports 1 to 1000+ proxies)
+     */
+    public static function activateNextAvailableProxy(): ?array
+    {
+        $accounts = static::getProxyAccounts();
+        $now = time();
+        $nextActive = null;
+
+        // 1. Try first idle proxy
+        foreach ($accounts as &$acc) {
+            if (($acc['status'] ?? '') === 'idle') {
+                $acc['status'] = 'active';
+                $nextActive = $acc;
+                break;
+            }
+        }
+        unset($acc);
+
+        // 2. If no idle proxy, check if any cooling proxy has passed cooldown
+        if (!$nextActive) {
+            foreach ($accounts as &$acc) {
+                if (($acc['status'] ?? '') === 'cooling' && ($acc['cooling_until'] ?? 0) <= $now) {
+                    $acc['status'] = 'active';
+                    unset($acc['cooling_until']);
+                    $nextActive = $acc;
+                    break;
+                }
+            }
+            unset($acc);
+        }
+
+        if ($nextActive) {
+            // Set other active proxies to idle/cooling
+            foreach ($accounts as &$acc) {
+                if ($acc['id'] !== $nextActive['id'] && ($acc['status'] ?? '') === 'active') {
+                    $acc['status'] = 'idle';
+                }
+            }
+            unset($acc);
+
+            static::saveProxyAccounts($accounts);
+            static::set('proxy_host', $nextActive['host']);
+            static::set('proxy_port', $nextActive['port']);
+            static::set('proxy_username', $nextActive['username']);
+            static::set('proxy_password', $nextActive['password']);
+        }
+
+        return $nextActive;
+    }
+
+    /**
+     * Update metadata/statistics for a proxy account (bytes, IP, latency)
+     */
+    public static function updateProxyAccountStats(string $usernameOrId, array $stats): void
+    {
+        $accounts = static::getProxyAccounts();
+        $updated = false;
+
+        foreach ($accounts as &$acc) {
+            if (($acc['id'] ?? '') === $usernameOrId || ($acc['username'] ?? '') === $usernameOrId) {
+                foreach ($stats as $k => $v) {
+                    $acc[$k] = $v;
+                }
+                $updated = true;
+                break;
+            }
+        }
+        unset($acc);
+
+        if ($updated) {
+            static::saveProxyAccounts($accounts);
+        }
+    }
+
+    /**
+     * Reactivate all proxies (resets exhausted/cooling to idle/active)
+     */
+    public static function reactivateAllProxies(): int
+    {
+        $accounts = static::getProxyAccounts();
+        $count = 0;
+        $first = true;
+
+        foreach ($accounts as &$acc) {
+            if ($first) {
+                $acc['status'] = 'active';
+                $first = false;
+            } else {
+                $acc['status'] = 'idle';
+            }
+            $acc['exhausted_at'] = null;
+            $acc['exhausted_reason'] = null;
+            unset($acc['cooling_until']);
+            $count++;
+        }
+        unset($acc);
+
+        static::saveProxyAccounts($accounts);
+        if (!empty($accounts)) {
+            static::activateProxyAccount($accounts[0]['id']);
+        }
+
+        return $count;
+    }
+
+    /**
+     * Inspect HTTP response status/body/error and trigger auto proxy failover ONLY if data/bandwidth is truly exhausted.
+     * Transient network glitches or timeouts will NEVER permanently kill the proxy.
      */
     public static function checkAndHandleProxyFailure(int $httpCode, string $body = '', string $errorMessage = ''): bool
     {
-        $isProxyError = false;
-        $reason = "HTTP {$httpCode} Proxy Error";
+        $isTrueExhausted = \App\Services\ProxyService::isTrueBandwidthExhausted($httpCode, $body, $errorMessage);
 
-        if ($httpCode === 407) {
-            $isProxyError = true;
-            $reason = "HTTP 407 Proxy Authentication Required (Data / MB Exhausted)";
-        } elseif (str_contains($errorMessage, 'Proxy') || str_contains($errorMessage, 'cURL error 56') || str_contains($errorMessage, 'cURL error 407')) {
-            $isProxyError = true;
-            $reason = "Proxy Network Failure: " . substr($errorMessage, 0, 100);
-        } elseif (str_contains(strtolower($body), 'quota exceeded') || str_contains(strtolower($body), 'bandwidth limit') || str_contains(strtolower($body), 'proxy authentication required')) {
-            $isProxyError = true;
-            $reason = "Proxy Data Quota Exceeded";
-        }
-
-        if ($isProxyError) {
+        if ($isTrueExhausted) {
+            $reason = "Bandwidth Closed: Traffic limit reached on Decodo server";
+            \App\Services\ProxyService::logAuthFailure(\App\Services\ProxyService::getActiveProxy() ?? [], 'checkAndHandleProxyFailure (Quota Exhausted)', $body ?: $errorMessage);
             static::markProxyExhausted(null, $reason);
             return true;
+        }
+
+        // If it's just a transient error (e.g. timeout, connection drop, server 502/503), log transient warning and DO NOT kill the proxy!
+        if ($httpCode >= 500 || str_contains($errorMessage, 'cURL error 28') || str_contains($errorMessage, 'cURL error 56') || str_contains($errorMessage, 'cURL error 7')) {
+            \Illuminate\Support\Facades\Log::info("[ProxyManager ℹ️] Transient network drop detected (HTTP {$httpCode} / {$errorMessage}). Proxy remains alive in pool.");
         }
 
         return false;

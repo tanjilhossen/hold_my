@@ -242,7 +242,7 @@ class HoldSlotController extends Controller
             ]
         ];
         if (!empty($proxyCfg['proxy'])) {
-            $opts['proxy'] = $proxyCfg['proxy'];
+            \App\Services\ProxyService::applyProxyToOptions($opts);
         }
 
         $tokensToTry = [];
@@ -596,7 +596,10 @@ class HoldSlotController extends Controller
         ];
 
         if (!empty($proxyCfg['proxy'])) {
-            $opts['proxy'] = $proxyCfg['proxy'];
+            $health = \App\Services\ProxyService::ensureHealthy();
+            if ($health['healthy']) {
+                \App\Services\ProxyService::applyProxyToOptions($opts);
+            }
         }
 
         for ($attempt = 1; $attempt <= 3; $attempt++) {

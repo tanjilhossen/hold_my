@@ -16,6 +16,7 @@ class IpManagerController extends Controller
         $proxyEnabled = Setting::get('proxy_enabled', '1');
         $proxyTestUrl = Setting::get('proxy_test_url', 'ip.decodo.com/json');
         $proxyAccounts = Setting::getProxyAccounts();
+        $decodoApiKey = Setting::get('decodo_api_key', '');
 
         $activeAccount = Setting::getActiveProxyAccount();
         $proxyHost = $activeAccount['host'] ?? Setting::get('proxy_host', 'bd.decodo.com');
@@ -30,7 +31,8 @@ class IpManagerController extends Controller
             'proxyUsername',
             'proxyPassword',
             'proxyTestUrl',
-            'proxyAccounts'
+            'proxyAccounts',
+            'decodoApiKey'
         ));
     }
 
@@ -42,6 +44,9 @@ class IpManagerController extends Controller
         Setting::set('proxy_enabled', $request->has('proxy_enabled') ? '1' : '0');
         if ($request->has('proxy_test_url')) {
             Setting::set('proxy_test_url', trim($request->input('proxy_test_url', 'ip.decodo.com/json')));
+        }
+        if ($request->has('decodo_api_key')) {
+            Setting::set('decodo_api_key', trim($request->input('decodo_api_key', '')));
         }
 
         return redirect()->back()->with('success', 'Proxy global settings updated successfully.');
@@ -73,6 +78,9 @@ class IpManagerController extends Controller
             }
             unset($acc);
         }
+ 
+        $quotaLimit = $request->filled('quota_limit_mb') ? (float)$request->input('quota_limit_mb') : null;
+        $remainingMb = $request->filled('remaining_mb') ? (float)$request->input('remaining_mb') : $quotaLimit;
 
         $newAccount = [
             'id' => $newId,
@@ -82,6 +90,10 @@ class IpManagerController extends Controller
             'username' => trim($request->input('username')),
             'password' => trim($request->input('password')),
             'status' => $desiredStatus,
+            'quota_limit_mb' => $quotaLimit,
+            'remaining_mb' => $remainingMb,
+            'bytes_used' => 0,
+            'requests_count' => 0,
             'exhausted_at' => null,
             'exhausted_reason' => null,
             'notes' => trim($request->input('notes', '')),
@@ -109,6 +121,8 @@ class IpManagerController extends Controller
             'username' => 'required|string',
             'password' => 'required|string',
             'status' => 'required|string|in:active,idle,exhausted',
+            'quota_limit_mb' => 'nullable|numeric|min:0',
+            'remaining_mb' => 'nullable|numeric|min:0',
         ]);
 
         $accounts = Setting::getProxyAccounts();
@@ -123,6 +137,16 @@ class IpManagerController extends Controller
                 $acc['username'] = trim($request->input('username'));
                 $acc['password'] = trim($request->input('password'));
                 $acc['notes'] = trim($request->input('notes', ''));
+
+                if ($request->has('quota_limit_mb') && $request->input('quota_limit_mb') !== null && $request->input('quota_limit_mb') !== '') {
+                    $acc['quota_limit_mb'] = (float)$request->input('quota_limit_mb');
+                }
+                if ($request->has('remaining_mb') && $request->input('remaining_mb') !== null && $request->input('remaining_mb') !== '') {
+                    $acc['remaining_mb'] = (float)$request->input('remaining_mb');
+                } elseif (!empty($acc['quota_limit_mb'])) {
+                    $usedMb = ($acc['bytes_used'] ?? 0) / (1024 * 1024);
+                    $acc['remaining_mb'] = max(0, round($acc['quota_limit_mb'] - $usedMb, 2));
+                }
 
                 if ($newStatus !== 'exhausted') {
                     $acc['exhausted_at'] = null;
@@ -147,6 +171,60 @@ class IpManagerController extends Controller
         }
 
         return redirect()->back()->with('success', "Decodo proxy account '{$updatedAccount['name']}' updated successfully!");
+    }
+
+    /**
+     * Quick-set allocated or remaining bandwidth (MB) for a proxy account
+     */
+    public function setAccountBandwidth(Request $request, string $id)
+    {
+        $request->validate([
+            'quota_limit_mb' => 'required|numeric|min:0',
+        ]);
+
+        $quotaMb = (float)$request->input('quota_limit_mb');
+        $accounts = Setting::getProxyAccounts();
+        $target = null;
+
+        foreach ($accounts as &$acc) {
+            if ($acc['id'] === $id) {
+                $acc['quota_limit_mb'] = $quotaMb;
+                // Compute remaining MB based on usage or reset
+                $usedMb = ($acc['bytes_used'] ?? 0) / (1024 * 1024);
+                $remaining = max(0, round($quotaMb - $usedMb, 2));
+                $acc['remaining_mb'] = $remaining;
+
+                if ($remaining > 0 && $acc['status'] === 'exhausted') {
+                    $acc['status'] = 'idle';
+                    $acc['exhausted_at'] = null;
+                    $acc['exhausted_reason'] = null;
+                }
+
+                $target = $acc;
+                break;
+            }
+        }
+        unset($acc);
+
+        if (!$target) {
+            return response()->json(['success' => false, 'message' => 'Account not found.'], 404);
+        }
+
+        Setting::saveProxyAccounts($accounts);
+
+        $formattedRemaining = $target['remaining_mb'] >= 1024 
+            ? round($target['remaining_mb'] / 1024, 2) . ' GB' 
+            : round($target['remaining_mb'], 1) . ' MB';
+
+        return response()->json([
+            'success' => true,
+            'id' => $target['id'],
+            'quota_limit_mb' => $target['quota_limit_mb'],
+            'remaining_mb' => $target['remaining_mb'],
+            'formatted_remaining' => $formattedRemaining,
+            'status' => $target['status'],
+            'message' => "Bandwidth quota updated to {$quotaMb} MB ({$formattedRemaining} remaining)!",
+        ]);
     }
 
     /**
@@ -180,16 +258,39 @@ class IpManagerController extends Controller
     }
 
     /**
-     * Set a Proxy Account as Active
+     * Set a Proxy Account as Active (and automatically refresh its live bandwidth)
      */
     public function activateAccount(string $id)
     {
         $account = Setting::activateProxyAccount($id);
         if ($account) {
-            return redirect()->back()->with('success', "Proxy account '{$account['name']}' activated successfully!");
+            // Automatically refresh live bandwidth for the newly activated proxy
+            try {
+                \App\Services\ProxyService::checkSingleAccountBandwidth($id);
+            } catch (Exception $e) {
+                // Non-blocking
+            }
+
+            return redirect()->back()->with('success', "Proxy account '{$account['name']}' activated and live status refreshed successfully!");
         }
 
         return redirect()->back()->with('error', 'Failed to activate proxy account.');
+    }
+
+    /**
+     * Check real live bandwidth for a single proxy account on-demand
+     */
+    public function checkAccountBandwidth(Request $request, string $id)
+    {
+        try {
+            $result = \App\Services\ProxyService::checkSingleAccountBandwidth($id);
+            return response()->json($result);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error checking bandwidth: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -203,54 +304,49 @@ class IpManagerController extends Controller
         $pass = trim($request->input('proxy_password') ?: Setting::get('proxy_password', 'o3PbblJqa5C6~vzo9M'));
         $urlInput = trim($request->input('proxy_test_url') ?: Setting::get('proxy_test_url', 'ip.decodo.com/json'));
 
-        if (!str_starts_with($urlInput, 'http://') && !str_starts_with($urlInput, 'https://')) {
-            $targetUrl = "http://{$urlInput}";
-        } else {
-            $targetUrl = $urlInput;
-        }
-
-        $startTime = microtime(true);
+        $accountId = $request->input('account_id');
+        $proxyInfo = [
+            'id' => $accountId,
+            'host' => $host,
+            'port' => $port,
+            'username' => $user,
+            'password' => $pass,
+        ];
 
         try {
-            $ch = curl_init($targetUrl);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 12);
-            curl_setopt($ch, CURLOPT_PROXY, "{$host}:{$port}");
-            if (!empty($user) && !empty($pass)) {
-                curl_setopt($ch, CURLOPT_PROXYUSERPWD, "{$user}:{$pass}");
-            }
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+            $health = \App\Services\ProxyService::checkHealth($proxyInfo, $urlInput, 12);
 
-            $result = curl_exec($ch);
-            $latency = round((microtime(true) - $startTime) * 1000, 2);
-            $error = curl_error($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
+            if ($health['healthy']) {
+                $endpoint = $health['proxy_endpoint'] ?? "{$host}:{$port}";
+                $msg = !empty($health['auto_healed'])
+                    ? "Residential exit node refreshed! Auto-connected to live session: {$endpoint}"
+                    : 'Proxy connection & authentication successful!';
 
-            if ($result && $httpCode >= 200 && $httpCode < 400) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Proxy connection successful!',
-                    'http_code' => $httpCode,
-                    'latency_ms' => $latency,
-                    'proxy_endpoint' => "{$host}:{$port}",
-                    'raw_response' => $result,
+                    'message' => $msg,
+                    'http_code' => $health['http_status'],
+                    'latency_ms' => $health['latency_ms'],
+                    'external_ip' => $health['external_ip'],
+                    'proxy_endpoint' => $endpoint,
+                    'auto_healed' => !empty($health['auto_healed']),
+                    'raw_response' => $health['raw_response'],
                 ]);
             }
 
-            // Check if response indicates proxy data exhaustion / auth error
-            if ($httpCode === 407 || str_contains($error, '56') || str_contains(strtolower($result), 'quota exceeded')) {
+            // Check if response indicates TRUE bandwidth exhaustion
+            if (!empty($health['is_bandwidth_exhausted'])) {
                 $accountId = $request->input('account_id');
-                Setting::markProxyExhausted($accountId ?: $user, "HTTP {$httpCode} - Test failed: " . ($error ?: 'Proxy Auth/MB Exhausted'));
+                Setting::markProxyExhausted($accountId ?: $user, "Bandwidth Closed: Traffic limit reached on Decodo server");
             }
 
             return response()->json([
                 'success' => false,
-                'message' => 'Proxy connection failed. Error: ' . ($error ?: "HTTP Code {$httpCode}"),
-                'http_code' => $httpCode,
-                'latency_ms' => $latency,
-                'raw_response' => $result ?: null,
+                'message' => 'Proxy test failed: ' . ($health['error'] ?: "HTTP Code {$health['http_status']}"),
+                'http_code' => $health['http_status'],
+                'latency_ms' => $health['latency_ms'],
+                'is_bandwidth_exhausted' => !empty($health['is_bandwidth_exhausted']),
+                'raw_response' => $health['raw_response'] ?: null,
             ], 500);
 
         } catch (Exception $e) {
@@ -259,5 +355,32 @@ class IpManagerController extends Controller
                 'message' => 'Exception testing proxy: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Sync Real Server-Side Bandwidth from Decodo Public API
+     */
+    public function syncBandwidth(Request $request)
+    {
+        $apiKey = trim($request->input('decodo_api_key') ?: Setting::get('decodo_api_key', ''));
+        if (!empty($apiKey)) {
+            Setting::set('decodo_api_key', $apiKey);
+        }
+
+        $res = \App\Services\ProxyService::fetchDecodoApiBandwidth($apiKey);
+        if ($res['success']) {
+            return redirect()->back()->with('success', $res['message']);
+        }
+
+        return redirect()->back()->with('error', $res['message']);
+    }
+
+    /**
+     * Reactivate all proxy accounts in pool (Reset Exhausted to Active/Idle)
+     */
+    public function reactivateAll()
+    {
+        $count = Setting::reactivateAllProxies();
+        return redirect()->back()->with('success', "All {$count} proxy account(s) have been reactivated and verified for routing!");
     }
 }

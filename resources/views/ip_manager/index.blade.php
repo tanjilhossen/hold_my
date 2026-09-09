@@ -1,45 +1,38 @@
 @extends('layouts.app')
 
-@section('title', 'IP Manager - Decodo Proxy Pool')
-@section('page_title', 'IP Manager & Decodo Proxy Pool')
+@section('title', 'IP Manager - Decodo Proxy Pool & Real-Time Bandwidth')
+@section('page_title', 'IP Manager & Decodo Proxy Engine')
 
 @section('content')
-<div class="row">
-    <div class="col-lg-12">
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
-                <i class="fa-solid fa-circle-check me-2"></i> {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-        @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
-                <i class="fa-solid fa-triangle-exclamation me-2"></i> {{ session('error') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-
-        <!-- Global Status & Control Header -->
+<div class="row g-4">
+    <div class="col-12">
+        <!-- Main Controls & Pool Status Bar -->
         <div class="card card-custom p-4 mb-4">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <div>
                     <h5 class="fw-bold text-dark m-0">
                         <i class="fa-solid fa-network-wired text-info me-2"></i> Decodo Multi-Account Proxy Engine
                     </h5>
-                    <small class="text-muted">Automatic failover pool for Decodo Residential Proxies. Auto-switches when data (MB) runs out.</small>
+                    <small class="text-muted">Unbreakable failover engine for Decodo Residential Proxies. Auto-switches only when real bandwidth is closed.</small>
                 </div>
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex flex-wrap align-items-center gap-2">
                     <form action="{{ route('ip_manager.update') }}" method="POST" class="d-flex align-items-center gap-2">
                         @csrf
                         <div class="form-check form-switch fs-5 m-0">
                             <input class="form-check-input" type="checkbox" role="switch" id="proxy_enabled" name="proxy_enabled" value="1" {{ $proxyEnabled == '1' ? 'checked' : '' }} onchange="this.form.submit()">
                             <label class="form-check-label fs-6 fw-semibold ms-1" for="proxy_enabled">
-                                Proxy Engine: <span class="badge {{ $proxyEnabled == '1' ? 'bg-success' : 'bg-secondary' }}">{{ $proxyEnabled == '1' ? 'Enabled' : 'Disabled' }}</span>
+                                <span class="badge {{ $proxyEnabled == '1' ? 'bg-success' : 'bg-secondary' }}">{{ $proxyEnabled == '1' ? 'Active' : 'Disabled' }}</span>
                             </label>
                         </div>
                     </form>
+                    <form action="{{ route('ip_manager.reactivate_all') }}" method="POST" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-success fw-semibold" title="Reset and reactivate all accounts in pool">
+                            <i class="fa-solid fa-arrows-rotate me-1"></i> Reactivate All
+                        </button>
+                    </form>
                     <button type="button" class="btn btn-primary px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#addAccountModal">
-                        <i class="fa-solid fa-plus me-1"></i> Add Decodo Account
+                        <i class="fa-solid fa-plus me-1"></i> Add Proxy Account
                     </button>
                 </div>
             </div>
@@ -47,24 +40,29 @@
 
         <!-- Decodo Accounts Pool Table -->
         <div class="card card-custom p-4 mb-4">
-            <h6 class="fw-bold text-dark mb-3">
-                <i class="fa-solid fa-layer-group text-primary me-2"></i> Decodo Proxy Pool Accounts
-            </h6>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-dark m-0">
+                    <i class="fa-solid fa-layer-group text-primary me-2"></i> Decodo Proxy Pool Accounts ({{ count($proxyAccounts) }} in pool)
+                </h6>
+                <span class="badge bg-light text-dark border font-monospace">Scalable Pool: 1 to 1000+ Proxies</span>
+            </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle border mb-0">
                     <thead class="table-light">
                         <tr>
                             <th>Account Name</th>
-                            <th>Host & Port</th>
-                            <th>Username</th>
+                            <th>Endpoint & User</th>
                             <th>Status</th>
-                            <th>Exhausted / Failover Info</th>
+                            <th>Live IP & Latency</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($proxyAccounts as $acc)
-                            <tr class="{{ ($acc['status'] ?? '') === 'exhausted' ? 'table-danger' : (($acc['status'] ?? '') === 'active' ? 'table-success bg-opacity-10' : '') }}">
+                            @php
+                                $status = $acc['status'] ?? 'idle';
+                            @endphp
+                            <tr id="row-acc-{{ $acc['id'] }}" class="{{ $status === 'exhausted' ? 'table-danger' : ($status === 'active' ? 'table-success bg-opacity-10' : ($status === 'cooling' ? 'table-warning bg-opacity-10' : '')) }}" data-id="{{ $acc['id'] }}" data-status="{{ $status }}">
                                 <td>
                                     <strong class="text-dark">{{ $acc['name'] ?? 'Decodo Account' }}</strong>
                                     @if(!empty($acc['notes']))
@@ -73,40 +71,51 @@
                                 </td>
                                 <td>
                                     <code>{{ $acc['host'] ?? 'bd.decodo.com' }}:{{ $acc['port'] ?? '41001' }}</code>
+                                    <br>
+                                    <span class="font-monospace text-secondary small"><i class="fa-solid fa-user small me-1"></i>{{ $acc['username'] ?? 'N/A' }}</span>
                                 </td>
-                                <td>
-                                    <span class="font-monospace text-secondary">{{ $acc['username'] ?? 'N/A' }}</span>
-                                </td>
-                                <td>
-                                    @if(($acc['status'] ?? '') === 'active')
-                                        <span class="badge bg-success px-3 py-2 fs-6">
-                                            <i class="fa-solid fa-circle-check me-1"></i> Active
+                                <td id="status-cell-{{ $acc['id'] }}">
+                                    @if($status === 'active')
+                                        <span class="badge bg-success px-3 py-2 fs-6 status-badge">
+                                            <i class="fa-solid fa-circle-check me-1"></i> Active (Routing)
                                         </span>
-                                    @elseif(($acc['status'] ?? '') === 'exhausted')
-                                        <span class="badge bg-danger px-3 py-2 fs-6">
-                                            <i class="fa-solid fa-triangle-exclamation me-1"></i> MB Finished / Data Exhausted
+                                    @elseif($status === 'exhausted')
+                                        <span class="badge bg-danger px-3 py-2 fs-6 status-badge">
+                                            <i class="fa-solid fa-ban me-1"></i> Bandwidth Closed (0 MB)
+                                        </span>
+                                    @elseif($status === 'cooling')
+                                        <span class="badge bg-warning text-dark px-3 py-2 fs-6 status-badge">
+                                            <i class="fa-solid fa-hourglass-half me-1"></i> Cooling (30s)
                                         </span>
                                     @else
-                                        <span class="badge bg-secondary px-3 py-2 fs-6">
-                                            <i class="fa-solid fa-clock me-1"></i> Idle
+                                        <span class="badge bg-secondary px-3 py-2 fs-6 status-badge">
+                                            <i class="fa-solid fa-clock me-1"></i> Idle in Pool
                                         </span>
                                     @endif
-                                </td>
-                                <td>
-                                    @if(($acc['status'] ?? '') === 'exhausted')
-                                        <span class="text-danger small fw-semibold">
-                                            <i class="fa-solid fa-circle-xmark me-1"></i> {{ $acc['exhausted_reason'] ?? 'Data Limit Reached' }}
-                                        </span>
-                                        @if(!empty($acc['exhausted_at']))
-                                            <br><small class="text-muted">{{ $acc['exhausted_at'] }}</small>
+
+                                    <div class="exhausted-reason-text">
+                                        @if($status === 'exhausted' && !empty($acc['exhausted_reason']))
+                                            <small class="text-danger fw-semibold d-block mt-1">{{ $acc['exhausted_reason'] }}</small>
                                         @endif
-                                    @else
-                                        <span class="text-muted small">Ready for auto-switch</span>
-                                    @endif
+                                    </div>
+                                </td>
+                                <td id="network-cell-{{ $acc['id'] }}">
+                                    <div class="ip-wrap">
+                                        @if(!empty($acc['last_ip']))
+                                            <span class="font-monospace text-dark fw-bold small"><i class="fa-solid fa-location-dot text-danger me-1"></i>{{ $acc['last_ip'] }}</span>
+                                        @else
+                                            <span class="text-muted small">Not probed yet</span>
+                                        @endif
+                                    </div>
+                                    <div class="latency-wrap">
+                                        @if(!empty($acc['last_latency_ms']))
+                                            <span class="badge bg-light text-dark border small mt-1">{{ round($acc['last_latency_ms']) }} ms</span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="text-end">
                                     <div class="btn-group btn-group-sm">
-                                        @if(($acc['status'] ?? '') !== 'active')
+                                        @if($status !== 'active')
                                             <form action="{{ route('ip_manager.account.activate', $acc['id']) }}" method="POST" class="d-inline">
                                                 @csrf
                                                 <button type="submit" class="btn btn-outline-success" title="Activate Account">
@@ -120,7 +129,7 @@
                                             data-user="{{ $acc['username'] }}" 
                                             data-pass="{{ $acc['password'] }}"
                                             data-id="{{ $acc['id'] }}"
-                                            title="Test Credentials">
+                                            title="Test Live Connection">
                                             <i class="fa-solid fa-vial"></i> Test
                                         </button>
                                         <button type="button" class="btn btn-outline-primary btn-edit-acc" 
@@ -141,7 +150,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center py-4 text-muted">No proxy accounts found. Click "Add Decodo Account" above.</td>
+                                <td colspan="5" class="text-center py-4 text-muted">No proxy accounts found. Click "Add Proxy Account" above.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -156,7 +165,7 @@
                 <span class="badge bg-secondary small" id="latencyBadge">Idle</span>
             </div>
             <pre class="bg-black text-success p-3 rounded font-monospace m-0" id="consoleOutput" style="min-height: 140px; max-height: 250px; overflow-y: auto; font-size: 0.9rem;">
-[System] Click "Test" on any proxy account above to verify credentials and live IP status.
+[System] Proxy engine active. Click "Test" on any proxy account above to verify live connection and IP status.
             </pre>
         </div>
     </div>
@@ -175,7 +184,7 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Account Label Name</label>
-                        <input type="text" class="form-control" name="name" placeholder="e.g. Decodo Account 2 (5GB)" required>
+                        <input type="text" class="form-control" name="name" placeholder="e.g. Decodo Residential BD 1" required>
                     </div>
                     <div class="row g-2 mb-3">
                         <div class="col-8">
@@ -189,7 +198,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Proxy Username</label>
-                        <input type="text" class="form-control" name="username" placeholder="e.g. spua00a572" required>
+                        <input type="text" class="form-control" name="username" placeholder="e.g. spywmt3zb9" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Proxy Password</label>
@@ -204,7 +213,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Notes (Optional)</label>
-                        <input type="text" class="form-control" name="notes" placeholder="e.g. Purchased 10 Sep">
+                        <input type="text" class="form-control" name="notes" placeholder="e.g. Residential Pool 1">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -254,9 +263,9 @@
                         <select class="form-select" id="edit_status" name="status">
                             <option value="active">Active (Primary Proxy)</option>
                             <option value="idle">Idle (Backup Pool / Reset Exhausted)</option>
-                            <option value="exhausted">MB Finished / Data Exhausted</option>
+                            <option value="exhausted">Bandwidth Closed / Limit Reached</option>
                         </select>
-                        <small class="text-muted">Selecting "Idle" or "Active" will reset the MB Finished flag.</small>
+                        <small class="text-muted">Selecting "Idle" or "Active" resets the exhausted flag if you refilled MB.</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Notes (Optional)</label>
@@ -318,14 +327,21 @@ $(document).ready(function() {
             },
             success: function(res) {
                 btn.prop('disabled', false).html('<i class="fa-solid fa-vial"></i> Test');
-                $('#latencyBadge').removeClass('bg-warning bg-danger').addClass('bg-success').text(res.latency_ms + ' ms');
-
-                let formatted = '[SUCCESS] HTTP Code: ' + res.http_code + ' | Latency: ' + res.latency_ms + 'ms\n';
+                let formatted = '';
+                if (res.auto_healed) {
+                    formatted += '[AUTO-HEALED 🔄] Residential exit node refreshed! Auto-connected to: ' + res.proxy_endpoint + '\n';
+                }
+                formatted += '[SUCCESS] HTTP Code: ' + res.http_code + ' | Latency: ' + res.latency_ms + 'ms\n';
                 formatted += 'Endpoint: ' + res.proxy_endpoint + '\n';
+                formatted += 'External IP: ' + (res.external_ip || 'N/A') + '\n';
                 formatted += '--------------------------------------------------\n';
                 formatted += res.raw_response;
 
                 $('#consoleOutput').removeClass('text-warning text-danger').addClass('text-success').text(formatted);
+
+                if (res.auto_healed) {
+                    setTimeout(() => location.reload(), 1500);
+                }
             },
             error: function(xhr) {
                 btn.prop('disabled', false).html('<i class="fa-solid fa-vial"></i> Test');
@@ -338,9 +354,9 @@ $(document).ready(function() {
                 }
                 $('#consoleOutput').removeClass('text-warning text-success').addClass('text-danger').text(errText);
 
-                // Auto reload page after 2s if proxy account was marked exhausted during test
-                if (xhr.status === 500 && errText.includes('407')) {
-                    setTimeout(() => location.reload(), 2000);
+                // Reload only if proxy is genuinely marked exhausted
+                if (errJson.is_bandwidth_exhausted) {
+                    setTimeout(() => location.reload(), 2500);
                 }
             }
         });

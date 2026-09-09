@@ -1,14 +1,14 @@
 #!/bin/bash
 # ==============================================================================
-# Taqamul Expert - VPS Automated Deployment Script
+# Hold My / Taqamul Expert - VPS Automated Deployment Script
 # Target OS: Ubuntu 24.04 LTS
-# Target Port: 7777
+# Target Port: 9000
 # ==============================================================================
 
 export DEBIAN_FRONTEND=noninteractive
 APT_OPTS="-y -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\""
 
-echo "🚀 [Taqamul Deploy] Starting automated deployment on Port 7777..."
+echo "🚀 [Hold My Deploy] Starting automated deployment on Port 9000..."
 
 # 1. System Update & Essential Packages
 echo "📦 [1/6] Updating Ubuntu packages and installing dependencies..."
@@ -35,7 +35,7 @@ fi
 
 # 4. Configure Application Directory & Environment
 echo "📁 [4/6] Setting up Laravel application directory & permissions..."
-APP_DIR="/var/www/taqamul"
+APP_DIR="/var/www/hold_my"
 sudo mkdir -p $APP_DIR
 git config --global --add safe.directory $APP_DIR 2>/dev/null || true
 
@@ -45,7 +45,7 @@ if [ -d "$APP_DIR/.git" ]; then
     sudo git pull origin main
 else
     echo "📥 Cloning repository from GitHub..."
-    sudo git clone https://github.com/zidanmahmudxz/hold_slot.git $APP_DIR
+    sudo git clone https://github.com/tanjilhossen/hold_my.git $APP_DIR
     cd $APP_DIR
 fi
 
@@ -57,7 +57,7 @@ fi
 
 # Ensure SQLite Database config in .env
 sudo sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/' $APP_DIR/.env
-sudo sed -i 's|^DB_DATABASE=.*|DB_DATABASE=/var/www/taqamul/database/database.sqlite|' $APP_DIR/.env
+sudo sed -i 's|^DB_DATABASE=.*|DB_DATABASE=/var/www/hold_my/database/database.sqlite|' $APP_DIR/.env
 
 # Create SQLite database file
 sudo touch $APP_DIR/database/database.sqlite
@@ -85,18 +85,18 @@ sudo php artisan view:cache
 sudo chown -R www-data:www-data $APP_DIR
 sudo chmod -R 775 $APP_DIR/storage $APP_DIR/bootstrap/cache
 
-# 5. Setup Systemd Service on Port 7777
-echo "⚙️ [5/6] Creating Systemd Service for Port 7777..."
-sudo cat << 'EOF' | sudo tee /etc/systemd/system/taqamul.service
+# 5. Setup Systemd Service on Port 9000
+echo "⚙️ [5/6] Creating Systemd Service for Port 9000..."
+sudo cat << 'EOF' | sudo tee /etc/systemd/system/hold_my.service
 [Unit]
-Description=Taqamul Expert Engine Service (Port 7777)
+Description=Hold My Engine Service (Port 9000)
 After=network.target
 
 [Service]
 User=root
 Group=root
-WorkingDirectory=/var/www/taqamul
-ExecStart=/usr/bin/php artisan serve --host=0.0.0.0 --port=7777
+WorkingDirectory=/var/www/hold_my
+ExecStart=/usr/bin/php artisan serve --host=0.0.0.0 --port=9000
 Restart=always
 RestartSec=5
 
@@ -105,18 +105,18 @@ WantedBy=multi-user.target
 EOF
 
 sudo systemctl daemon-reload
-sudo systemctl enable taqamul.service
-sudo systemctl restart taqamul.service
+sudo systemctl enable hold_my.service
+sudo systemctl restart hold_my.service
 
-# 6. Configure Firewall (UFW) for Port 7777
-echo "🛡️ [6/6] Opening Port 7777 in firewall..."
-sudo ufw allow 7777/tcp
+# 6. Configure Firewall (UFW) for Port 9000
+echo "🛡️ [6/6] Opening Port 9000 in firewall..."
+sudo ufw allow 9000/tcp
 sudo ufw allow 22/tcp
 echo "y" | sudo ufw enable 2>/dev/null || true
 
 echo "=============================================================================="
-echo "✅ [SUCCESS] Taqamul Engine deployed successfully on Port 7777!"
-echo "🌐 Access Website: http://200.234.41.119:7777"
+echo "✅ [SUCCESS] Hold My Engine deployed successfully on Port 9000!"
+echo "🌐 Access Website: http://200.234.41.119:9000"
 echo "🔐 Default Admin Credentials:"
 echo "   - Email: admin@taqamul.com"
 echo "   - Password: admin123"

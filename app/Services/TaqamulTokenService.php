@@ -383,7 +383,7 @@ class TaqamulTokenService
                         ]
                     ];
                     if (!empty($proxyCfg['proxy'])) {
-                        $opts['proxy'] = $proxyCfg['proxy'];
+                        \App\Services\ProxyService::applyProxyToOptions($opts);
                     }
 
                     $probeRes = Http::withoutVerifying()->timeout(5)->withOptions($opts)->withHeaders([
@@ -417,7 +417,12 @@ class TaqamulTokenService
                 ];
                 $directOpts = $opts;
                 if (!empty($proxyCfg['proxy']) && $attemptRetry === 1) {
-                    $opts['proxy'] = $proxyCfg['proxy'];
+                    $health = \App\Services\ProxyService::ensureHealthy();
+                    if ($health['healthy']) {
+                        \App\Services\ProxyService::applyProxyToOptions($opts);
+                    } else {
+                        $logStep("[Token Bot ℹ️] Proxy pre-check indicates proxy unavailable (" . ($health['error'] ?? 'unhealthy') . "). Proceeding directly without proxy...");
+                    }
                 }
 
                 // 1. Send Direct Captcha-Free Login request to Taqamul API (recaptcha_response: "")
