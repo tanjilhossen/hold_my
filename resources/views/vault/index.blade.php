@@ -406,7 +406,7 @@
                     <td class="fw-bold text-warning">Cycle #${cycleNum}</td>
                     <td>${seatBadge}</td>
                     <td>${typeBadge}</td>
-                    <td class="small text-muted"><i class="fa-solid fa-clock me-1 text-info"></i> ${item.timestamp || 'N/A'}</td>
+                    <td class="small text-light fw-semibold"><i class="fa-solid fa-clock me-1 text-info"></i> ${item.timestamp || 'N/A'}</td>
                     <td class="text-end">
                         <button class="btn btn-sm btn-outline-light py-0.5 px-2" onclick="navigator.clipboard.writeText('${item.seat_id}'); alert('Copied Seat ID: ${item.seat_id}');">
                             <i class="fa-solid fa-copy me-1"></i> Copy ID
