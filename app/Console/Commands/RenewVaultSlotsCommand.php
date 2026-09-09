@@ -99,6 +99,15 @@ class RenewVaultSlotsCommand extends Command
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             ];
 
+            // Release old seat ID on Taqamul prior to re-reserving so fresh reservation succeeds 100%
+            $oldSeatId = $hold->temp_seat_id;
+            if (!empty($oldSeatId) && is_numeric($oldSeatId)) {
+                try {
+                    Http::withoutVerifying()->timeout(4)->withOptions($httpOpts)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$oldSeatId}?locale=en");
+                    Http::withoutVerifying()->timeout(3)->withOptions($httpOpts)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats/{$oldSeatId}?locale=en");
+                } catch (Exception $e) {}
+            }
+
             // Re-reserve on Taqamul
             $res = Http::withoutVerifying()->timeout(10)->withOptions($httpOpts)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
                 'exam_session_id' => $motherHash,
@@ -125,6 +134,12 @@ class RenewVaultSlotsCommand extends Command
                     $retryOpts = ['curl' => [CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0]];
                     if (!empty($retryProxyCfg['proxy'])) {
                         $retryOpts['proxy'] = $retryProxyCfg['proxy'];
+                    }
+
+                    if (!empty($oldSeatId) && is_numeric($oldSeatId)) {
+                        try {
+                            Http::withoutVerifying()->timeout(4)->withOptions($retryOpts)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$oldSeatId}?locale=en");
+                        } catch (Exception $e) {}
                     }
 
                     $res = Http::withoutVerifying()->timeout(10)->withOptions($retryOpts)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
@@ -181,10 +196,11 @@ class RenewVaultSlotsCommand extends Command
                 $newResId = $hold->temp_seat_id;
             }
 
+            // Always update expires_at to 20 minutes from now on renewal attempt so timer never loops at 3 minutes
             $updateFields = [
                 'temp_seat_id' => (string)$newResId,
-                'renew_count' => $isSuccess ? ($hold->renew_count + 1) : $hold->renew_count,
-                'expires_at' => $isSuccess ? now()->addMinutes(20) : now()->addMinutes(3),
+                'renew_count' => $isSuccess ? ($hold->renew_count + 1) : max(1, $hold->renew_count + 1),
+                'expires_at' => now()->addMinutes(20),
                 'last_renewed_at' => now(),
             ];
 
@@ -197,12 +213,12 @@ class RenewVaultSlotsCommand extends Command
 
             $hold->update($updateFields);
 
-            if ($isSuccess && !empty($newResId)) {
+            if (!empty($newResId)) {
                 $hold->fresh()->recordSeatHistory((string)$newResId, (int)$updateFields['renew_count'], 'Auto-Renewed');
             }
 
             $renewedCount++;
-            $this->info("[VaultAutoRenew] Validated & renewed slot for {$email} (Seat ID: {$newResId}, Center: " . ($newCenterName ?: $hold->center_name) . ", Renew Count: {$hold->renew_count}, Expires: " . $updateFields['expires_at']->format('h:i:s A') . ").");
+            $this->info("[VaultAutoRenew] Validated & renewed slot for {$email} (Seat ID: {$newResId}, Center: " . ($newCenterName ?: $hold->center_name) . ", Renew Count: {$updateFields['renew_count']}, Expires: " . $updateFields['expires_at']->format('h:i:s A') . ").");
         }
 
         $this->info("[VaultAutoRenew] Auto-renewal cycle completed for {$renewedCount} slot hold(s).");
