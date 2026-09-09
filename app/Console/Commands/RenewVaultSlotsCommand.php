@@ -99,77 +99,74 @@ class RenewVaultSlotsCommand extends Command
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             ];
 
-            // Release old seat ID on Taqamul prior to re-reserving so fresh reservation succeeds 100%
-            $oldSeatId = $hold->temp_seat_id;
-            if (!empty($oldSeatId) && is_numeric($oldSeatId)) {
-                try {
-                    Http::withoutVerifying()->timeout(4)->withOptions($httpOpts)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$oldSeatId}?locale=en");
-                    Http::withoutVerifying()->timeout(3)->withOptions($httpOpts)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats/{$oldSeatId}?locale=en");
-                } catch (Exception $e) {}
-            }
+            $dispatchReservation = function(string $url, array $payload, array $hdrs) {
+                $proxyCfg = \App\Models\Setting::getProxyConfig();
+                $baseOpts = ['curl' => [CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0]];
 
-            // Re-reserve on Taqamul
-            $res = Http::withoutVerifying()->timeout(10)->withOptions($httpOpts)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
+                if (!empty($proxyCfg['proxy'])) {
+                    $proxyOpts = array_merge($baseOpts, ['proxy' => $proxyCfg['proxy']]);
+                    try {
+                        $res = Http::withoutVerifying()->timeout(10)->withOptions($proxyOpts)->withHeaders($hdrs)->post($url, $payload);
+                        if ($res->status() < 500) {
+                            return $res;
+                        }
+                    } catch (Exception $e) {}
+                }
+
+                return Http::withoutVerifying()->timeout(10)->withOptions($baseOpts)->withHeaders($hdrs)->post($url, $payload);
+            };
+
+            $oldSeatId = $hold->temp_seat_id;
+            $resPayload = [
                 'exam_session_id' => $motherHash,
                 'occupation_id' => $occId,
                 'language_code' => $langCode,
                 'methodology' => 'in_person',
-            ]);
+            ];
+            $resUrl = "{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en";
 
-            $bodyStr = $res->body();
-            $status = $res->status();
+            // STEP 1: Attempt new reservation FIRST without releasing old seat to keep slot 100% held on Taqamul
+            $res = $dispatchReservation($resUrl, $resPayload, $headers);
+            $bodyStr = $res ? $res->body() : '';
+            $status = $res ? $res->status() : 0;
 
-            // Check if Token Expired ("Signature has expired" / 401)
+            // STEP 2: Check if Token Expired (401) -> Re-login candidate & retry
             if ($status === 401 || str_contains($bodyStr, 'Signature has expired') || str_contains($bodyStr, 'Unauthorized')) {
-                $this->warn("[VaultAutoRenew] Signature has expired for {$email}. Triggering automatic candidate re-login...");
+                $this->warn("[VaultAutoRenew] Token expired for {$email}. Re-logging candidate...");
                 $freshToken = $tokenService->loginAndFetchTokenHttp($email, $password, null, true);
                 if (empty($freshToken) || !$tokenService->isValidTokenFormat($freshToken)) {
                     $freshToken = $tokenService->loginAndFetchToken($email, $password);
                 }
 
                 if (!empty($freshToken) && $tokenService->isValidTokenFormat($freshToken)) {
+                    $tokenService->updateAccountToken($email, $freshToken);
                     $headers['Authorization'] = str_starts_with($freshToken, 'Bearer ') ? $freshToken : "Bearer {$freshToken}";
-                    
-                    $retryProxyCfg = \App\Models\Setting::getProxyConfig();
-                    $retryOpts = ['curl' => [CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0]];
-                    if (!empty($retryProxyCfg['proxy'])) {
-                        $retryOpts['proxy'] = $retryProxyCfg['proxy'];
-                    }
-
-                    if (!empty($oldSeatId) && is_numeric($oldSeatId)) {
-                        try {
-                            Http::withoutVerifying()->timeout(4)->withOptions($retryOpts)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$oldSeatId}?locale=en");
-                        } catch (Exception $e) {}
-                    }
-
-                    $res = Http::withoutVerifying()->timeout(10)->withOptions($retryOpts)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
-                        'exam_session_id' => $motherHash,
-                        'occupation_id' => $occId,
-                        'language_code' => $langCode,
-                        'methodology' => 'in_person',
-                    ]);
-                    $bodyStr = $res->body();
-                    $status = $res->status();
+                    $res = $dispatchReservation($resUrl, $resPayload, $headers);
+                    $bodyStr = $res ? $res->body() : '';
+                    $status = $res ? $res->status() : 0;
                 }
             }
 
-            // Check Rate Limit (429)
+            // STEP 3: If Taqamul requires releasing old seat first (422), release old seat & re-reserve immediately
+            if (!$res || !$res->successful()) {
+                if (!empty($oldSeatId) && is_numeric($oldSeatId)) {
+                    try {
+                        $delOpts = ['curl' => [CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0]];
+                        Http::withoutVerifying()->timeout(4)->withOptions($delOpts)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$oldSeatId}?locale=en");
+                        Http::withoutVerifying()->timeout(3)->withOptions($delOpts)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats/{$oldSeatId}?locale=en");
+                    } catch (Exception $e) {}
+                }
+
+                $res = $dispatchReservation($resUrl, $resPayload, $headers);
+                $bodyStr = $res ? $res->body() : '';
+                $status = $res ? $res->status() : 0;
+            }
+
+            // STEP 4: Check Rate Limit (429)
             if ($status === 429 || str_contains(strtolower($bodyStr), 'rate limit')) {
                 $this->warn("[RATE_LIMIT]: Rate limit hit for {$email}. Waiting 60s before retry...");
                 sleep(60);
-                
-                $retryProxyCfg = \App\Models\Setting::getProxyConfig();
-                $retryOpts = ['curl' => [CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0]];
-                if (!empty($retryProxyCfg['proxy'])) {
-                    $retryOpts['proxy'] = $retryProxyCfg['proxy'];
-                }
-
-                $res = Http::withoutVerifying()->timeout(10)->withOptions($retryOpts)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
-                    'exam_session_id' => $motherHash,
-                    'occupation_id' => $occId,
-                    'language_code' => $langCode,
-                    'methodology' => 'in_person',
-                ]);
+                $res = $dispatchReservation($resUrl, $resPayload, $headers);
             }
 
             $newResId = null;
@@ -177,7 +174,7 @@ class RenewVaultSlotsCommand extends Command
             $newCity = null;
             $isSuccess = false;
 
-            if ($res->successful()) {
+            if ($res && $res->successful()) {
                 $resData = $res->json();
                 $newResId = $resData['id'] ?? ($resData['data']['id'] ?? null);
                 
@@ -196,7 +193,7 @@ class RenewVaultSlotsCommand extends Command
                 $newResId = $hold->temp_seat_id;
             }
 
-            // Always update expires_at to 20 minutes from now on renewal attempt so timer never loops at 3 minutes
+            // Update DB with fresh 20-minute expiration
             $updateFields = [
                 'temp_seat_id' => (string)$newResId,
                 'renew_count' => $isSuccess ? ($hold->renew_count + 1) : max(1, $hold->renew_count + 1),
@@ -212,6 +209,14 @@ class RenewVaultSlotsCommand extends Command
             }
 
             $hold->update($updateFields);
+
+            // Clean up old seat ID ONLY AFTER new seat ID is saved in DB
+            if ($isSuccess && !empty($oldSeatId) && is_numeric($oldSeatId) && (string)$oldSeatId !== (string)$newResId) {
+                try {
+                    $delOpts = ['curl' => [CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0]];
+                    Http::withoutVerifying()->timeout(3)->withOptions($delOpts)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$oldSeatId}?locale=en");
+                } catch (Exception $e) {}
+            }
 
             if (!empty($newResId)) {
                 $hold->fresh()->recordSeatHistory((string)$newResId, (int)$updateFields['renew_count'], 'Auto-Renewed');

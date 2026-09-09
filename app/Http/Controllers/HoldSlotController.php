@@ -1039,7 +1039,28 @@ class HoldSlotController extends Controller
                 ], 400);
             }
 
-
+            // 2. Pre-create SlotHold records so they immediately show up in Slot Vault table
+            foreach ($assignedAccounts as $email) {
+                SlotHold::updateOrCreate(
+                    [
+                        'mother_hash' => $motherHash,
+                        'held_with_email' => $email,
+                    ],
+                    [
+                        'center_name' => $centerName,
+                        'city' => $city,
+                        'category_id' => $categoryId,
+                        'category_name' => $categoryName,
+                        'exam_date' => date('Y-m-d', strtotime($examDate)),
+                        'temp_seat_id' => 'Locking...',
+                        'status' => 'pending_locking',
+                        'target_duration_minutes' => 20,
+                        'expires_at' => now()->addMinutes(20),
+                        'auto_renew_until' => now()->addHours(24),
+                        'last_renewed_at' => now(),
+                    ]
+                );
+            }
 
             // 3. Launch background process-lock Artisan command asynchronously
             $phpPath = defined('PHP_BINARY') && !empty(PHP_BINARY) ? PHP_BINARY : (PHP_OS_FAMILY === 'Windows' ? 'php' : '/usr/bin/php');
