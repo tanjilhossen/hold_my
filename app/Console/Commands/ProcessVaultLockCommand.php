@@ -326,6 +326,29 @@ class ProcessVaultLockCommand extends Command
 
             $lockedCount++;
             $this->info("[VaultLockWorker] Successfully locked slot #" . $lockedCount . " / {$requestedCount} for candidate {$email} (Reservation ID: {$resId}).");
+
+            // DYNAMIC SEAT CALIBRATION: Read real live available_seats from Taqamul response payload
+            if (isset($resData)) {
+                $sessionData = $resData['exam_session'] ?? ($resData['data']['exam_session'] ?? []);
+                if (isset($sessionData['available_seats']) && is_numeric($sessionData['available_seats'])) {
+                    $remSeats = (int)$sessionData['available_seats'];
+                    $totalCapacity = isset($sessionData['seats']) ? (int)$sessionData['seats'] : 10;
+                    $actualAvailableAtStart = max(1, min($totalCapacity, $remSeats + $lockedCount));
+
+                    if ($actualAvailableAtStart < $requestedCount) {
+                        $this->info("[VaultLockWorker] Live Seat Calibration: Taqamul payload reveals total actual available seats = {$actualAvailableAtStart} (Original requested: {$requestedCount}). Adjusting target count to {$actualAvailableAtStart}.");
+                        $requestedCount = $actualAvailableAtStart;
+
+                        // Immediately delete excess pending_locking records beyond actualAvailableAtStart
+                        $neededPending = max(0, $requestedCount - $lockedCount);
+                        $pendingHolds = SlotHold::where('mother_hash', $motherHash)->where('status', 'pending_locking')->get();
+                        if ($pendingHolds->count() > $neededPending) {
+                            $pendingHolds->slice($neededPending)->each->delete();
+                        }
+                    }
+                }
+            }
+
             usleep(200000); // 0.2s brief pause
         }
 
