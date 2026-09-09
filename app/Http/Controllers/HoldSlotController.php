@@ -257,6 +257,7 @@ class HoldSlotController extends Controller
             ->toArray();
 
         foreach ($accounts as $acc) {
+            if (count($tokensToTry) >= 2) break;
             $email = strtolower(trim($acc['email'] ?? ''));
             if (empty($email) || in_array($email, $busyEmails)) continue;
             $token = $this->tokenService->getTokenForAccount($email);
@@ -273,6 +274,19 @@ class HoldSlotController extends Controller
             }
         }
 
+        $dispatchPost = function(string $url, array $payload, array $hdrs) use ($opts) {
+            if (!empty($opts['proxy'])) {
+                try {
+                    $res = Http::withoutVerifying()->withOptions($opts)->timeout(3)->withHeaders($hdrs)->post($url, $payload);
+                    if ($res && $res->status() < 500) {
+                        return $res;
+                    }
+                } catch (Exception $e) {}
+            }
+            $baseOpts = ['curl' => [CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0]];
+            return Http::withoutVerifying()->withOptions($baseOpts)->timeout(3)->withHeaders($hdrs)->post($url, $payload);
+        };
+
         foreach ($tokensToTry as $token) {
             $headers = [
                 'Accept' => 'application/json',
@@ -286,12 +300,17 @@ class HoldSlotController extends Controller
 
             try {
                 // 1. Direct Mother Hash Reservation Probing
-                $res = Http::withoutVerifying()->withOptions($opts)->timeout(4)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
+                $resPayload = [
                     'exam_session_id' => $motherHash,
                     'occupation_id' => $occId,
                     'language_code' => $langCode,
                     'methodology' => 'in_person',
-                ]);
+                ];
+                $resUrl = "{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en";
+
+                $res = $dispatchPost($resUrl, $resPayload, $headers);
+
+                if (!$res) continue;
 
                 if ($res->status() === 401) {
                     if (!empty($token)) {
@@ -346,24 +365,27 @@ class HoldSlotController extends Controller
 
                 // 2. Handle 422 where temporary seats are required
                 if ($res->status() === 422 && str_contains($res->body(), 'temporary')) {
-                    $tempRes = Http::withoutVerifying()->withOptions($opts)->timeout(4)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats?locale=en", [
+                    $tempPayload = [
                         'exam_session_id' => [$motherHash],
                         'methodology' => 'in_person',
-                    ]);
+                    ];
+                    $tempUrl = "{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats?locale=en";
+                    $tempRes = $dispatchPost($tempUrl, $tempPayload, $headers);
 
-                    if ($tempRes->successful()) {
+                    if ($tempRes && $tempRes->successful()) {
                         $tempJson = $tempRes->json();
                         $tempIdToRelease = $tempJson['id'] ?? ($tempJson['data']['id'] ?? null);
                         $sessHash = $tempJson['exam_session_id'] ?? $motherHash;
 
-                        $res2 = Http::withoutVerifying()->withOptions($opts)->timeout(4)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations?locale=en", [
+                        $res2Payload = [
                             'exam_session_id' => $sessHash,
                             'occupation_id' => $occId,
                             'language_code' => $langCode,
                             'methodology' => 'in_person',
-                        ]);
+                        ];
+                        $res2 = $dispatchPost($resUrl, $res2Payload, $headers);
 
-                        if ($res2->successful()) {
+                        if ($res2 && $res2->successful()) {
                             $json2 = $res2->json();
                             $resIdToRelease = $json2['id'] ?? ($json2['data']['id'] ?? ($json2['exam_reservation_id'] ?? null));
                             $es2 = $json2['exam_session'] ?? [];
@@ -406,14 +428,18 @@ class HoldSlotController extends Controller
                 Log::warning("[ProbeSessionLive] Exception during probe: " . $e->getMessage());
             } finally {
                 // ALWAYS GUARANTEE IMMEDIATE RELEASE OF PROBE RESERVATION & TEMPORARY SEAT
+                $delOpts = ['curl' => [CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0]];
+                if (!empty($opts['proxy'])) {
+                    $delOpts['proxy'] = $opts['proxy'];
+                }
                 if ($resIdToRelease) {
                     try {
-                        Http::withoutVerifying()->withOptions($opts)->timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$resIdToRelease}?locale=en");
+                        Http::withoutVerifying()->withOptions($delOpts)->timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/exam_reservations/{$resIdToRelease}?locale=en");
                     } catch (Exception $e) {}
                 }
                 if ($tempIdToRelease) {
                     try {
-                        Http::withoutVerifying()->withOptions($opts)->timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats/{$tempIdToRelease}?locale=en");
+                        Http::withoutVerifying()->withOptions($delOpts)->timeout(3)->withHeaders($headers)->delete("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats/{$tempIdToRelease}?locale=en");
                     } catch (Exception $e) {}
                 }
             }
