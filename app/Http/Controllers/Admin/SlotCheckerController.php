@@ -715,6 +715,8 @@ class SlotCheckerController extends Controller
                 ? (int)$taqamulData['available_seats'] 
                 : max(0, $totalCapacity - $activeHeldCount);
 
+            $totalCapacity = max((int)$totalCapacity, (int)$liveAvailable);
+
             // Comprehensive Complete Response Payload
             $fullPayload = [
                 'success' => true,
@@ -1713,7 +1715,8 @@ class SlotCheckerController extends Controller
                     // Available seats from session + 1 (since current probe reservation temporarily took 1 seat)
                     $rawAvail = isset($session['available_seats']) ? (int)$session['available_seats'] : 6;
                     $availSeats = max(1, $rawAvail + 1);
-                    $totalSeats = isset($session['seats']) ? (int)$session['seats'] : 10;
+                    $totalSeats = isset($session['seats']) ? (int)$session['seats'] : max(10, $availSeats);
+                    $totalSeats = max($totalSeats, $availSeats);
 
                     $centerData = null;
                     if (!empty($name)) {
@@ -2572,12 +2575,13 @@ class SlotCheckerController extends Controller
                                 } catch (Exception $e) {}
 
                                 if ($probed && isset($probed['available_seats'])) {
-                                    $availSeats = $probed['available_seats'];
-                                    $totalCap = $probed['total_seats'] ?? 10;
+                                    $availSeats = (int)$probed['available_seats'];
+                                    $totalCap = isset($probed['total_seats']) ? (int)$probed['total_seats'] : max(10, $availSeats);
                                 } else {
-                                    $totalCap = $realTotalCap ?? (isset($s['seats']) ? (int)$s['seats'] : (isset($s['total_seats']) ? (int)$s['total_seats'] : 10));
                                     $availSeats = $realAvailSeats ?? (isset($s['available_seats']) ? (int)$s['available_seats'] : ($isAlreadyHeld ? 0 : 7));
+                                    $totalCap = $realTotalCap ?? (isset($s['seats']) ? (int)$s['seats'] : (isset($s['total_seats']) ? (int)$s['total_seats'] : max(10, (int)$availSeats)));
                                 }
+                                $totalCap = max((int)$totalCap, (int)$availSeats);
 
                                 $slotObj = [
                                     'mother_hash' => $hash,
@@ -2772,6 +2776,7 @@ class SlotCheckerController extends Controller
                         $totalCap = 10;
                     }
                 }
+                $totalCap = max((int)$totalCap, (int)$availSeats);
 
                 // Always ensure a valid Google Maps location link exists
                 if (empty($locationLink)) {

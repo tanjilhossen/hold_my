@@ -1499,21 +1499,28 @@
                         <td class="py-3 px-4 align-top">
                             <div class="space-y-1">
                                 <div class="flex items-center gap-1.5 flex-wrap">
-                                    ${(c.already_held || c.available_seats === 0) ? `
-                                        <span class="px-2.5 py-1 rounded-xl bg-rose-500/15 text-rose-300 border border-rose-500/30 text-[11px] font-bold font-mono inline-flex items-center gap-1.5 shadow-sm">
-                                            <i class="fa-solid fa-lock text-rose-400 text-[10px]"></i>
-                                            <span>0 / ${c.total_seats || 10} Free (Locked)</span>
-                                        </span>
-                                    ` : `
-                                        <span class="px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 text-[11px] font-bold font-mono inline-flex items-center gap-1.5 shadow-sm">
-                                            <i class="fa-solid fa-chair text-emerald-400 text-[10px]"></i>
-                                            <span>${(c.available_seats !== undefined && c.available_seats !== null && c.available_seats !== 'Available') ? c.available_seats : 7} / ${c.total_seats || 10} Free</span>
-                                        </span>
-                                    `}
+                                    ${(() => {
+                                        const avail = (c.available_seats !== undefined && c.available_seats !== null && c.available_seats !== 'Available') ? Number(c.available_seats) : 7;
+                                        const total = (c.total_seats && Number(c.total_seats) >= avail) ? Number(c.total_seats) : Math.max(10, avail);
+                                        if (c.already_held || avail === 0) {
+                                            return `<span class="px-2.5 py-1 rounded-xl bg-rose-500/15 text-rose-300 border border-rose-500/30 text-[11px] font-bold font-mono inline-flex items-center gap-1.5 shadow-sm">
+                                                <i class="fa-solid fa-lock text-rose-400 text-[10px]"></i>
+                                                <span>0 / ${total} Free (Locked)</span>
+                                            </span>`;
+                                        } else {
+                                            return `<span class="px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 text-[11px] font-bold font-mono inline-flex items-center gap-1.5 shadow-sm">
+                                                <i class="fa-solid fa-chair text-emerald-400 text-[10px]"></i>
+                                                <span>${avail} / ${total} Free</span>
+                                            </span>`;
+                                        }
+                                    })()}
                                     ${c.already_held ? '<span class="px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-lock text-[9px]"></i> System Locked</span>' : ''}
                                 </div>
                                 <div class="text-[10px] font-mono text-slate-400 pl-0.5">
-                                    Capacity: ${c.total_seats || 10} Seats, Status: ${(c.available_seats !== undefined && c.available_seats !== null && c.available_seats !== 'Available') ? c.available_seats : 7} Free Seats
+                                    Capacity: ${(() => {
+                                        const avail = (c.available_seats !== undefined && c.available_seats !== null && c.available_seats !== 'Available') ? Number(c.available_seats) : 7;
+                                        return (c.total_seats && Number(c.total_seats) >= avail) ? Number(c.total_seats) : Math.max(10, avail);
+                                    })()} Seats, Status: ${(c.available_seats !== undefined && c.available_seats !== null && c.available_seats !== 'Available') ? c.available_seats : 7} Free Seats
                                 </div>
                             </div>
                         </td>

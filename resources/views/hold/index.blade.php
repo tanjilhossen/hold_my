@@ -562,9 +562,16 @@
         data.centers.forEach(c => {
             const shortHash = c.mother_hash.substring(0, 16) + '...';
             
-            const seatBadge = c.available_seats > 0 
-                ? `<span class="badge bg-success fs-6"><i class="fa-solid fa-chair me-1"></i> ${c.available_seats} / ${c.total_seats} Available</span>` 
-                : `<span class="badge bg-danger fs-6"><i class="fa-solid fa-circle-xmark me-1"></i> 0 / ${c.total_seats} Full</span>`;
+            let seatBadge = '';
+            if (c.available_seats > 0) {
+                if (c.total_seats && c.total_seats >= c.available_seats) {
+                    seatBadge = `<span class="badge bg-success fs-6"><i class="fa-solid fa-chair me-1"></i> ${c.available_seats} / ${c.total_seats} Available</span>`;
+                } else {
+                    seatBadge = `<span class="badge bg-success fs-6"><i class="fa-solid fa-chair me-1"></i> ${c.available_seats} Seats Available</span>`;
+                }
+            } else {
+                seatBadge = `<span class="badge bg-danger fs-6"><i class="fa-solid fa-circle-xmark me-1"></i> 0 / ${c.total_seats || 10} Full</span>`;
+            }
 
             const actionBtn = c.available_seats > 0
                 ? `<button class="btn btn-sm btn-warning text-dark fw-bold shadow-sm" onclick="lockAllSlotsForHash('${c.mother_hash}', ${c.available_seats}, '${c.center_name.replace(/'/g, "\\'")}', '${c.city}', '${c.exam_date}', '${c.start_time}', ${c.category_id}, '${(c.category_name || 'Profession').replace(/'/g, "\\'")}', this)">

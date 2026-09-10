@@ -333,8 +333,8 @@ class HoldSlotController extends Controller
                     $cName = $tc['test_center_name'] ?? ($tc['name'] ?? ($tc['test_center']['name'] ?? null));
                     $cAddress = $tc['address'] ?? ($tc['test_center']['address'] ?? "{$city}, Bangladesh");
 
-                    $total = isset($es['seats']) ? (int)$es['seats'] : 10;
                     $rawAvail = isset($es['available_seats']) ? (int)$es['available_seats'] : 0;
+                    $total = (isset($es['seats']) && is_numeric($es['seats'])) ? (int)$es['seats'] : max(10, $rawAvail + 1);
                     $avail = max(0, min($total, $rawAvail + 1));
 
                     $startRaw = $es['start_at_in_tc_time_zone'] ?? ($es['start_at'] ?? null);
@@ -398,8 +398,8 @@ class HoldSlotController extends Controller
 
                             $cName = $tc2['test_center_name'] ?? ($tc2['name'] ?? null);
                             $cAddress = $tc2['address'] ?? "{$city}, Bangladesh";
-                            $total = isset($es2['seats']) ? (int)$es2['seats'] : 10;
                             $rawAvail = isset($es2['available_seats']) ? (int)$es2['available_seats'] : 0;
+                            $total = (isset($es2['seats']) && is_numeric($es2['seats'])) ? (int)$es2['seats'] : max(10, $rawAvail + 1);
                             $avail = max(0, min($total, $rawAvail + 1));
                             $startRaw = $es2['start_at_in_tc_time_zone'] ?? ($es2['start_at'] ?? null);
                             $startTime = $startRaw ? date('h:i A', strtotime($startRaw)) : '09:30 AM';
@@ -452,11 +452,12 @@ class HoldSlotController extends Controller
 
         // 4. Fallback: Return stored DB hash entry if available
         if ($dbHash && !empty($dbHash->center_name)) {
+            $dbAvail = (int)$dbHash->available_seats;
             return [
                 'center_name' => $dbHash->center_name,
                 'center_address' => $dbHash->center_address ?: "{$city}, Bangladesh",
-                'available_seats' => (int)$dbHash->available_seats,
-                'total_seats' => 10,
+                'available_seats' => $dbAvail,
+                'total_seats' => max(10, $dbAvail),
                 'start_time' => $dbHash->start_time ?: '09:30 AM',
                 'city' => $dbHash->city ?: $city,
             ];
@@ -868,12 +869,11 @@ class HoldSlotController extends Controller
                                 ->first();
                         }
 
-                        $rawAvail = $sess['available_seats'] ?? null;
-                        $rawTotal = $sess['seats'] ?? ($sess['total_seats'] ?? null);
-                        $totalSeats = is_numeric($rawTotal) ? (int)$rawTotal : 10;
+                        $rawAvail = $sess['available_seats'] ?? ($sess['seats_available'] ?? null);
+                        $rawTotal = $sess['seats'] ?? ($sess['total_seats'] ?? ($sess['capacity'] ?? null));
 
-                        if (is_numeric($rawAvail) && (int)$rawAvail > 0) {
-                            $probeAvail = (int)$rawAvail;
+                        if (is_numeric($rawAvail)) {
+                            $probeAvail = max(0, (int)$rawAvail);
                         } else {
                             $probed = $this->probeSessionLive($motherHash, $categoryId, $apiCity, $token);
                             if ($probed && isset($probed['available_seats'])) {
@@ -887,9 +887,21 @@ class HoldSlotController extends Controller
                                 if (!empty($probed['start_time'])) {
                                     $startTime = $probed['start_time'];
                                 }
+                                if (isset($probed['total_seats']) && is_numeric($probed['total_seats'])) {
+                                    $rawTotal = $probed['total_seats'];
+                                }
                             } else {
                                 $probeAvail = 0;
                             }
+                        }
+
+                        // Determine realistic total seats capacity: never less than available seats!
+                        if (is_numeric($rawTotal) && (int)$rawTotal > 0) {
+                            $totalSeats = max((int)$rawTotal, $probeAvail);
+                        } elseif ($probeAvail > 0) {
+                            $totalSeats = $probeAvail > 10 ? (int)(ceil($probeAvail / 5) * 5) : 10;
+                        } else {
+                            $totalSeats = 10;
                         }
 
                         if ($dbHash) {

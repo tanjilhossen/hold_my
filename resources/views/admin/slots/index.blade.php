@@ -1306,10 +1306,21 @@
 
                 <!-- Status / Available Seats -->
                 <td class="py-4 px-4 text-center">
-                    <span class="px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold font-mono inline-flex items-center gap-1.5 shadow-sm">
-                        <i class="fa-solid fa-chair text-emerald-400 text-[10px]"></i>
-                        <span>${c.available_seats !== undefined ? c.available_seats : 7} / ${c.total_seats || 10} Free</span>
-                    </span>
+                    ${(() => {
+                        const avail = (c.available_seats !== undefined && c.available_seats !== null) ? Number(c.available_seats) : 7;
+                        const total = (c.total_seats && Number(c.total_seats) >= avail) ? Number(c.total_seats) : Math.max(10, avail);
+                        if (avail > 0) {
+                            return `<span class="px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold font-mono inline-flex items-center gap-1.5 shadow-sm">
+                                <i class="fa-solid fa-chair text-emerald-400 text-[10px]"></i>
+                                <span>${avail} / ${total} Free</span>
+                            </span>`;
+                        } else {
+                            return `<span class="px-2.5 py-1 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/30 text-[11px] font-bold font-mono inline-flex items-center gap-1.5 shadow-sm">
+                                <i class="fa-solid fa-circle-xmark text-rose-400 text-[10px]"></i>
+                                <span>0 / ${total} Full</span>
+                            </span>`;
+                        }
+                    })()}
                 </td>
 
                 <!-- Action / Lock Slot Column -->
