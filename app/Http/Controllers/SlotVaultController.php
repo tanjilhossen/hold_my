@@ -34,14 +34,23 @@ class SlotVaultController extends Controller
     public function getVaultData()
     {
         // Non-blocking background auto-renew trigger if any active hold has completed 20 minutes (expires_at <= now())
+        // OR is within 3-minute prewarm window (expires_at <= now() + 3 min and prewarm not ready)
         $hasExpiring = SlotHold::where('status', 'active')
             ->where('expires_at', '<=', now())
             ->exists();
 
-        if ($hasExpiring) {
+        $hasNearingPrewarm = SlotHold::where('status', 'active')
+            ->where('expires_at', '<=', now()->addMinutes(3))
+            ->where('expires_at', '>', now())
+            ->where(function($q) {
+                $q->whereNull('prewarm_status')->orWhere('prewarm_status', '!=', 'ready');
+            })
+            ->exists();
+
+        if ($hasExpiring || $hasNearingPrewarm) {
             $lastTrigger = Cache::get('vault_last_auto_renew_trigger', 0);
-            if (time() - $lastTrigger > 15) {
-                Cache::put('vault_last_auto_renew_trigger', time(), 30);
+            if (time() - $lastTrigger > 10) {
+                Cache::put('vault_last_auto_renew_trigger', time(), 25);
                 $this->triggerBackgroundAutoRenew();
             }
         }
@@ -78,12 +87,18 @@ class SlotVaultController extends Controller
                     'is_locking_in_progress' => false,
                     'expires_at' => $hold->expires_at ? $hold->expires_at->toIso8601String() : null,
                     'remaining_seconds' => $slotRemaining,
+                    'has_failure' => !empty($hold->last_failure_reason),
+                    'latest_failure_reason' => $hold->last_failure_reason,
                     'slots' => [],
                 ];
             } else {
                 if ($slotRemaining > $grouped[$hash]['remaining_seconds']) {
                     $grouped[$hash]['remaining_seconds'] = $slotRemaining;
                     $grouped[$hash]['expires_at'] = $hold->expires_at ? $hold->expires_at->toIso8601String() : null;
+                }
+                if (!empty($hold->last_failure_reason)) {
+                    $grouped[$hash]['has_failure'] = true;
+                    $grouped[$hash]['latest_failure_reason'] = $hold->last_failure_reason;
                 }
             }
 
@@ -103,7 +118,8 @@ class SlotVaultController extends Controller
                         'renew_count' => max(1, $hold->renew_count),
                         'seat_id' => (string)$hold->temp_seat_id,
                         'timestamp' => $hold->created_at ? $hold->created_at->format('Y-m-d h:i:s A') : now()->format('Y-m-d h:i:s A'),
-                        'type' => 'Initial Hold'
+                        'type' => 'Initial Hold',
+                        'email' => $hold->held_with_email,
                     ]
                 ];
             }
@@ -111,6 +127,11 @@ class SlotVaultController extends Controller
             $grouped[$hash]['slots'][] = [
                 'id' => $hold->id,
                 'email' => $hold->held_with_email,
+                'next_candidate_email' => $hold->next_candidate_email,
+                'prewarm_status' => $hold->prewarm_status ?: 'idle',
+                'prewarmed_at' => $hold->prewarmed_at ? $hold->prewarmed_at->format('h:i:s A') : null,
+                'last_failure_reason' => $hold->last_failure_reason,
+                'last_failure_at' => $hold->last_failure_at ? $hold->last_failure_at->format('h:i:s A') : null,
                 'temp_seat_id' => $hold->status === 'pending_locking' ? 'Processing...' : $hold->temp_seat_id,
                 'status' => $hold->status,
                 'expires_at' => ($hold->status === 'active' && $hold->expires_at) ? $hold->expires_at->format('h:i:s A') : 'Queued',

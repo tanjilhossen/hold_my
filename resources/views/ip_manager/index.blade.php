@@ -18,6 +18,7 @@
                 <div class="d-flex flex-wrap align-items-center gap-2">
                     <form action="{{ route('ip_manager.update') }}" method="POST" class="d-flex align-items-center gap-2">
                         @csrf
+                        <input type="hidden" name="only_toggle_proxy" value="1">
                         <div class="form-check form-switch fs-5 m-0">
                             <input class="form-check-input" type="checkbox" role="switch" id="proxy_enabled" name="proxy_enabled" value="1" {{ $proxyEnabled == '1' ? 'checked' : '' }} onchange="this.form.submit()">
                             <label class="form-check-label fs-6 fw-semibold ms-1" for="proxy_enabled">
@@ -36,6 +37,64 @@
                     </button>
                 </div>
             </div>
+        </div>
+
+        <!-- High-Throughput Load Balancing & Decodo Port Sharding Settings -->
+        <div class="card card-custom p-4 mb-4 border-start border-4 border-primary">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h6 class="fw-bold text-dark m-0">
+                        <i class="fa-solid fa-bolt-lightning text-primary me-2"></i> High-Throughput Engine (500+ Slots Optimization)
+                    </h6>
+                    <small class="text-muted">Prevents single-port proxy choke and 502/503/504 errors by sharding requests across Decodo's 50 sticky exit ports (41001-41050) & balancing across active accounts.</small>
+                </div>
+                <span class="badge bg-primary fs-7">Enterprise Scale</span>
+            </div>
+            
+            <form action="{{ route('ip_manager.update') }}" method="POST">
+                @csrf
+                <input type="hidden" name="proxy_settings_form" value="1">
+                <input type="hidden" name="proxy_enabled" value="{{ $proxyEnabled }}">
+                
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light rounded-3 border">
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" role="switch" id="proxy_load_balancing" name="proxy_load_balancing" value="1" {{ $proxyLoadBalancing == '1' ? 'checked' : '' }}>
+                                <label class="form-check-label fw-bold text-dark" for="proxy_load_balancing">
+                                    Multi-Account Load Balancing
+                                </label>
+                            </div>
+                            <small class="text-muted d-block">Distributes requests across all healthy accounts in the pool.</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light rounded-3 border">
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" role="switch" id="proxy_port_multiplexing" name="proxy_port_multiplexing" value="1" {{ $proxyPortMultiplexing == '1' ? 'checked' : '' }}>
+                                <label class="form-check-label fw-bold text-dark" for="proxy_port_multiplexing">
+                                    Decodo 50-Port Sharding
+                                </label>
+                            </div>
+                            <small class="text-muted d-block">Cycles residential ports (41001-41050) to prevent single IP throttling.</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light rounded-3 border">
+                            <label class="form-label small fw-bold text-dark mb-1">Port Sharding Range</label>
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control font-monospace" name="proxy_port_range" value="{{ $proxyPortRange }}" placeholder="41001-41050">
+                                <button type="submit" class="btn btn-primary fw-semibold px-3">
+                                    <i class="fa-solid fa-floppy-disk me-1"></i> Save
+                                </button>
+                            </div>
+                            <small class="text-muted d-block mt-1">Default Decodo residential range: <code>41001-41050</code></small>
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
 
         <!-- Decodo Accounts Pool Table -->

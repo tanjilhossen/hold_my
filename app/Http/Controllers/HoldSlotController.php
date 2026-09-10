@@ -1036,7 +1036,16 @@ class HoldSlotController extends Controller
             ]);
 
             $motherHash = trim($request->input('mother_hash'));
-            $requestedCount = max(1, (int)$request->input('available_seats', 10));
+            $rawRequested = max(1, (int)$request->input('available_seats', 10));
+
+            // Cap requested count to real available seats known from discovery
+            $dbHash = \App\Models\SlotHash::where('mother_hash', $motherHash)->first();
+            if ($dbHash && is_numeric($dbHash->available_seats) && (int)$dbHash->available_seats > 0) {
+                $requestedCount = min($rawRequested, (int)$dbHash->available_seats);
+            } else {
+                $requestedCount = $rawRequested;
+            }
+
             $categoryId = $request->input('category_id');
             $city = trim($request->input('city'));
             $centerName = trim($request->input('center_name'));

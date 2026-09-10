@@ -2965,18 +2965,12 @@ class SlotCheckerController extends Controller
                     'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 ];
 
-                $res = Http::timeout(6)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats?locale=en", [
-                    'exam_session_id' => [$motherHash],
-                    'methodology' => 'in_person',
-                ]);
-
-                if ($res->status() === 429) {
-                    usleep(1500000);
-                    $res = Http::timeout(6)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats?locale=en", [
+                $res = \App\Services\ProxyService::executeWithLoadBalancedRetry(function($proxyOpts, $proxyInfo) use ($headers, $motherHash) {
+                    return Http::withoutVerifying()->timeout(8)->withOptions($proxyOpts)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats?locale=en", [
                         'exam_session_id' => [$motherHash],
                         'methodology' => 'in_person',
                     ]);
-                }
+                }, 3, 20000);
 
                 if ($res->successful()) {
                     $seatData = $res->json();
@@ -3123,10 +3117,12 @@ class SlotCheckerController extends Controller
                             'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                         ];
 
-                        $res = Http::timeout(6)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats?locale=en", [
-                            'exam_session_id' => [$motherHash],
-                            'methodology' => 'in_person',
-                        ]);
+                        $res = \App\Services\ProxyService::executeWithLoadBalancedRetry(function($proxyOpts, $proxyInfo) use ($headers, $motherHash) {
+                            return Http::withoutVerifying()->timeout(8)->withOptions($proxyOpts)->withHeaders($headers)->post("{$this->apiBaseUrl}/api/v1/individual_labor_space/temporary_seats?locale=en", [
+                                'exam_session_id' => [$motherHash],
+                                'methodology' => 'in_person',
+                            ]);
+                        }, 3, 20000);
 
                         if ($res->successful()) {
                             $usedAccount = $candidate;

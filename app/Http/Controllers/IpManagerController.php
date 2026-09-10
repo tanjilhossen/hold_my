@@ -24,6 +24,10 @@ class IpManagerController extends Controller
         $proxyUsername = $activeAccount['username'] ?? Setting::get('proxy_username', 'spua00a572');
         $proxyPassword = $activeAccount['password'] ?? Setting::get('proxy_password', 'o3PbblJqa5C6~vzo9M');
 
+        $proxyLoadBalancing = Setting::get('proxy_load_balancing', '1');
+        $proxyPortMultiplexing = Setting::get('proxy_port_multiplexing', '1');
+        $proxyPortRange = Setting::get('proxy_port_range', '41001-41050');
+
         return view('ip_manager.index', compact(
             'proxyEnabled',
             'proxyHost',
@@ -32,7 +36,10 @@ class IpManagerController extends Controller
             'proxyPassword',
             'proxyTestUrl',
             'proxyAccounts',
-            'decodoApiKey'
+            'decodoApiKey',
+            'proxyLoadBalancing',
+            'proxyPortMultiplexing',
+            'proxyPortRange'
         ));
     }
 
@@ -41,15 +48,34 @@ class IpManagerController extends Controller
      */
     public function update(Request $request)
     {
-        Setting::set('proxy_enabled', $request->has('proxy_enabled') ? '1' : '0');
-        if ($request->has('proxy_test_url')) {
-            Setting::set('proxy_test_url', trim($request->input('proxy_test_url', 'ip.decodo.com/json')));
-        }
-        if ($request->has('decodo_api_key')) {
-            Setting::set('decodo_api_key', trim($request->input('decodo_api_key', '')));
+        if ($request->has('only_toggle_proxy')) {
+            Setting::set('proxy_enabled', $request->input('proxy_enabled', '0') == '1' ? '1' : '0');
+            return redirect()->back()->with('success', 'Proxy status updated.');
         }
 
-        return redirect()->back()->with('success', 'Proxy global settings updated successfully.');
+        if ($request->has('proxy_settings_form')) {
+            Setting::set('proxy_enabled', $request->has('proxy_enabled') ? '1' : '0');
+            Setting::set('proxy_load_balancing', $request->has('proxy_load_balancing') ? '1' : '0');
+            Setting::set('proxy_port_multiplexing', $request->has('proxy_port_multiplexing') ? '1' : '0');
+            if ($request->has('proxy_port_range')) {
+                Setting::set('proxy_port_range', trim($request->input('proxy_port_range', '41001-41050')));
+            }
+            if ($request->has('proxy_test_url')) {
+                Setting::set('proxy_test_url', trim($request->input('proxy_test_url', 'ip.decodo.com/json')));
+            }
+            if ($request->has('decodo_api_key')) {
+                Setting::set('decodo_api_key', trim($request->input('decodo_api_key', '')));
+            }
+            return redirect()->back()->with('success', 'Proxy global settings updated successfully.');
+        }
+
+        if ($request->has('proxy_enabled')) {
+            Setting::set('proxy_enabled', '1');
+        } else {
+            Setting::set('proxy_enabled', '0');
+        }
+
+        return redirect()->back()->with('success', 'Proxy settings updated successfully.');
     }
 
     /**

@@ -25,14 +25,14 @@ class Setting extends Model
     /**
      * Get Guzzle / Http client proxy configuration if proxy is enabled
      */
-    public static function getProxyConfig(): array
+    public static function getProxyConfig(?array $proxyInfo = null): array
     {
         $enabled = static::get('proxy_enabled', '1');
         if ($enabled !== '1' && $enabled !== 'true' && $enabled !== true) {
             return [];
         }
 
-        return \App\Services\ProxyService::getGuzzleOptions();
+        return \App\Services\ProxyService::getGuzzleOptions($proxyInfo);
     }
 
 

@@ -17,16 +17,123 @@ class ProxyService
     protected static int $healthCacheTtlSeconds = 25;
 
     /**
-     * Get active proxy connection credentials and settings.
-     * Preserves exact host and port without arbitrary mutation.
+     * Round-robin counters for load balancing across accounts and ports
      */
-    public static function getActiveProxy(): ?array
+    protected static int $accountRoundRobinIndex = 0;
+    protected static int $portRoundRobinIndex = 0;
+
+    /**
+     * Get next load-balanced proxy from the pool with Decodo residential port sharding.
+     * Distributes 500-600+ slot bookings across all healthy accounts and across Decodo's 50 residential ports (41001-41050),
+     * preventing any single proxy server or exit node from getting overloaded!
+     */
+    public static function getLoadBalancedProxy(): ?array
     {
         $enabled = Setting::get('proxy_enabled', '1');
         if ($enabled !== '1' && $enabled !== 'true' && $enabled !== true) {
             return null;
         }
 
+        $allAccounts = Setting::getProxyAccounts();
+        $healthyAccounts = [];
+
+        foreach ($allAccounts as $acc) {
+            $status = $acc['status'] ?? 'idle';
+            if ($status === 'exhausted') {
+                continue;
+            }
+            if (isset($acc['remaining_mb']) && is_numeric($acc['remaining_mb']) && $acc['remaining_mb'] <= 0) {
+                continue;
+            }
+            $healthyAccounts[] = $acc;
+        }
+
+        // If no non-exhausted accounts found, fallback to active or all accounts
+        if (empty($healthyAccounts)) {
+            $active = Setting::getActiveProxyAccount();
+            if ($active) {
+                $healthyAccounts = [$active];
+            } else {
+                $healthyAccounts = $allAccounts;
+            }
+        }
+
+        if (empty($healthyAccounts)) {
+            return static::getActiveSingleProxy();
+        }
+
+        // 1. Pick Account via Round-Robin distribution across all healthy accounts in pool
+        static::$accountRoundRobinIndex++;
+        $chosenAccount = $healthyAccounts[static::$accountRoundRobinIndex % count($healthyAccounts)];
+
+        $host = trim($chosenAccount['host'] ?? 'bd.decodo.com');
+        $rawPort = trim((string)($chosenAccount['port'] ?? '41001'));
+        $user = trim($chosenAccount['username'] ?? '');
+        $pass = (string)($chosenAccount['password'] ?? '');
+        $id = $chosenAccount['id'] ?? 'decodo_1';
+        $name = $chosenAccount['name'] ?? 'Decodo Account';
+
+        // 2. Decodo Port Sharding / Multiplexing across 50 distinct residential exit nodes (ports 41001 - 41050)
+        // Decodo Bangladesh sticky session ports range from 41001 to 41050.
+        // Each port connects to a completely different residential IP in Bangladesh!
+        $portMultiplexing = Setting::get('proxy_port_multiplexing', '1');
+        static::$portRoundRobinIndex++;
+        $configuredPortRange = Setting::get('proxy_port_range', '41001-41050');
+
+        if (str_contains($rawPort, '-')) {
+            $parts = explode('-', $rawPort);
+            $minPort = (int)trim($parts[0]);
+            $maxPort = (int)trim($parts[1]);
+            $rangeSize = max(1, $maxPort - $minPort + 1);
+            $port = (string)($minPort + (static::$portRoundRobinIndex % $rangeSize));
+        } elseif (str_contains($rawPort, ',')) {
+            $ports = array_map('trim', explode(',', $rawPort));
+            $port = (string)$ports[static::$portRoundRobinIndex % count($ports)];
+        } elseif (($portMultiplexing === '1' || $portMultiplexing === 'true' || $portMultiplexing === true) && (str_contains(strtolower($host), 'decodo') || ((int)$rawPort >= 41001 && (int)$rawPort <= 41050))) {
+            // Decodo residential sticky ports: rotate 41001 through 41050 (50 distinct residential exit IPs!)
+            $port = (string)(41001 + (static::$portRoundRobinIndex % 50));
+        } else {
+            $port = (string)$rawPort;
+        }
+
+        return [
+            'id' => $id,
+            'name' => $name,
+            'host' => $host,
+            'port' => $port,
+            'username' => $user,
+            'password' => $pass,
+            'is_load_balanced' => true,
+        ];
+    }
+
+    /**
+     * Get active proxy connection credentials and settings.
+     * When load balancing is enabled (default), dynamically shards requests across accounts & ports.
+     */
+    public static function getActiveProxy(bool $forceSingleStatic = false): ?array
+    {
+        $enabled = Setting::get('proxy_enabled', '1');
+        if ($enabled !== '1' && $enabled !== 'true' && $enabled !== true) {
+            return null;
+        }
+
+        $loadBalancingEnabled = Setting::get('proxy_load_balancing', '1');
+        if (!$forceSingleStatic && ($loadBalancingEnabled === '1' || $loadBalancingEnabled === 'true' || $loadBalancingEnabled === true)) {
+            $lbProxy = static::getLoadBalancedProxy();
+            if ($lbProxy) {
+                return $lbProxy;
+            }
+        }
+
+        return static::getActiveSingleProxy();
+    }
+
+    /**
+     * Get single static active proxy account without port sharding (used for health tests)
+     */
+    public static function getActiveSingleProxy(): ?array
+    {
         $activeAccount = Setting::getActiveProxyAccount();
         if ($activeAccount) {
             $host = trim($activeAccount['host'] ?? 'bd.decodo.com');
@@ -48,15 +155,13 @@ class ProxyService
             return null;
         }
 
-        // Support port range (41001-41010) or comma list (41001,41002) ONLY if explicitly specified
         if (str_contains($rawPort, '-')) {
             $parts = explode('-', $rawPort);
-            $port = (string)rand((int)trim($parts[0]), (int)trim($parts[1]));
+            $port = (string)trim($parts[0]);
         } elseif (str_contains($rawPort, ',')) {
             $ports = array_map('trim', explode(',', $rawPort));
-            $port = (string)$ports[array_rand($ports)];
+            $port = (string)$ports[0];
         } else {
-            // Keep exact port
             $port = (string)$rawPort;
         }
 
@@ -67,6 +172,7 @@ class ProxyService
             'port' => $port,
             'username' => $user,
             'password' => $pass,
+            'is_load_balanced' => false,
         ];
     }
 
@@ -1016,6 +1122,89 @@ class ProxyService
         // If all proxies in pool were exhausted or failed, fallback to direct or rethrow last exception
         Log::error("[UnbreakableProxy 🚨] All proxies in pool evaluated or exhausted without success. Dispatching request directly or returning last state.");
         if (isset($lastException)) {
+            throw $lastException;
+        }
+
+        return null;
+    }
+
+    /**
+     * HIGH-SCALE LOAD-BALANCED DISPATCHER:
+     * Dispatches any request (e.g. bulk slot booking of 500-600 slots) across the load-balanced proxy pool.
+     * If a specific port or exit node encounters a temporary error (HTTP 502/503/504, 429 rate limit, or cURL timeout),
+     * it automatically retries with the NEXT distinct residential port or proxy in the pool!
+     * Ensures smooth distribution without overloading any single proxy server.
+     */
+    public static function executeWithLoadBalancedRetry(callable $callback, int $maxRetries = 3, int $pacingDelayUs = 25000)
+    {
+        $lastException = null;
+        $lastResult = null;
+
+        for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+            $proxyInfo = static::getLoadBalancedProxy();
+            $proxyOpts = [
+                'curl' => [
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_SSL_VERIFYHOST => 0,
+                ]
+            ];
+            if ($proxyInfo) {
+                static::applyProxyToOptions($proxyOpts, $proxyInfo);
+            }
+
+            try {
+                if ($pacingDelayUs > 0) {
+                    usleep($pacingDelayUs); // Light micro-pacing to prevent socket burst collisions
+                }
+
+                $res = $callback($proxyOpts, $proxyInfo);
+                $lastResult = $res;
+
+                if (is_object($res) && method_exists($res, 'status')) {
+                    $status = $res->status();
+                    $body = method_exists($res, 'body') ? $res->body() : '';
+
+                    // Check for TRUE bandwidth exhaustion
+                    if (static::isTrueBandwidthExhausted($status, $body)) {
+                        $pId = $proxyInfo['id'] ?? 'unknown';
+                        Setting::markProxyExhausted($pId, "Bandwidth Closed (Decodo limit reached)");
+                        continue;
+                    }
+
+                    // Transient gateway or rate limit from proxy/target
+                    if (in_array($status, [502, 503, 504, 429]) && $attempt < $maxRetries) {
+                        $port = $proxyInfo['port'] ?? 'unknown';
+                        Log::info("[ProxyLoadBalancer 🔄] Port {$port} returned HTTP {$status}. Rotating to next residential port (Attempt " . ($attempt + 1) . "/{$maxRetries})...");
+                        usleep(100000 * $attempt);
+                        continue;
+                    }
+                }
+
+                return $res;
+            } catch (Exception $e) {
+                $lastException = $e;
+                $msg = $e->getMessage();
+                $port = $proxyInfo['port'] ?? 'unknown';
+
+                if (static::isTrueBandwidthExhausted(0, '', $msg)) {
+                    $pId = $proxyInfo['id'] ?? 'unknown';
+                    Setting::markProxyExhausted($pId, "Bandwidth Closed: " . substr($msg, 0, 60));
+                    continue;
+                }
+
+                if ($attempt < $maxRetries) {
+                    Log::info("[ProxyLoadBalancer 🔄] Port {$port} network glitch ({$msg}). Sharding to next residential port (Attempt " . ($attempt + 1) . "/{$maxRetries})...");
+                    usleep(150000 * $attempt);
+                    continue;
+                }
+            }
+        }
+
+        if ($lastResult !== null) {
+            return $lastResult;
+        }
+
+        if ($lastException !== null) {
             throw $lastException;
         }
 

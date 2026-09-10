@@ -92,28 +92,63 @@ class ProcessVaultLockCommand extends Command
         $processedEmails = [];
 
         while ($lockedCount < $requestedCount) {
-            // Get candidate emails currently busy holding seats in ANY active or pending hold
-            $busyEmails = SlotHold::activeOrPending()
-                ->pluck('held_with_email')
-                ->map(fn($e) => strtolower(trim($e)))
-                ->unique()
-                ->toArray();
+            // 1. FIRST check if there is an account pre-assigned in pending_locking for THIS mother hash
+            $pendingHoldForThisHash = SlotHold::where('mother_hash', $motherHash)
+                ->where('status', 'pending_locking')
+                ->whereNotIn('held_with_email', $processedEmails)
+                ->first();
 
-            // Find next free candidate account from pool
             $candidate = null;
-            foreach ($poolAccounts as $pAcc) {
-                $pEmail = strtolower(trim($pAcc['email'] ?? ''));
-                if (empty($pEmail)) continue;
-                if ($pEmail === $checkerEmail) continue; // Dedicated slot checker account MUST NOT be used for locking
-                if (in_array($pEmail, $busyEmails)) continue; // Skip accounts already holding active/pending seats
-                if (in_array($pEmail, $processedEmails)) continue; // Skip accounts already attempted in this run
+            if ($pendingHoldForThisHash) {
+                $targetEmail = strtolower(trim($pendingHoldForThisHash->held_with_email));
+                foreach ($poolAccounts as $pAcc) {
+                    if (strtolower(trim($pAcc['email'] ?? '')) === $targetEmail) {
+                        $candidate = [
+                            'email' => $targetEmail,
+                            'password' => $pAcc['password'] ?? 'Taqamul@2723!',
+                            'token' => $pAcc['token'] ?? null,
+                        ];
+                        break;
+                    }
+                }
+                if (!$candidate) {
+                    $candidate = [
+                        'email' => $targetEmail,
+                        'password' => $tokenService->getPasswordForAccount($targetEmail),
+                        'token' => $tokenService->getTokenForAccount($targetEmail),
+                    ];
+                }
+            }
 
-                $candidate = [
-                    'email' => $pEmail,
-                    'password' => $pAcc['password'] ?? 'Taqamul@2723!',
-                    'token' => $pAcc['token'] ?? null,
-                ];
-                break;
+            // 2. If no pre-assigned candidate waiting, find next free candidate account from pool
+            if (!$candidate) {
+                // Get candidate emails busy in OTHER hashes or already active in this hash
+                $busyEmails = SlotHold::where('mother_hash', '!=', $motherHash)
+                    ->whereIn('status', ['active', 'pending_locking'])
+                    ->pluck('held_with_email')
+                    ->merge(
+                        SlotHold::where('mother_hash', $motherHash)
+                            ->where('status', 'active')
+                            ->pluck('held_with_email')
+                    )
+                    ->map(fn($e) => strtolower(trim($e)))
+                    ->unique()
+                    ->toArray();
+
+                foreach ($poolAccounts as $pAcc) {
+                    $pEmail = strtolower(trim($pAcc['email'] ?? ''));
+                    if (empty($pEmail)) continue;
+                    if ($pEmail === $checkerEmail) continue; // Dedicated slot checker account MUST NOT be used for locking
+                    if (in_array($pEmail, $busyEmails)) continue; // Skip accounts already holding active/pending seats elsewhere
+                    if (in_array($pEmail, $processedEmails)) continue; // Skip accounts already attempted in this run
+
+                    $candidate = [
+                        'email' => $pEmail,
+                        'password' => $pAcc['password'] ?? 'Taqamul@2723!',
+                        'token' => $pAcc['token'] ?? null,
+                    ];
+                    break;
+                }
             }
 
             if (!$candidate) {
@@ -136,35 +171,14 @@ class ProcessVaultLockCommand extends Command
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             ];
 
-            $dispatchReservation = function(string $url, array $payload, array $hdrs) use ($tokenService) {
-                $proxyCfg = Setting::getProxyConfig();
-                $baseOpts = [
-                    'curl' => [
-                        CURLOPT_SSL_VERIFYPEER => false,
-                        CURLOPT_SSL_VERIFYHOST => 0,
-                    ]
-                ];
-
-                if (!empty($proxyCfg['proxy'])) {
-                    $proxyOpts = $baseOpts;
-                    \App\Services\ProxyService::applyProxyToOptions($proxyOpts);
-                    try {
-                        $res = Http::withoutVerifying()->timeout(10)->withOptions($proxyOpts)->withHeaders($hdrs)->post($url, $payload);
-                        if ($res) {
-                            Setting::checkAndHandleProxyFailure($res->status(), $res->body());
-                            if ($res->status() < 500) {
-                                return $res;
-                            }
-                        }
-                        $this->warn("[VaultLockWorker] Proxy request returned HTTP {$res->status()}. Falling back to direct HTTP connection without proxy...");
-                    } catch (\Exception $e) {
-                        Setting::checkAndHandleProxyFailure(0, '', $e->getMessage());
-                        $this->warn("[VaultLockWorker] Proxy request failed (" . $e->getMessage() . "). Falling back to direct HTTP connection without proxy...");
+            $dispatchReservation = function(string $url, array $payload, array $hdrs) {
+                return \App\Services\ProxyService::executeWithLoadBalancedRetry(function($proxyOpts, $proxyInfo) use ($url, $payload, $hdrs) {
+                    $res = Http::withoutVerifying()->timeout(10)->withOptions($proxyOpts)->withHeaders($hdrs)->post($url, $payload);
+                    if ($res) {
+                        \App\Models\Setting::checkAndHandleProxyFailure($res->status(), $res->body());
                     }
-                }
-
-                // Direct HTTP request without proxy
-                return Http::withoutVerifying()->timeout(10)->withOptions($baseOpts)->withHeaders($hdrs)->post($url, $payload);
+                    return $res;
+                }, 3, 20000);
             };
 
             $resId = null;
@@ -280,6 +294,7 @@ class ProcessVaultLockCommand extends Command
             if (!$resSuccess || !$resId) {
                 if ($status === 404 || str_contains(strtolower($bodyStr), 'no longer available')) {
                     $this->error("[VaultLockWorker] Session hash {$motherHash} is NOT AVAILABLE on Taqamul (HTTP 404). Stopping locking and cleaning up pending records.");
+                    Log::warning("[VaultLockWorker] Mother Hash {$motherHash} is not available (HTTP 404). Purged pending records.");
                     SlotHold::where('mother_hash', $motherHash)
                         ->where('status', 'pending_locking')
                         ->delete();
@@ -288,6 +303,16 @@ class ProcessVaultLockCommand extends Command
 
                 if ($status === 529 || str_contains(strtolower($bodyStr), 'something went wrong') || str_contains(strtolower($bodyStr), 'full') || str_contains(strtolower($bodyStr), 'no seats')) {
                     $this->error("[VaultLockWorker] Session hash {$motherHash} is FULL or EXPIRED on Taqamul API. Stopping locking and cleaning up pending records.");
+                    Log::warning("[VaultLockWorker] Mother Hash {$motherHash} is FULL/EXPIRED (HTTP {$status}). Purged pending records.");
+                    SlotHold::where('mother_hash', $motherHash)
+                        ->where('status', 'pending_locking')
+                        ->delete();
+                    break;
+                }
+
+                if ($status === 422 && (str_contains(strtolower($bodyStr), 'no test sessions') || str_contains(strtolower($bodyStr), 'seats') || str_contains(strtolower($bodyStr), 'occupation') || str_contains(strtolower($bodyStr), 'currently no'))) {
+                    $this->error("[VaultLockWorker] Center {$centerName} has reached full capacity on Taqamul API (HTTP 422: No remaining seats). Stopping locking and cleaning up pending records.");
+                    Log::info("[VaultLockWorker] Center {$centerName} ({$motherHash}) is fully booked on Taqamul. Cleaned up pending slots.");
                     SlotHold::where('mother_hash', $motherHash)
                         ->where('status', 'pending_locking')
                         ->delete();

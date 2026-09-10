@@ -134,16 +134,17 @@
                         <thead class="table-secondary text-dark">
                             <tr>
                                 <th>Slot #</th>
-                                <th>Candidate Pool Email</th>
+                                <th>Current Holding Account</th>
+                                <th>Next Candidate (T-3m Pre-Warm)</th>
                                 <th>Reservation / Seat ID</th>
                                 <th>Expiry Time</th>
-                                <th>Renew Count</th>
+                                <th>Renewals</th>
                                 <th class="text-end">Action</th>
                             </tr>
                         </thead>
                         <tbody id="modal-slots-table-body">
                             <tr>
-                                <td colspan="6" class="text-center text-muted py-4">No slots found</td>
+                                <td colspan="7" class="text-center text-muted py-4">No slots found</td>
                             </tr>
                         </tbody>
                     </table>
@@ -458,6 +459,10 @@
                             ? `<span class="badge bg-warning text-dark fs-6"><span class="spinner-border spinner-border-sm me-1" role="status"></span> Locking ${g.total_locked_slots > 0 ? g.total_locked_slots + ' Slots Locked' : 'In Progress...'}</span>`
                             : `<span class="badge bg-success fs-6"><i class="fa-solid fa-lock me-1"></i> ${g.total_locked_slots} Slots Locked</span>`
                         }
+                        ${g.has_failure 
+                            ? `<div class="mt-1"><span class="badge bg-danger text-wrap text-start font-monospace" style="font-size: 0.72rem;" title="${g.latest_failure_reason}"><i class="fa-solid fa-triangle-exclamation me-1"></i> Issue: ${(g.latest_failure_reason || '').substring(0, 30)}...</span></div>` 
+                            : ''
+                        }
                     </td>
                     <td class="text-end">
                         <button class="btn btn-sm btn-info text-dark fw-bold me-1" onclick="openExpandedModal('${g.mother_hash}')">
@@ -530,7 +535,7 @@
 
         tbody.innerHTML = '';
         if (!group.slots || group.slots.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No slots found</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">No slots found</td></tr>`;
             return;
         }
 
@@ -545,6 +550,38 @@
             const seatIdBadge = isPending 
                 ? `<span class="badge bg-warning text-dark"><i class="fa-solid fa-spinner fa-spin me-1"></i> Reserving...</span>` 
                 : `<span class="badge bg-success text-white font-monospace fs-6 px-2 py-1"><i class="fa-solid fa-chair me-1"></i> ${seatDisplay}</span>`;
+
+            let candidatePrewarmHtml = '';
+            if (s.prewarm_status === 'ready' && s.next_candidate_email) {
+                candidatePrewarmHtml = `
+                    <div>
+                        <span class="badge bg-success text-white py-1 px-2"><i class="fa-solid fa-bolt me-1"></i> Armed & Ready</span>
+                    </div>
+                    <div class="mt-1"><code class="fs-7 text-warning">${s.next_candidate_email}</code></div>
+                    <div class="text-muted" style="font-size: 0.70rem;">Logged in & armed (${s.prewarmed_at || 'Recently'})</div>
+                `;
+            } else if (s.prewarm_status === 'in_progress') {
+                candidatePrewarmHtml = `<span class="badge bg-warning text-dark"><i class="fa-solid fa-spinner fa-spin me-1"></i> Logging in...</span>`;
+            } else if (s.prewarm_status === 'failed') {
+                candidatePrewarmHtml = `
+                    <span class="badge bg-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> Pre-warm Failed</span>
+                    ${s.last_failure_reason ? `<div class="text-danger small mt-1 font-monospace" style="font-size: 0.7rem;">${s.last_failure_reason}</div>` : ''}
+                `;
+            } else {
+                candidatePrewarmHtml = `<span class="badge bg-secondary text-light opacity-75 font-monospace" style="font-size: 0.72rem;"><i class="fa-regular fa-clock me-1"></i> Standby (at T-3m)</span>`;
+            }
+
+            let failureBadge = '';
+            if (s.last_failure_reason) {
+                failureBadge = `
+                    <div class="mt-1">
+                        <span class="badge bg-danger text-wrap text-start font-monospace" style="max-width: 240px; font-size: 0.72rem;" title="${s.last_failure_reason}">
+                            <i class="fa-solid fa-circle-exclamation me-1"></i> ${s.last_failure_reason}
+                        </span>
+                        ${s.last_failure_at ? `<div class="text-danger-emphasis small" style="font-size: 0.68rem;">at ${s.last_failure_at}</div>` : ''}
+                    </div>
+                `;
+            }
 
             const expiresIso = s.expires_at_iso || '';
 
@@ -566,7 +603,11 @@
             tbody.innerHTML += `
                 <tr>
                     <td class="fw-bold">${idx + 1}</td>
-                    <td><code class="fs-6 text-info">${s.email}</code></td>
+                    <td>
+                        <code class="fs-6 text-info">${s.email}</code>
+                        ${failureBadge}
+                    </td>
+                    <td>${candidatePrewarmHtml}</td>
                     <td>${seatIdBadge}</td>
                     <td>${expiryText}</td>
                     <td>${renewBadge}</td>

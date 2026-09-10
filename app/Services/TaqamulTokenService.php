@@ -156,7 +156,24 @@ class TaqamulTokenService
 
 
     /**
-     * Validate token string format to prevent invalid JSON strings
+     * Check if a JWT token has expired based on its internal exp claim
+     */
+    public function isTokenExpired(?string $token): bool
+    {
+        if (empty($token)) return true;
+        $t = trim(str_replace('Bearer ', '', $token));
+        $parts = explode('.', $t);
+        if (count($parts) < 2) return true;
+        $payloadRaw = base64_decode(strtr($parts[1], '-_', '+/'));
+        if (!$payloadRaw) return true;
+        $payload = json_decode($payloadRaw, true);
+        if (!isset($payload['exp']) || !is_numeric($payload['exp'])) return false;
+        // Consider expired if exp timestamp is within 60 seconds from current time
+        return (int)$payload['exp'] <= (time() + 60);
+    }
+
+    /**
+     * Validate token string format and verify JWT exp has not elapsed
      */
     public function isValidTokenFormat(?string $token): bool
     {
@@ -165,7 +182,11 @@ class TaqamulTokenService
         if (str_starts_with($t, '{') || str_starts_with($t, '[') || str_contains($t, 'portal') || str_contains($t, '"')) {
             return false;
         }
-        return strlen($t) > 20;
+        if (strlen($t) < 20) return false;
+        if ($this->isTokenExpired($t)) {
+            return false;
+        }
+        return true;
     }
 
     /**
